@@ -1,155 +1,179 @@
 "use client"
 
-import { useState } from "react"
+import * as React from "react"
 import { useRouter } from "next/navigation"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
 import Link from "next/link"
+import { Loader2 } from "lucide-react"
+import { toast } from 'sonner'
+import { useAuth } from "@/stores/auth"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input" 
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 
-export function AuthForm() {
-    const router = useRouter()
-    const [isLoading, setIsLoading] = useState(false)
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
+// Define the form schema with proper types
+const formSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  remember: z.boolean()
+}) satisfies z.ZodType<{
+  email: string
+  password: string
+  remember: boolean
+}>
 
-    async function onSubmit(event: React.FormEvent) {
-      event.preventDefault()
-      setIsLoading(true)
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        router.push("/dashboard")
-      } catch (error) {
-        console.error("Login error:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+// Infer the type from the schema
+type FormValues = z.infer<typeof formSchema>
+
+export function AuthForm({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"div">) {
+  const router = useRouter()
+  const { login, isAuthenticated } = useAuth()
+  const [isHydrated, setIsHydrated] = React.useState(false)
   
-    return (
-      <Card className="border-0 shadow-none bg-transparent">
-        <CardContent className="p-6">
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm text-gray-700">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11 bg-white/60 border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all duration-150"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm text-gray-700">
-                  Password
-                </Label>
-                <Link 
-                  href="/forgot-password" 
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-11 bg-white/60 border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all duration-150"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="remember" 
-                className="border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-              />
-              <Label htmlFor="remember" className="text-sm font-normal text-gray-600">
-                Remember me for 30 days
-              </Label>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all duration-150" 
-              disabled={isLoading}
-            >
-              <span className="flex items-center justify-center">
-                {isLoading && (
-                  <svg 
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="none" 
-                    viewBox="0 0 24 24"
-                  >
-                    <circle 
-                      className="opacity-25" 
-                      cx="12" 
-                      cy="12" 
-                      r="10" 
-                      stroke="currentColor" 
-                      strokeWidth="4"
-                    />
-                    <path 
-                      className="opacity-75" 
-                      fill="currentColor" 
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: false,
+    },
+  })
+
+  // Handle hydration
+  React.useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isHydrated && isAuthenticated) {
+      router.push("/dashboard")
+    }
+  }, [isHydrated, isAuthenticated, router])
+
+  async function onSubmit(data: FormValues) {
+    try {
+      await login(data.email, data.password)
+      toast.success('Logged in successfully')
+      router.push("/dashboard")
+    } catch (error) {
+      toast.error('Invalid credentials')
+    }
+  }
+
+  // Don't render until hydrated to avoid hydration mismatch
+  if (!isHydrated) {
+    return null
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Enter your email below to login to your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  {...form.register("email")}
+                />
+                {form.formState.errors.email && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.email.message}
+                  </p>
                 )}
-                {isLoading ? "Signing in..." : "Sign in"}
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <a
+                    href="#" 
+                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                  >
+                    Forgot your password?
+                  </a>
+                </div>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  required
+                  {...form.register("password")}
+                />
+                {form.formState.errors.password && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="remember" 
+                  checked={form.watch("remember")}
+                  onCheckedChange={(checked) => 
+                    form.setValue("remember", checked === true)
+                  }
+                />
+                <Label htmlFor="remember" className="text-sm font-normal">
+                  Remember me
+                </Label>
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </Button>
+              <Button variant="outline" className="w-full">
+                Login with Google
+              </Button>
+            </div>
+            <div className="mt-4 text-center">
+              <span className="text-sm">
+                Don&apos;t have an account?{" "}
+                <a 
+                  href="#" 
+                  className="text-sm underline underline-offset-4"
+                >
+                  Sign up
+                </a>
               </span>
-            </Button>
+            </div>
           </form>
-          
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-white text-gray-500">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <Button 
-              variant="outline" 
-              className="h-11 bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium transition-all duration-150" 
-              type="button"
-            >
-              Google
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-11 bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium transition-all duration-150" 
-              type="button"
-            >
-              GitHub
-            </Button>
-          </div>
         </CardContent>
-        <CardFooter className="p-6 pt-0">
-          <p className="text-sm text-gray-600 text-center w-full">
-            Don't have an account?{" "}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
-              Create one
-            </Link>
-          </p>
-        </CardFooter>
       </Card>
-    )
+    </div>
+  )
 }
