@@ -4,6 +4,21 @@ import { useAuth } from "@/stores/auth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { AppSidebar } from "@/components/app-sidebar"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -16,29 +31,57 @@ export default function DashboardPage() {
   }, [isAuthenticated, router])
 
   if (!user) return null
-
+  
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Dashboard</h1>
-        <Button 
-          variant="outline" 
-          onClick={() => {
-            logout()
-            router.push('/auth/signin')
-          }}
-        >
-          Sign Out
-        </Button>
-      </div>
-      <div className="grid gap-6">
-        <div className="rounded-lg border p-4">
-          <h2 className="text-xl font-semibold mb-2">Welcome, {user.name}</h2>
-          <p className="text-sm text-muted-foreground">
-            You are logged in as: {user.role}
-          </p>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Overview</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          
+          <div className="ml-auto">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                logout()
+                router.push('/auth/signin')
+              }}
+            >
+              Sign Out
+            </Button>
+          </div>
+        </header>
+        
+        <div className="flex flex-1 flex-col gap-6 p-6">
+          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
+              <p className="text-muted-foreground">Dashboard Card 1</p>
+            </div>
+            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
+              <p className="text-muted-foreground">Dashboard Card 2</p>
+            </div>
+            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
+              <p className="text-muted-foreground">Dashboard Card 3</p>
+            </div>
+          </div>
+          <div className="min-h-[50vh] flex-1 rounded-xl bg-muted/50 flex items-center justify-center md:min-h-min">
+            <p className="text-muted-foreground">Dashboard Content</p>
+          </div>
         </div>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
-} 
+}

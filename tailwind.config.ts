@@ -18,6 +18,9 @@ const config = {
       },
     },
     extend: {
+      zIndex: {
+        '60': '60',
+      },
       colors: {
         border: "oklch(var(--border))",
         input: "oklch(var(--input))",
