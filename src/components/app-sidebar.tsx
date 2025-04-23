@@ -93,23 +93,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [releasePriority, setReleasePriority] = useState<'High' | 'Med' | 'Low'>('Med');
   const [currentFeatureId, setCurrentFeatureId] = useState<string | null>(null);
   
+  // State for feature selection mode
+  const [isSelectingFeature, setIsSelectingFeature] = useState(false);
+  
   // Handle feature form submission
   const handleCreateFeature = () => {
     if (!featureName) return;
     
-    addFeature({
+    const newFeature = {
       name: featureName,
       priority,
       description,
       productName,
-    });
+    };
+    
+    addFeature(newFeature);
     
     // Reset form
     setFeatureName('');
     setPriority('Med');
     setDescription('');
     setProductName('');
-    setIsOpen(false);
+    
+    if (!isSelectingFeature) {
+      setIsOpen(false);
+    }
   };
   
   // Handle release form submission
@@ -140,12 +148,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setReleaseDescription('');
     setReleaseDate('');
     setReleasePriority('Med');
+    setIsOpen(false);
   };
   
   // Show the release form for a specific feature
   const handleShowReleaseForm = (featureId: string) => {
     setCurrentFeatureId(featureId);
     setShowReleaseForm(true);
+  };
+  
+  // Handle New Release button click
+  const handleNewReleaseClick = () => {
+    if (features.length === 0) {
+      // If no features exist, create a feature first
+      setShowReleaseForm(false);
+      return;
+    }
+    
+    if (currentFeatureId) {
+      // If a feature is already selected, show the release form
+      setShowReleaseForm(true);
+    } else {
+      // Open drawer to select a feature first
+      setIsSelectingFeature(true);
+      setIsOpen(true);
+    }
   };
   
   return (
@@ -161,154 +188,233 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </div>
         </div>
         
-        <Drawer direction="bottom" open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerTrigger asChild>
-            <Button className="w-full" variant="outline">
-              <Plus className="mr-2 h-4 w-4" />
-              New Feature
-            </Button>
-          </DrawerTrigger>
-          <DrawerContent className="rounded-t-lg border-2 border-border bg-background" style={{ backgroundColor: 'var(--background)' }}>
-            <DrawerHeader className="border-b-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              <div className="flex justify-between items-center">
-                <div>
-                  <DrawerTitle>New Feature</DrawerTitle>
-                  <DrawerDescription>
-                    Create a new feature for your project.
-                  </DrawerDescription>
-                </div>
-                {currentFeatureId && (
+        <div className="grid grid-cols-2 gap-2">
+          <Drawer direction="bottom" open={isOpen} onOpenChange={setIsOpen}>
+            <DrawerTrigger asChild>
+              <Button className="w-full" variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                New Feature
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="rounded-t-lg border-2 border-border bg-background" style={{ backgroundColor: 'var(--background)' }}>
+              <DrawerHeader className="border-b-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <DrawerTitle>
+                      {isSelectingFeature 
+                        ? "Select a Feature for New Release" 
+                        : "New Feature"
+                      }
+                    </DrawerTitle>
+                    <DrawerDescription>
+                      {isSelectingFeature 
+                        ? "Choose which feature to add a release to" 
+                        : "Create a new feature for your project"
+                      }
+                    </DrawerDescription>
+                  </div>
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    onClick={() => handleShowReleaseForm(currentFeatureId)}
+                    size="sm"
+                    onClick={() => {
+                      if (isSelectingFeature) {
+                        setIsSelectingFeature(false);
+                      } else if (currentFeatureId) {
+                        setShowReleaseForm(true);
+                      }
+                    }}
+                    disabled={isSelectingFeature}
                   >
                     New Release
                   </Button>
-                )}
-              </div>
-            </DrawerHeader>
-            <div className="p-6 space-y-4 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              <div className="space-y-2">
-                <Label htmlFor="feature-name">Feature Name*</Label>
-                <Input 
-                  id="feature-name" 
-                  placeholder="Enter feature name" 
-                  value={featureName}
-                  onChange={(e) => setFeatureName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="feature-priority">Priority</Label>
-                <Select 
-                  value={priority} 
-                  onValueChange={(value) => setPriority(value as 'High' | 'Med' | 'Low')}
-                >
-                  <SelectTrigger id="feature-priority">
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Med">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="feature-description">Description</Label>
-                <Textarea 
-                  id="feature-description" 
-                  placeholder="Enter feature description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="product-name">Product Name</Label>
-                <Input 
-                  id="product-name" 
-                  placeholder="Enter product name"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                />
-              </div>
+                </div>
+              </DrawerHeader>
               
-              {showReleaseForm && (
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle>Add Release</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+              {isSelectingFeature ? (
+                <div className="p-6 space-y-4 bg-background" style={{ backgroundColor: 'var(--background)' }}>
+                  <div className="space-y-4">
+                    <Label>Select a Feature</Label>
                     <div className="space-y-2">
-                      <Label htmlFor="release-name">Release Name*</Label>
-                      <Input 
-                        id="release-name" 
-                        placeholder="Enter release name" 
-                        value={releaseName}
-                        onChange={(e) => setReleaseName(e.target.value)}
-                        required
-                      />
+                      {features.length === 0 ? (
+                        <div className="text-sm text-muted-foreground">
+                          No features available. Create a feature first.
+                        </div>
+                      ) : (
+                        features.map(feature => (
+                          <div 
+                            key={feature.id} 
+                            className="flex items-center justify-between p-3 border rounded-md cursor-pointer hover:bg-accent/50"
+                            onClick={() => {
+                              setCurrentFeatureId(feature.id);
+                              setShowReleaseForm(true);
+                              setIsSelectingFeature(false);
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <Folder className="h-4 w-4 mr-2" />
+                              <span>{feature.name}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {feature.priority}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="release-description">Description</Label>
-                      <Textarea 
-                        id="release-description" 
-                        placeholder="Enter release description"
-                        value={releaseDescription}
-                        onChange={(e) => setReleaseDescription(e.target.value)}
-                        rows={2}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="release-date">Release Date*</Label>
-                      <Input 
-                        id="release-date" 
-                        type="date" 
-                        value={releaseDate}
-                        onChange={(e) => setReleaseDate(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="release-priority">Priority</Label>
-                      <Select 
-                        value={releasePriority} 
-                        onValueChange={(value) => setReleasePriority(value as 'High' | 'Med' | 'Low')}
-                      >
-                        <SelectTrigger id="release-priority">
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="High">High</SelectItem>
-                          <SelectItem value="Med">Medium</SelectItem>
-                          <SelectItem value="Low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="pt-2">
-                      <Button onClick={handleCreateRelease}>Add Release</Button>
-                      <Button 
-                        variant="outline" 
-                        className="ml-2" 
-                        onClick={() => setShowReleaseForm(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <DrawerFooter className="px-0 pt-2 pb-0">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsSelectingFeature(false);
+                        setIsOpen(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              ) : (
+                <>
+                  <div className="p-6 space-y-4 bg-background" style={{ backgroundColor: 'var(--background)' }}>
+                    {!showReleaseForm ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="feature-name">Feature Name*</Label>
+                          <Input 
+                            id="feature-name" 
+                            placeholder="Enter feature name" 
+                            value={featureName}
+                            onChange={(e) => setFeatureName(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="feature-priority">Priority</Label>
+                          <Select 
+                            value={priority} 
+                            onValueChange={(value) => setPriority(value as 'High' | 'Med' | 'Low')}
+                          >
+                            <SelectTrigger id="feature-priority">
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="High">High</SelectItem>
+                              <SelectItem value="Med">Medium</SelectItem>
+                              <SelectItem value="Low">Low</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="feature-description">Description</Label>
+                          <Textarea 
+                            id="feature-description" 
+                            placeholder="Enter feature description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows={3}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="product-name">Product Name</Label>
+                          <Input 
+                            id="product-name" 
+                            placeholder="Enter product name"
+                            value={productName}
+                            onChange={(e) => setProductName(e.target.value)}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <Card className="mt-0">
+                        <CardHeader>
+                          <CardTitle>Add Release</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="release-name">Release Name*</Label>
+                            <Input 
+                              id="release-name" 
+                              placeholder="Enter release name" 
+                              value={releaseName}
+                              onChange={(e) => setReleaseName(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="release-description">Description</Label>
+                            <Textarea 
+                              id="release-description" 
+                              placeholder="Enter release description"
+                              value={releaseDescription}
+                              onChange={(e) => setReleaseDescription(e.target.value)}
+                              rows={2}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="release-date">Release Date*</Label>
+                            <Input 
+                              id="release-date" 
+                              type="date" 
+                              value={releaseDate}
+                              onChange={(e) => setReleaseDate(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="release-priority">Priority</Label>
+                            <Select 
+                              value={releasePriority} 
+                              onValueChange={(value) => setReleasePriority(value as 'High' | 'Med' | 'Low')}
+                            >
+                              <SelectTrigger id="release-priority">
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="High">High</SelectItem>
+                                <SelectItem value="Med">Medium</SelectItem>
+                                <SelectItem value="Low">Low</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  <DrawerFooter className="border-t-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
+                    {showReleaseForm ? (
+                      <>
+                        <Button onClick={handleCreateRelease}>Create Release</Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowReleaseForm(false)}
+                        >
+                          Back to Feature
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button onClick={handleCreateFeature}>Create Feature</Button>
+                        <DrawerClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DrawerClose>
+                      </>
+                    )}
+                  </DrawerFooter>
+                </>
               )}
-            </div>
-            <DrawerFooter className="border-t-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              <Button onClick={handleCreateFeature}>Create Feature</Button>
-              <DrawerClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+            </DrawerContent>
+          </Drawer>
+          
+          <Button 
+            className="w-full" 
+            variant="outline"
+            onClick={handleNewReleaseClick}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Release
+          </Button>
+        </div>
       </SidebarHeader>
       
       <SidebarContent>
