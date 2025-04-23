@@ -1,6 +1,7 @@
 import * as React from "react"
 import { 
   ChevronRight, 
+  Calendar,
   File, 
   Folder, 
   Plus, 
@@ -42,6 +43,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/stores/auth"
 import { Feature, useFeaturesStore } from "@/stores/features"
+import { Release, useReleasesStore } from "@/stores/releases"
 import { 
   Select,
   SelectContent,
@@ -50,6 +52,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 
 // This is sample data for changes.
@@ -72,16 +75,25 @@ const changesData = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
-  const { features, addFeature, getFeatures } = useFeaturesStore();
+  const { features, addFeature, updateFeatureWithRelease } = useFeaturesStore();
+  const { releases, addRelease, getReleasesByFeatureId } = useReleasesStore();
   
-  // State for the form
+  // State for the feature form
   const [featureName, setFeatureName] = useState('');
   const [priority, setPriority] = useState<'High' | 'Med' | 'Low'>('Med');
   const [description, setDescription] = useState('');
   const [productName, setProductName] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   
-  // Handle form submission
+  // State for the release form
+  const [showReleaseForm, setShowReleaseForm] = useState(false);
+  const [releaseName, setReleaseName] = useState('');
+  const [releaseDescription, setReleaseDescription] = useState('');
+  const [releaseDate, setReleaseDate] = useState('');
+  const [releasePriority, setReleasePriority] = useState<'High' | 'Med' | 'Low'>('Med');
+  const [currentFeatureId, setCurrentFeatureId] = useState<string | null>(null);
+  
+  // Handle feature form submission
   const handleCreateFeature = () => {
     if (!featureName) return;
     
@@ -98,6 +110,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setDescription('');
     setProductName('');
     setIsOpen(false);
+  };
+  
+  // Handle release form submission
+  const handleCreateRelease = () => {
+    if (!releaseName || !currentFeatureId || !releaseDate) return;
+    
+    const newRelease: Omit<Release, 'id'> = {
+      name: releaseName,
+      description: releaseDescription,
+      releaseDate,
+      priority: releasePriority,
+      featureId: currentFeatureId
+    };
+    
+    addRelease(newRelease);
+    
+    // Get the new release's ID (newest release for this feature)
+    const featureReleases = getReleasesByFeatureId(currentFeatureId);
+    const newReleaseId = featureReleases[featureReleases.length - 1]?.id;
+    
+    if (newReleaseId) {
+      updateFeatureWithRelease(currentFeatureId, newReleaseId);
+    }
+    
+    // Reset form
+    setShowReleaseForm(false);
+    setReleaseName('');
+    setReleaseDescription('');
+    setReleaseDate('');
+    setReleasePriority('Med');
+  };
+  
+  // Show the release form for a specific feature
+  const handleShowReleaseForm = (featureId: string) => {
+    setCurrentFeatureId(featureId);
+    setShowReleaseForm(true);
   };
   
   return (
@@ -122,10 +170,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </DrawerTrigger>
           <DrawerContent className="rounded-t-lg border-2 border-border bg-background" style={{ backgroundColor: 'var(--background)' }}>
             <DrawerHeader className="border-b-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              <DrawerTitle>New Feature</DrawerTitle>
-              <DrawerDescription>
-                Create a new feature for your project.
-              </DrawerDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <DrawerTitle>New Feature</DrawerTitle>
+                  <DrawerDescription>
+                    Create a new feature for your project.
+                  </DrawerDescription>
+                </div>
+                {currentFeatureId && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleShowReleaseForm(currentFeatureId)}
+                  >
+                    New Release
+                  </Button>
+                )}
+              </div>
             </DrawerHeader>
             <div className="p-6 space-y-4 bg-background" style={{ backgroundColor: 'var(--background)' }}>
               <div className="space-y-2">
@@ -173,6 +234,72 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   onChange={(e) => setProductName(e.target.value)}
                 />
               </div>
+              
+              {showReleaseForm && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>Add Release</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="release-name">Release Name*</Label>
+                      <Input 
+                        id="release-name" 
+                        placeholder="Enter release name" 
+                        value={releaseName}
+                        onChange={(e) => setReleaseName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="release-description">Description</Label>
+                      <Textarea 
+                        id="release-description" 
+                        placeholder="Enter release description"
+                        value={releaseDescription}
+                        onChange={(e) => setReleaseDescription(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="release-date">Release Date*</Label>
+                      <Input 
+                        id="release-date" 
+                        type="date" 
+                        value={releaseDate}
+                        onChange={(e) => setReleaseDate(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="release-priority">Priority</Label>
+                      <Select 
+                        value={releasePriority} 
+                        onValueChange={(value) => setReleasePriority(value as 'High' | 'Med' | 'Low')}
+                      >
+                        <SelectTrigger id="release-priority">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="High">High</SelectItem>
+                          <SelectItem value="Med">Medium</SelectItem>
+                          <SelectItem value="Low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="pt-2">
+                      <Button onClick={handleCreateRelease}>Add Release</Button>
+                      <Button 
+                        variant="outline" 
+                        className="ml-2" 
+                        onClick={() => setShowReleaseForm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             <DrawerFooter className="border-t-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
               <Button onClick={handleCreateFeature}>Create Feature</Button>
@@ -210,15 +337,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   No features yet. Create one by clicking "New Feature".
                 </div>
               ) : (
-                features.map((feature) => (
-                  <SidebarMenuItem key={feature.id}>
-                    <SidebarMenuButton>
-                      <File />
-                      {feature.name}
-                    </SidebarMenuButton>
-                    <SidebarMenuBadge>{feature.priority}</SidebarMenuBadge>
-                  </SidebarMenuItem>
-                ))
+                features.map((feature) => {
+                  const featureReleases = getReleasesByFeatureId(feature.id);
+                  
+                  return (
+                    <FeatureTreeItem 
+                      key={feature.id} 
+                      feature={feature} 
+                      releases={featureReleases}
+                      onAddRelease={() => {
+                        setCurrentFeatureId(feature.id);
+                        setIsOpen(true);
+                        setShowReleaseForm(true);
+                      }}
+                    />
+                  );
+                })
               )}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -234,39 +368,56 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   )
 }
 
-function Tree({ item }: { item: string | any[] }) {
-  const [name, ...items] = Array.isArray(item) ? item : [item]
-
-  if (!items.length) {
-    return (
-      <SidebarMenuButton
-        isActive={name === "button.tsx"}
-        className="data-[active=true]:bg-transparent"
-      >
-        <File />
-        {name}
-      </SidebarMenuButton>
-    )
-  }
-
+function FeatureTreeItem({ 
+  feature, 
+  releases,
+  onAddRelease
+}: { 
+  feature: Feature; 
+  releases: Release[];
+  onAddRelease: () => void;
+}) {
   return (
     <SidebarMenuItem>
-      <Collapsible
-        className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-        defaultOpen={name === "components" || name === "ui"}
-      >
+      <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90" defaultOpen>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton>
             <ChevronRight className="transition-transform" />
             <Folder />
-            {name}
+            {feature.name}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="ml-auto h-5 w-5 opacity-0 hover:opacity-100" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddRelease();
+              }}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
-            {items.map((subItem, index) => (
-              <Tree key={index} item={subItem} />
-            ))}
+            {releases.length === 0 ? (
+              <div className="pl-9 py-1 text-xs text-muted-foreground">
+                No releases yet
+              </div>
+            ) : (
+              releases.map((release) => (
+                <SidebarMenuItem key={release.id}>
+                  <SidebarMenuButton className="pl-9">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    {release.name}
+                    <div className="ml-2 text-xs text-muted-foreground">
+                      {new Date(release.releaseDate).toLocaleDateString()}
+                    </div>
+                  </SidebarMenuButton>
+                  <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
+                </SidebarMenuItem>
+              ))
+            )}
           </SidebarMenuSub>
         </CollapsibleContent>
       </Collapsible>

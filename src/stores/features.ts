@@ -10,7 +10,7 @@ export type Feature = {
   priority: 'High' | 'Med' | 'Low'
   description: string
   productName: string
-  releaseId?: string
+  releaseIds?: string[]
   artifacts?: string[]
 }
 
@@ -19,6 +19,7 @@ type FeaturesStore = {
   // Actions
   addFeature: (feature: Omit<Feature, 'id'>) => void
   getFeatures: () => Feature[]
+  updateFeatureWithRelease: (featureId: string, releaseId: string) => void
 }
 
 // Generate a simple ID
@@ -33,12 +34,25 @@ export const useFeaturesStore = create<FeaturesStore>()(
         const newFeature = {
           ...feature,
           id: generateId(),
+          releaseIds: []
         }
         set((state) => ({
           features: [...state.features, newFeature]
         }))
       },
-      getFeatures: () => get().features
+      getFeatures: () => get().features,
+      updateFeatureWithRelease: (featureId, releaseId) => {
+        set((state) => ({
+          features: state.features.map(feature => 
+            feature.id === featureId 
+              ? { 
+                  ...feature, 
+                  releaseIds: [...(feature.releaseIds || []), releaseId] 
+                } 
+              : feature
+          )
+        }))
+      }
     }),
     {
       name: 'features-storage',
