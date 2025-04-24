@@ -17,6 +17,7 @@ type ReleasesStore = {
   releases: Release[]
   // Actions
   addRelease: (release: Omit<Release, 'id'>) => void
+  getReleases: () => Release[]
   getReleasesByFeatureId: (featureId: string) => Release[]
 }
 
@@ -37,6 +38,7 @@ export const useReleasesStore = create<ReleasesStore>()(
           releases: [...state.releases, newRelease]
         }))
       },
+      getReleases: () => get().releases,
       getReleasesByFeatureId: (featureId) => {
         return get().releases.filter(release => release.featureId === featureId)
           .sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime())

@@ -66,17 +66,6 @@ export default function DashboardPage() {
         </header>
         
         <div className="flex flex-1 flex-col gap-6 p-6">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
-              <p className="text-muted-foreground">Dashboard Card 1</p>
-            </div>
-            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
-              <p className="text-muted-foreground">Dashboard Card 2</p>
-            </div>
-            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
-              <p className="text-muted-foreground">Dashboard Card 3</p>
-            </div>
-          </div>
           <div className="min-h-[50vh] flex-1 rounded-xl bg-muted/50 flex items-center justify-center md:min-h-min">
             <p className="text-muted-foreground">Dashboard Content</p>
           </div>
