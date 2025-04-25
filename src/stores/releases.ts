@@ -1,7 +1,8 @@
 "use client"
 
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
+import { createHybridStorage } from '@/utils/hybrid-storage'
 
 // Define Release model
 export type Release = {
@@ -46,7 +47,7 @@ export const useReleasesStore = create<ReleasesStore>()(
     }),
     {
       name: 'releases-storage',
-      storage: createJSONStorage(() => localStorage)
+      storage: createHybridStorage('releases')
     }
   )
 ) 
