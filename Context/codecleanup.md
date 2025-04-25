@@ -15,7 +15,7 @@ The purpose of this project is to clean up the codecase and ensure all code is s
 - No app breaking bugs exists
 - Implementation are created notes are created for the next code cleanup with best practices notes are updated
 - Sections for the next Version (eg V+1 are updated)
-- Code is checked to git and github with with with the message "implemented code cleanup: <Describe what you did>"
+- Code is checked to git and github with with with the message at the very end: "implemented code cleanup: <Describe what you did>"
 
 ## Code Cleanup and Standardization Instruction Set
 Analyze and improve the codebase by standardizing component usage and implementing best practices. Below is a structured approach to follow:
@@ -35,6 +35,13 @@ S2: Create a "Code Cleanup Tasks" list prioritized by:
 - Maintenance burden: Components requiring frequent updates
 - Technical debt severity: How much the custom implementation diverges from standard practices
 - Implementation complexity: Effort required to replace with standard components
+
+## Draft Code Cleanup Tasks
+1. Refactor `src/components/app-sidebar.tsx` – High usage, complex layout, critical impact.
+2. Refactor `src/components/tenant/*` feature components – Direct Tailwind usage, maintenance burden.
+3. Refactor `src/components/auth/*` feature components – Direct Tailwind usage, high usage.
+4. Standardize UI in `src/app` pages – Replace inline Tailwind classes with UI primitives.
+5. Audit and update SQL patterns in `Context/SQL.md` – Outdated/custom SQL implementations.
 
 S3: Planning and Implementation
 
