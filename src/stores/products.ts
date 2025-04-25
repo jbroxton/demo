@@ -1,7 +1,8 @@
 "use client"
 
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
+import { createHybridStorage } from '@/utils/hybrid-storage'
 
 // Define Product model
 export type Product = {
@@ -53,7 +54,7 @@ export const useProductsStore = create<ProductsStore>()(
     }),
     {
       name: 'products-storage',
-      storage: createJSONStorage(() => localStorage)
+      storage: createHybridStorage('products')
     }
   )
 ) 
