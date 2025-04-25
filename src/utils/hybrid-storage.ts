@@ -1,7 +1,8 @@
 import { createJSONStorage } from 'zustand/middleware';
+import QuickLRU from 'quick-lru';
 
-// Cache to avoid repeated API calls for the same data
-let memoryCache: Record<string, Record<string, string>> = {};
+// Use quick-lru instead of a simple object for better memory management and performance
+const memoryCache = new QuickLRU<string, Record<string, string>>({ maxSize: 100 });
 
 // Hybrid storage adapter that works in both browser and server contexts
 export function createHybridStorage(storeName: string) {
@@ -15,8 +16,11 @@ export function createHybridStorage(storeName: string) {
         getItem: async (name: string): Promise<string | null> => {
           try {
             // Check cache first
-            if (memoryCache[storeName]?.[name]) {
-              return memoryCache[storeName][name];
+            if (memoryCache.has(storeName)) {
+              const storeCache = memoryCache.get(storeName);
+              if (storeCache && storeCache[name]) {
+                return storeCache[name];
+              }
             }
             
             const response = await fetch(`/api/store?key=${encodeURIComponent(name)}&store=${encodeURIComponent(storeName)}`);
@@ -24,8 +28,15 @@ export function createHybridStorage(storeName: string) {
             const data = await response.json();
             
             // Cache the result
-            if (!memoryCache[storeName]) memoryCache[storeName] = {};
-            if (data.value) memoryCache[storeName][name] = data.value;
+            if (data.value) {
+              let storeCache = memoryCache.get(storeName);
+              if (!storeCache) {
+                storeCache = {};
+              }
+              
+              storeCache[name] = data.value;
+              memoryCache.set(storeName, storeCache);
+            }
             
             return data.value;
           } catch (error) {
@@ -36,8 +47,16 @@ export function createHybridStorage(storeName: string) {
         setItem: async (name: string, value: string): Promise<void> => {
           try {
             // Update cache first
-            if (!memoryCache[storeName]) memoryCache[storeName] = {};
-            memoryCache[storeName][name] = value;
+            let storeCache = memoryCache.get(storeName);
+            if (!storeCache) {
+              storeCache = {};
+            } else {
+              // Create a new object to avoid modifying the cached one directly
+              storeCache = { ...storeCache };
+            }
+            
+            storeCache[name] = value;
+            memoryCache.set(storeName, storeCache);
             
             // Then update server
             await fetch(`/api/store`, {
@@ -52,8 +71,11 @@ export function createHybridStorage(storeName: string) {
         removeItem: async (name: string): Promise<void> => {
           try {
             // Update cache first
-            if (memoryCache[storeName]) {
-              delete memoryCache[storeName][name];
+            const storeCache = memoryCache.get(storeName);
+            if (storeCache) {
+              const updatedCache = { ...storeCache };
+              delete updatedCache[name];
+              memoryCache.set(storeName, updatedCache);
             }
             
             // Then update server

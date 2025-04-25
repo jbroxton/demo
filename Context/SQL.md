@@ -472,6 +472,8 @@ The V1 migration for the Products store was successfully implemented following t
 
 5. **Updated Products Store**: Modified the Products store to use the hybrid storage adapter instead of localStorage.
 
+6. **Migrated to Pre-built Libraries**: Replaced custom cache implementation with QuickLRU for better performance and maintainability.
+
 ### Common Errors & Solutions
 
 1. **Client-Side SQLite Errors**: 
@@ -498,6 +500,18 @@ The V1 migration for the Products store was successfully implemented following t
    - Error: Potential performance issues with frequent API calls
    - Solution: Implemented in-memory caching in the hybrid storage adapter to reduce API calls
 
+7. **Import Syntax Errors**:
+   - Error: Module has no exported member 'QuickLRU'
+   - Solution: Use default import `import QuickLRU from 'quick-lru'` instead of named import
+
+8. **Cache Consistency Issues**:
+   - Error: Cache not updating correctly when modifying nested objects
+   - Solution: Always create a new object to avoid modifying cached references directly
+
+9. **TypeScript Type Safety**:
+   - Error: Type errors when working with cache values
+   - Solution: Properly define generic types for the QuickLRU instance: `QuickLRU<string, Record<string, string>>`
+
 ### Best Practices for Future Migrations
 
 1. **Avoid Dynamic Routes for Simple APIs**: Use query parameters and request body instead of Next.js dynamic routes when possible to avoid route parameter handling issues.
@@ -517,3 +531,41 @@ The V1 migration for the Products store was successfully implemented following t
 8. **Storage Abstraction**: The hybrid storage adapter pattern can be reused for other stores, making future migrations easier.
 
 9. **Testing Strategy**: Test each migration thoroughly in isolation before moving to the next store.
+
+10. **Always prefer established libraries** for common functionalities like caching, data structures, and utilities.
+
+11. **Check library documentation** for proper usage patterns before implementation.
+
+12. **Avoid custom implementations** unless absolutely necessary for specific business needs.
+
+13. **Keep dependencies simple** and choose libraries with minimal dependencies themselves.
+
+14. **Consider bundle size** when selecting libraries for client-side code.
+
+15. **Use TypeScript-compatible libraries** whenever possible.
+
+16. **Maintain immutability** when working with cached objects to prevent unexpected side effects.
+
+### QuickLRU Cache Implementation
+
+One important lesson learned during the V1 migration was to leverage existing, well-tested libraries rather than custom implementations. This approach offers several advantages including reduced development time, fewer bugs, and better performance. Our migration from a custom cache solution to QuickLRU is a prime example of this approach.
+
+We migrated our custom cache solution to `quick-lru`, a robust and efficient LRU cache implementation:
+
+1. **Why Use Pre-built Libraries**:
+   - Fewer bugs: Pre-built libraries are extensively tested by many users
+   - Better performance: Libraries like `quick-lru` are optimized for specific use cases
+   - Maintenance: Updates and bug fixes are handled by the maintainers
+   - Type safety: Most modern libraries include TypeScript definitions
+
+2. **Migration Steps**:
+   - Installed `quick-lru` package
+   - Fixed import syntax to use default import: `import QuickLRU from 'quick-lru'`
+   - Updated cache access patterns to match the library's API
+   - Ensured proper type definitions for better TypeScript support
+
+3. **Benefits of QuickLRU**:
+   - Automatic LRU eviction when cache size exceeds the limit
+   - More efficient memory usage through proper cache management
+   - Built-in TypeScript support
+   - Simple API with Map-like interface
