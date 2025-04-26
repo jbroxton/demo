@@ -10,6 +10,7 @@ export type Feature = {
   priority: 'High' | 'Med' | 'Low'
   description: string
   interfaceId: string
+  content?: string
   releases?: string[]
   artifacts?: string[]
 }
@@ -22,6 +23,8 @@ type FeaturesStore = {
   getFeaturesByInterfaceId: (interfaceId: string) => Feature[]
   getFeatureById: (featureId: string) => Feature | undefined
   updateFeatureWithRelease: (featureId: string, releaseId: string) => void
+  saveFeatureContent: (featureId: string, content: string) => void
+  updateFeatureName: (featureId: string, name: string) => void
 }
 
 // Generate a simple ID
@@ -57,6 +60,27 @@ export const useFeaturesStore = create<FeaturesStore>()(
                   ...feature, 
                   releases: [...(feature.releases || []), releaseId] 
                 } 
+              : feature
+          )
+        }))
+      },
+      saveFeatureContent: (featureId, content) => {
+        set((state) => ({
+          features: state.features.map(feature => 
+            feature.id === featureId 
+              ? { ...feature, content } 
+              : feature
+          )
+        }))
+      },
+      updateFeatureName: (featureId, name) => {
+        // Don't update if name is empty
+        if (!name.trim()) return;
+        
+        set((state) => ({
+          features: state.features.map(feature => 
+            feature.id === featureId 
+              ? { ...feature, name: name.trim() } 
               : feature
           )
         }))

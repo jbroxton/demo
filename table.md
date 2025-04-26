@@ -92,7 +92,7 @@ We successfully implemented a tab-based navigation system that connects the side
 
 ### Fixed Critical Bugs
 
-- **React.Children.only Error**: Fixed an issue with `TabsTrigger` component which was receiving multiple children elements when it expects only a single child. The solution was to pass only the tab title text directly to the `TabsTrigger` component and position the close button absolutely outside of it.
+- **React.Children.only Error**: Fixed an issue with `TabsTrigger` component which was receiving multiple children elements when it expects only a single child. The solution was to pass only the tab title text directly to the `TabsTrigger` component and position the close button and edit button absolutely outside of it. This approach successfully resolves the runtime error and maintains the intended functionality and appearance.
 
 ### Lessons Learned
 

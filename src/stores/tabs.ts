@@ -16,6 +16,7 @@ interface TabsStore {
   closeTab: (tabId: string) => void;
   activateTab: (tabId: string) => void;
   getActiveTab: () => Tab | undefined;
+  updateTabTitle: (itemId: string, type: Tab['type'], newTitle: string) => void;
 }
 
 export const useTabsStore = create<TabsStore>((set, get) => ({
@@ -69,5 +70,16 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
     const { tabs, activeTabId } = get();
     if (!activeTabId) return undefined;
     return tabs.find(tab => tab.id === activeTabId);
+  },
+  
+  updateTabTitle: (itemId, type, newTitle) => {
+    // Update all tabs that match the itemId and type
+    set((state) => ({
+      tabs: state.tabs.map(tab => 
+        (tab.itemId === itemId && tab.type === type)
+          ? { ...tab, title: newTitle }
+          : tab
+      )
+    }));
   }
 })); 

@@ -9,7 +9,8 @@ import {
   User as UserIcon,
   Package,
   Layers,
-  Puzzle
+  Puzzle,
+  Pencil
 } from "lucide-react"
 
 import {
@@ -868,16 +869,61 @@ function FeatureTreeItem({
   onAddRelease: () => void;
 }) {
   const featureReleases = getReleasesByFeatureId(feature.id);
-  const { openTab } = useTabsStore();
+  const { openTab, updateTabTitle } = useTabsStore();
+  const { updateFeatureName } = useFeaturesStore();
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState(feature.name);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   
   const handleFeatureClick = () => {
+    if (isEditing) return;
+    
     openTab({
       title: feature.name,
       type: 'feature',
       itemId: feature.id,
     });
   };
+  
+  const handleEditStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setNameValue(feature.name);
+    // Focus will be set after rendering with useEffect
+  };
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNameValue(e.target.value);
+  };
+  
+  const handleNameSave = () => {
+    if (nameValue.trim() !== '' && nameValue !== feature.name) {
+      updateFeatureName(feature.id, nameValue);
+      updateTabTitle(feature.id, 'feature', nameValue);
+    } else {
+      // Reset to original value if empty or unchanged
+      setNameValue(feature.name);
+    }
+    setIsEditing(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      setNameValue(feature.name);
+      setIsEditing(false);
+    }
+  };
+  
+  // Focus input when editing starts
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
   
   return (
     <SidebarMenuItem>
@@ -899,7 +945,30 @@ function FeatureTreeItem({
                   ) : (
                     <div className="w-4 h-4" />
                   )}
-                  {feature.name}
+                  {isEditing ? (
+                    <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={nameValue}
+                        onChange={handleNameChange}
+                        onBlur={handleNameSave}
+                        onKeyDown={handleKeyDown}
+                        className="w-full bg-[#232326] border border-[#2a2a2c] rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <span className="truncate">{feature.name}</span>
+                      <button 
+                        onClick={handleEditStart}
+                        className="ml-1.5 p-0.5 rounded-sm opacity-0 group-hover:opacity-50 hover:opacity-100 hover:bg-[#2a2a2c]"
+                        aria-label={`Edit ${feature.name}`}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </>
+                  )}
                   <div 
                     className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
                     onClick={(e) => {
@@ -941,7 +1010,30 @@ function FeatureTreeItem({
           ) : (
             <SidebarMenuButton onClick={handleFeatureClick}>
               <div className="w-4 h-4" />
-              {feature.name}
+              {isEditing ? (
+                <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={nameValue}
+                    onChange={handleNameChange}
+                    onBlur={handleNameSave}
+                    onKeyDown={handleKeyDown}
+                    className="w-full bg-[#232326] border border-[#2a2a2c] rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              ) : (
+                <>
+                  <span className="truncate">{feature.name}</span>
+                  <button 
+                    onClick={handleEditStart}
+                    className="ml-1.5 p-0.5 rounded-sm opacity-0 group-hover:opacity-50 hover:opacity-100 hover:bg-[#2a2a2c]"
+                    aria-label={`Edit ${feature.name}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                </>
+              )}
               <div 
                 className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
                 onClick={(e) => {
@@ -957,6 +1049,9 @@ function FeatureTreeItem({
         <ContextMenuContent>
           <ContextMenuItem onClick={onAddRelease}>
             Add Release
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleEditStart}>
+            Rename Feature
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
