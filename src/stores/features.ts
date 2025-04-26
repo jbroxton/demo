@@ -20,6 +20,7 @@ type FeaturesStore = {
   addFeature: (feature: Omit<Feature, 'id'>) => void
   getFeatures: () => Feature[]
   getFeaturesByInterfaceId: (interfaceId: string) => Feature[]
+  getFeatureById: (featureId: string) => Feature | undefined
   updateFeatureWithRelease: (featureId: string, releaseId: string) => void
 }
 
@@ -44,6 +45,9 @@ export const useFeaturesStore = create<FeaturesStore>()(
       getFeatures: () => get().features,
       getFeaturesByInterfaceId: (interfaceId) => {
         return get().features.filter(feature => feature.interfaceId === interfaceId)
+      },
+      getFeatureById: (featureId) => {
+        return get().features.find(feature => feature.id === featureId)
       },
       updateFeatureWithRelease: (featureId, releaseId) => {
         set((state) => ({

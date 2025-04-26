@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { AppSidebar } from "@/components/app-sidebar"
+import { TabsContainer } from "@/components/tabs-container"
+import { TabContent } from "@/components/tab-content"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -65,10 +67,12 @@ export default function DashboardPage() {
           </div>
         </header>
         
-        <div className="flex flex-1 flex-col gap-6 p-6">
-          <div className="min-h-[50vh] flex-1 rounded-xl bg-muted/50 flex items-center justify-center md:min-h-min">
-            <p className="text-muted-foreground">Dashboard Content</p>
-          </div>
+        {/* Tabs Container */}
+        <TabsContainer />
+        
+        {/* Main Content */}
+        <div className="flex flex-1 flex-col">
+          <TabContent />
         </div>
       </SidebarInset>
     </SidebarProvider>

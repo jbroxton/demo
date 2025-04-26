@@ -17,6 +17,7 @@ type ProductsStore = {
   // Actions
   addProduct: (product: Omit<Product, 'id'>) => void
   getProducts: () => Product[]
+  getProductById: (productId: string) => Product | undefined
   updateProductWithInterface: (productId: string, interfaceId: string) => void
 }
 
@@ -39,6 +40,9 @@ export const useProductsStore = create<ProductsStore>()(
         }))
       },
       getProducts: () => get().products,
+      getProductById: (productId) => {
+        return get().products.find(product => product.id === productId)
+      },
       updateProductWithInterface: (productId, interfaceId) => {
         set((state) => ({
           products: state.products.map(product => 

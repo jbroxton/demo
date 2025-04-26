@@ -18,6 +18,7 @@ type InterfacesStore = {
   addInterface: (interface_: Omit<Interface, 'id'>) => void
   getInterfaces: () => Interface[]
   getInterfacesByProductId: (productId: string) => Interface[]
+  getInterfaceById: (interfaceId: string) => Interface | undefined
   updateInterfaceWithFeature: (interfaceId: string, featureId: string) => void
 }
 
@@ -42,6 +43,9 @@ export const useInterfacesStore = create<InterfacesStore>()(
       getInterfaces: () => get().interfaces,
       getInterfacesByProductId: (productId) => {
         return get().interfaces.filter(interface_ => interface_.productId === productId)
+      },
+      getInterfaceById: (interfaceId) => {
+        return get().interfaces.find(interface_ => interface_.id === interfaceId)
       },
       updateInterfaceWithFeature: (interfaceId, featureId) => {
         set((state) => ({

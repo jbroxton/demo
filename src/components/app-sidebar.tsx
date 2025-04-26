@@ -1,6 +1,7 @@
 import * as React from "react"
 import { 
   ChevronRight, 
+  ChevronDown,
   Calendar,
   File, 
   Folder, 
@@ -75,6 +76,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { useTabsStore } from "@/stores/tabs"
 
 // This is sample data for changes.
 const changesData = {
@@ -661,50 +663,84 @@ function ProductTreeItem({
   onAddRelease: (featureId: string) => void;
 }) {
   const productInterfaces = getInterfacesByProductId(product.id);
-  
+  const { openTab } = useTabsStore();
+  const [isExpanded, setIsExpanded] = React.useState(true);
+
+  const handleProductClick = () => {
+    // Open a tab for this product
+    openTab({
+      title: product.name,
+      type: 'product',
+      itemId: product.id,
+    });
+  };
+
   return (
     <SidebarMenuItem>
       <ContextMenu>
-        <ContextMenuTrigger className="block w-full">
-          <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90" defaultOpen>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton>
-                <ChevronRight className="transition-transform" />
-                {product.name}
-                <div 
-                  className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddInterface();
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </div>
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                {productInterfaces.length === 0 ? (
-                  <div className="pl-9 py-1 text-xs text-muted-foreground">
-                    No interfaces yet
-                  </div>
-                ) : (
-                  productInterfaces.map((interface_) => (
-                    <InterfaceTreeItem 
-                      key={interface_.id}
-                      interface_={interface_}
-                      features={features}
-                      releases={releases}
-                      getFeaturesByInterfaceId={getFeaturesByInterfaceId}
-                      getReleasesByFeatureId={getReleasesByFeatureId}
-                      onAddFeature={() => onAddFeature(interface_.id)}
-                      onAddRelease={onAddRelease}
+        <ContextMenuTrigger asChild>
+          {productInterfaces.length > 0 ? (
+            <Collapsible 
+              className="[&[data-state=open]>button>svg:first-child]:rotate-90" 
+              defaultOpen
+              onOpenChange={setIsExpanded}
+            >
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton onClick={handleProductClick}>
+                  {productInterfaces.length > 0 ? (
+                    <ChevronRight 
+                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                      className="transition-transform duration-200" 
                     />
-                  ))
-                )}
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
+                  ) : (
+                    <div className="w-4 h-4" />
+                  )}
+                  <span className="font-bold">{product.name}</span>
+                  <div 
+                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddInterface();
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </div>
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {productInterfaces.length === 0 ? null : (
+                    productInterfaces.map((interface_) => (
+                      <InterfaceTreeItem 
+                        key={interface_.id}
+                        interface_={interface_}
+                        features={features}
+                        releases={releases}
+                        getFeaturesByInterfaceId={getFeaturesByInterfaceId}
+                        getReleasesByFeatureId={getReleasesByFeatureId}
+                        onAddFeature={() => onAddFeature(interface_.id)}
+                        onAddRelease={onAddRelease}
+                      />
+                    ))
+                  )}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <SidebarMenuButton onClick={handleProductClick}>
+              <div className="w-4 h-4" />
+              <span className="font-bold">{product.name}</span>
+              <div 
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddInterface();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </div>
+            </SidebarMenuButton>
+          )}
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onClick={onAddInterface}>
@@ -734,47 +770,81 @@ function InterfaceTreeItem({
   onAddRelease: (featureId: string) => void;
 }) {
   const interfaceFeatures = getFeaturesByInterfaceId(interface_.id);
-  
+  const { openTab } = useTabsStore();
+  const [isExpanded, setIsExpanded] = React.useState(true);
+
+  const handleInterfaceClick = () => {
+    // Open a tab for this interface
+    openTab({
+      title: interface_.name,
+      type: 'interface',
+      itemId: interface_.id,
+    });
+  };
+
   return (
     <SidebarMenuItem>
       <ContextMenu>
-        <ContextMenuTrigger className="block w-full">
-          <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90" defaultOpen>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton className="pl-9">
-                <ChevronRight className="transition-transform" />
-                {interface_.name}
-                <div 
-                  className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddFeature();
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </div>
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                {interfaceFeatures.length === 0 ? (
-                  <div className="pl-[4.5rem] py-1 text-xs text-muted-foreground">
-                    No features yet
-                  </div>
-                ) : (
-                  interfaceFeatures.map((feature) => (
-                    <FeatureTreeItem 
-                      key={feature.id}
-                      feature={feature}
-                      releases={releases}
-                      getReleasesByFeatureId={getReleasesByFeatureId}
-                      onAddRelease={() => onAddRelease(feature.id)}
+        <ContextMenuTrigger asChild>
+          {interfaceFeatures.length > 0 ? (
+            <Collapsible 
+              className="[&[data-state=open]>button>svg:first-child]:rotate-90" 
+              defaultOpen
+              onOpenChange={setIsExpanded}
+            >
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton onClick={handleInterfaceClick}>
+                  {interfaceFeatures.length > 0 ? (
+                    <ChevronRight 
+                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                      className="transition-transform duration-200" 
                     />
-                  ))
-                )}
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
+                  ) : (
+                    <div className="w-4 h-4" />
+                  )}
+                  {interface_.name}
+                  <div 
+                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddFeature();
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </div>
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {interfaceFeatures.length === 0 ? null : (
+                    interfaceFeatures.map((feature) => (
+                      <FeatureTreeItem 
+                        key={feature.id}
+                        feature={feature}
+                        releases={releases}
+                        getReleasesByFeatureId={getReleasesByFeatureId}
+                        onAddRelease={() => onAddRelease(feature.id)}
+                      />
+                    ))
+                  )}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <SidebarMenuButton onClick={handleInterfaceClick}>
+              <div className="w-4 h-4" />
+              {interface_.name}
+              <div 
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddFeature();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </div>
+            </SidebarMenuButton>
+          )}
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onClick={onAddFeature}>
@@ -798,50 +868,91 @@ function FeatureTreeItem({
   onAddRelease: () => void;
 }) {
   const featureReleases = getReleasesByFeatureId(feature.id);
+  const { openTab } = useTabsStore();
+  const [isExpanded, setIsExpanded] = React.useState(true);
+  
+  const handleFeatureClick = () => {
+    openTab({
+      title: feature.name,
+      type: 'feature',
+      itemId: feature.id,
+    });
+  };
   
   return (
     <SidebarMenuItem>
       <ContextMenu>
-        <ContextMenuTrigger className="block w-full">
-          <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90" defaultOpen>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton className="pl-[4.5rem]">
-                <ChevronRight className="transition-transform" />
-                {feature.name}
-                <div 
-                  className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddRelease();
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </div>
-              </SidebarMenuButton>
-              <SidebarMenuBadge>{feature.priority}</SidebarMenuBadge>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                {featureReleases.length === 0 ? (
-                  <div className="pl-24 py-1 text-xs text-muted-foreground">
-                    No releases yet
+        <ContextMenuTrigger asChild>
+          {featureReleases.length > 0 ? (
+            <Collapsible 
+              className="[&[data-state=open]>button>svg:first-child]:rotate-90" 
+              defaultOpen
+              onOpenChange={setIsExpanded}
+            >
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton onClick={handleFeatureClick}>
+                  {featureReleases.length > 0 ? (
+                    <ChevronRight 
+                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                      className="transition-transform duration-200" 
+                    />
+                  ) : (
+                    <div className="w-4 h-4" />
+                  )}
+                  {feature.name}
+                  <div 
+                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddRelease();
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
                   </div>
-                ) : (
-                  featureReleases.map((release) => (
-                    <SidebarMenuItem key={release.id}>
-                      <SidebarMenuButton className="pl-24">
-                        {release.name}
-                        <div className="ml-2 text-xs text-muted-foreground">
-                          {new Date(release.releaseDate).toLocaleDateString()}
-                        </div>
-                      </SidebarMenuButton>
-                      <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
-                    </SidebarMenuItem>
-                  ))
-                )}
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {featureReleases.length === 0 ? null : (
+                    featureReleases.map((release) => (
+                      <SidebarMenuItem key={release.id}>
+                        <SidebarMenuButton 
+                          className="pl-[4.5rem]"
+                          onClick={() => {
+                            openTab({
+                              title: release.name,
+                              type: 'release',
+                              itemId: release.id,
+                            });
+                          }}
+                        >
+                          {release.name}
+                          <div className="ml-2 text-xs text-muted-foreground">
+                            {new Date(release.releaseDate).toLocaleDateString()}
+                          </div>
+                        </SidebarMenuButton>
+                        <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
+                      </SidebarMenuItem>
+                    ))
+                  )}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <SidebarMenuButton onClick={handleFeatureClick}>
+              <div className="w-4 h-4" />
+              {feature.name}
+              <div 
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddRelease();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </div>
+            </SidebarMenuButton>
+          )}
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onClick={onAddRelease}>
