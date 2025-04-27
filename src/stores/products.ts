@@ -19,6 +19,7 @@ type ProductsStore = {
   getProducts: () => Product[]
   getProductById: (productId: string) => Product | undefined
   updateProductWithInterface: (productId: string, interfaceId: string) => void
+  updateProductName: (productId: string, name: string) => void
 }
 
 // Generate a simple ID
@@ -51,6 +52,18 @@ export const useProductsStore = create<ProductsStore>()(
                   ...product, 
                   interfaces: [...(product.interfaces || []), interfaceId] 
                 } 
+              : product
+          )
+        }))
+      },
+      updateProductName: (productId, name) => {
+        // Don't update if name is empty
+        if (!name.trim()) return;
+        
+        set((state) => ({
+          products: state.products.map(product => 
+            product.id === productId 
+              ? { ...product, name } 
               : product
           )
         }))

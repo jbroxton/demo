@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { useTabsStore } from '@/stores/tabs';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Pencil } from 'lucide-react';
+import { X, Pencil, Package, Layers, Puzzle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFeaturesStore } from '@/stores/features';
+import { useProductsStore } from '@/stores/products';
+import { useInterfacesStore } from '@/stores/interfaces';
 import { Input } from '@/components/ui/input';
 
 export function TabsContainer() {
   const { tabs, activeTabId, activateTab, closeTab, updateTabTitle } = useTabsStore();
   const { updateFeatureName } = useFeaturesStore();
+  const { updateProductName } = useProductsStore();
+  const { updateInterfaceName } = useInterfacesStore();
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
@@ -24,10 +28,9 @@ export function TabsContainer() {
   
   const handleEditStart = (e: React.MouseEvent, tab: typeof tabs[0]) => {
     e.stopPropagation();
-    if (tab.type === 'feature') {
-      setEditingTabId(tab.id);
-      setEditingValue(tab.title);
-    }
+    // Now supporting all editable tab types
+    setEditingTabId(tab.id);
+    setEditingValue(tab.title);
   };
   
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,9 +42,13 @@ export function TabsContainer() {
       // Only update if the value has changed and is not empty
       updateTabTitle(tab.itemId, tab.type, editingValue);
       
-      // If it's a feature, update the feature name too
+      // Update the appropriate store based on tab type
       if (tab.type === 'feature') {
         updateFeatureName(tab.itemId, editingValue);
+      } else if (tab.type === 'product') {
+        updateProductName(tab.itemId, editingValue);
+      } else if (tab.type === 'interface') {
+        updateInterfaceName(tab.itemId, editingValue);
       }
     }
     
@@ -65,6 +72,20 @@ export function TabsContainer() {
     e.stopPropagation();
   };
 
+  // Function to get the appropriate icon based on tab type
+  const getTabIcon = (tabType: string) => {
+    switch (tabType) {
+      case 'product':
+        return <Package className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+      case 'interface':
+        return <Layers className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+      case 'feature':
+        return <Puzzle className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="bg-[#161618] border-b border-[#232326]">
       <Tabs
@@ -80,7 +101,7 @@ export function TabsContainer() {
                 "border-r border-[#232326]"
               )}
             >
-              {editingTabId === tab.id && tab.type === 'feature' ? (
+              {editingTabId === tab.id ? (
                 <div className="w-full px-4 pr-8 h-12 flex items-center justify-start">
                   <Input
                     value={editingValue}
@@ -105,23 +126,24 @@ export function TabsContainer() {
                       "data-[state=active]:bg-[#1e1e20] data-[state=active]:text-white"
                     )}
                   >
-                    <span className="truncate">{tab.title}</span>
+                    <div className="flex items-center truncate">
+                      {getTabIcon(tab.type)}
+                      <span className="truncate">{tab.title}</span>
+                    </div>
                   </TabsTrigger>
                   
-                  {/* Edit button for feature tabs - positioned absolutely */}
-                  {tab.type === 'feature' && (
-                    <button
-                      onClick={(e) => handleEditStart(e, tab)}
-                      className={cn(
-                        "absolute left-[calc(100%-24px-20px)] top-1/2 -translate-y-1/2 rounded-sm",
-                        "p-0.5",
-                        "opacity-0 hover:opacity-100 group-hover:opacity-50 transition-opacity"
-                      )}
-                      aria-label={`Edit ${tab.title} name`}
-                    >
-                      <Pencil className="h-3 w-3 text-[#a0a0a0]" />
-                    </button>
-                  )}
+                  {/* Edit button for all tab types - positioned absolutely */}
+                  <button
+                    onClick={(e) => handleEditStart(e, tab)}
+                    className={cn(
+                      "absolute left-[calc(100%-24px-20px)] top-1/2 -translate-y-1/2 rounded-sm",
+                      "p-0.5",
+                      "opacity-0 hover:opacity-100 group-hover:opacity-50 transition-opacity"
+                    )}
+                    aria-label={`Edit ${tab.title} name`}
+                  >
+                    <Pencil className="h-3 w-3 text-[#a0a0a0]" />
+                  </button>
                 </>
               )}
               

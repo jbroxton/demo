@@ -6,6 +6,8 @@ import { useFeaturesStore } from '@/stores/features';
 import { useReleasesStore } from '@/stores/releases';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeatureTabContent } from './feature-tab-content';
+import { ProductTabContent } from './product-tab-content';
+import { InterfaceTabContent } from './interface-tab-content';
 
 export function TabContent() {
   const { tabs, activeTabId } = useTabsStore();
@@ -34,45 +36,17 @@ export function TabContent() {
   // Render content based on the active tab's type
   switch (activeTab.type) {
     case 'product': {
-      const product = getProductById(activeTab.itemId);
-      if (!product) {
-        content = <div className="text-[#a0a0a0]">Product not found</div>;
-      } else {
-        content = (
-          <div className="bg-[#1e1e20] rounded-none p-6">
-            <h1 className="text-xl font-medium text-white mb-6">{product.name}</h1>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-white">Description</h3>
-                <p className="text-sm text-[#a0a0a0] mt-1">{product.description}</p>
-              </div>
-            </div>
-          </div>
-        );
-      }
+      // Use our new ProductTabContent component
+      content = <ProductTabContent productId={activeTab.itemId} />;
       break;
     }
     case 'interface': {
-      const interface_ = getInterfaceById(activeTab.itemId);
-      if (!interface_) {
-        content = <div className="text-[#a0a0a0]">Interface not found</div>;
-      } else {
-        content = (
-          <div className="bg-[#1e1e20] rounded-none p-6">
-            <h1 className="text-xl font-medium text-white mb-6">{interface_.name}</h1>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-white">Description</h3>
-                <p className="text-sm text-[#a0a0a0] mt-1">{interface_.description}</p>
-              </div>
-            </div>
-          </div>
-        );
-      }
+      // Use our new InterfaceTabContent component
+      content = <InterfaceTabContent interfaceId={activeTab.itemId} />;
       break;
     }
     case 'feature': {
-      // Use our new FeatureTabContent component
+      // Use our FeatureTabContent component
       content = <FeatureTabContent featureId={activeTab.itemId} />;
       break;
     }

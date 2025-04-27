@@ -10,7 +10,13 @@ import {
   Package,
   Layers,
   Puzzle,
-  Pencil
+  Pencil,
+  Target,
+  CheckSquare,
+  Rocket,
+  Map,
+  Settings,
+  LogOut
 } from "lucide-react"
 
 import {
@@ -78,31 +84,37 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { useTabsStore } from "@/stores/tabs"
+import { useRouter } from "next/navigation"
 
 // This is sample data for changes.
 const changesData = {
   changes: [
     {
-      file: "README.md",
-      state: "M",
+      file: "Goals",
+      icon: Target
     },
     {
-      file: "api/hello/route.ts",
-      state: "U",
+      file: "Approvals",
+      icon: CheckSquare
     },
     {
-      file: "app/layout.tsx",
-      state: "M",
+      file: "Launches",
+      icon: Rocket
     },
+    {
+      file: "Roadmap",
+      icon: Map
+    }
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   
   // Stores
-  const { products, addProduct, updateProductWithInterface } = useProductsStore();
-  const { interfaces, addInterface, getInterfacesByProductId, updateInterfaceWithFeature } = useInterfacesStore();
+  const { products, addProduct, updateProductWithInterface, updateProductName } = useProductsStore();
+  const { interfaces, addInterface, getInterfacesByProductId, updateInterfaceWithFeature, updateInterfaceName } = useInterfacesStore();
   const { features, addFeature, getFeaturesByInterfaceId, updateFeatureWithRelease } = useFeaturesStore();
   const { releases, addRelease, getReleasesByFeatureId } = useReleasesStore();
   
@@ -586,23 +598,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Changes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {changesData.changes.map((item, index) => (
                 <SidebarMenuItem key={index}>
                   <SidebarMenuButton>
-                    <File />
+                    {item.icon ? <item.icon /> : <File />}
                     {item.file}
                   </SidebarMenuButton>
-                  <SidebarMenuBadge>{item.state}</SidebarMenuBadge>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Products</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-bold">Products</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {products.length === 0 ? (
@@ -631,8 +641,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="p-3">
-        <Button variant="outline" className="w-full">Settings</Button>
+      <SidebarFooter className="p-3 flex flex-col gap-2">
+        <Button variant="outline" className="w-full">
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </Button>
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => {
+            logout();
+            router.push('/auth/signin');
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
       </SidebarFooter>
       
       <SidebarRail />
@@ -664,10 +688,16 @@ function ProductTreeItem({
   onAddRelease: (featureId: string) => void;
 }) {
   const productInterfaces = getInterfacesByProductId(product.id);
-  const { openTab } = useTabsStore();
+  const { openTab, updateTabTitle } = useTabsStore();
+  const { updateProductName } = useProductsStore();
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState(product.name);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleProductClick = () => {
+    if (isEditing) return;
+    
     // Open a tab for this product
     openTab({
       title: product.name,
@@ -675,6 +705,45 @@ function ProductTreeItem({
       itemId: product.id,
     });
   };
+  
+  const handleEditStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setNameValue(product.name);
+    // Focus will be set after rendering with useEffect
+  };
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNameValue(e.target.value);
+  };
+  
+  const handleNameSave = () => {
+    if (nameValue.trim() !== '' && nameValue !== product.name) {
+      updateProductName(product.id, nameValue);
+      updateTabTitle(product.id, 'product', nameValue);
+    } else {
+      // Reset to original value if empty or unchanged
+      setNameValue(product.name);
+    }
+    setIsEditing(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      setNameValue(product.name);
+      setIsEditing(false);
+    }
+  };
+  
+  // Focus input when editing starts
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
 
   return (
     <SidebarMenuItem>
@@ -687,7 +756,7 @@ function ProductTreeItem({
               onOpenChange={setIsExpanded}
             >
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton onClick={handleProductClick}>
+                <SidebarMenuButton onClick={handleProductClick} className="hover-container relative">
                   {productInterfaces.length > 0 ? (
                     <ChevronRight 
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
@@ -696,9 +765,35 @@ function ProductTreeItem({
                   ) : (
                     <div className="w-4 h-4" />
                   )}
-                  <span className="font-bold">{product.name}</span>
+                  {isEditing ? (
+                    <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={nameValue}
+                        onChange={handleNameChange}
+                        onBlur={handleNameSave}
+                        onKeyDown={handleKeyDown}
+                        className="w-full bg-[#232326] border border-[#2a2a2c] rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center flex-1">
+                      <Package className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                      <span className="text-base">{product.name}</span>
+                      <span 
+                        onClick={handleEditStart}
+                        className="ml-1.5 p-0.5 rounded-sm opacity-0 hover:opacity-100 hover:bg-[#2a2a2c] cursor-pointer transition-opacity duration-200 edit-button"
+                        aria-label={`Edit ${product.name}`}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </span>
+                    </div>
+                  )}
                   <div 
-                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onAddInterface();
@@ -728,11 +823,37 @@ function ProductTreeItem({
               </CollapsibleContent>
             </Collapsible>
           ) : (
-            <SidebarMenuButton onClick={handleProductClick}>
+            <SidebarMenuButton onClick={handleProductClick} className="hover-container relative">
               <div className="w-4 h-4" />
-              <span className="font-bold">{product.name}</span>
+              {isEditing ? (
+                <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={nameValue}
+                    onChange={handleNameChange}
+                    onBlur={handleNameSave}
+                    onKeyDown={handleKeyDown}
+                    className="w-full bg-[#232326] border border-[#2a2a2c] rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center flex-1">
+                  <Package className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                  <span className="text-base">{product.name}</span>
+                  <span 
+                    onClick={handleEditStart}
+                    className="ml-1.5 p-0.5 rounded-sm opacity-0 hover:opacity-100 hover:bg-[#2a2a2c] cursor-pointer transition-opacity duration-200 edit-button"
+                    aria-label={`Edit ${product.name}`}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </span>
+                </div>
+              )}
               <div 
-                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddInterface();
@@ -746,6 +867,9 @@ function ProductTreeItem({
         <ContextMenuContent>
           <ContextMenuItem onClick={onAddInterface}>
             Add Interface
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleEditStart}>
+            Rename Product
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -771,10 +895,16 @@ function InterfaceTreeItem({
   onAddRelease: (featureId: string) => void;
 }) {
   const interfaceFeatures = getFeaturesByInterfaceId(interface_.id);
-  const { openTab } = useTabsStore();
+  const { openTab, updateTabTitle } = useTabsStore();
+  const { updateInterfaceName } = useInterfacesStore();
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState(interface_.name);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleInterfaceClick = () => {
+    if (isEditing) return;
+    
     // Open a tab for this interface
     openTab({
       title: interface_.name,
@@ -782,6 +912,45 @@ function InterfaceTreeItem({
       itemId: interface_.id,
     });
   };
+  
+  const handleEditStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setNameValue(interface_.name);
+    // Focus will be set after rendering with useEffect
+  };
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNameValue(e.target.value);
+  };
+  
+  const handleNameSave = () => {
+    if (nameValue.trim() !== '' && nameValue !== interface_.name) {
+      updateInterfaceName(interface_.id, nameValue);
+      updateTabTitle(interface_.id, 'interface', nameValue);
+    } else {
+      // Reset to original value if empty or unchanged
+      setNameValue(interface_.name);
+    }
+    setIsEditing(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      setNameValue(interface_.name);
+      setIsEditing(false);
+    }
+  };
+  
+  // Focus input when editing starts
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
 
   return (
     <SidebarMenuItem>
@@ -794,7 +963,7 @@ function InterfaceTreeItem({
               onOpenChange={setIsExpanded}
             >
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton onClick={handleInterfaceClick}>
+                <SidebarMenuButton onClick={handleInterfaceClick} className="hover-container relative">
                   {interfaceFeatures.length > 0 ? (
                     <ChevronRight 
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
@@ -803,9 +972,35 @@ function InterfaceTreeItem({
                   ) : (
                     <div className="w-4 h-4" />
                   )}
-                  {interface_.name}
+                  {isEditing ? (
+                    <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={nameValue}
+                        onChange={handleNameChange}
+                        onBlur={handleNameSave}
+                        onKeyDown={handleKeyDown}
+                        className="w-full bg-[#232326] border border-[#2a2a2c] rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center flex-1">
+                      <Layers className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                      <span>{interface_.name}</span>
+                      <span
+                        onClick={handleEditStart}
+                        className="ml-1.5 p-0.5 rounded-sm opacity-0 hover:opacity-100 hover:bg-[#2a2a2c] cursor-pointer transition-opacity duration-200 edit-button"
+                        aria-label={`Edit ${interface_.name}`}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </span>
+                    </div>
+                  )}
                   <div 
-                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onAddFeature();
@@ -832,11 +1027,37 @@ function InterfaceTreeItem({
               </CollapsibleContent>
             </Collapsible>
           ) : (
-            <SidebarMenuButton onClick={handleInterfaceClick}>
+            <SidebarMenuButton onClick={handleInterfaceClick} className="hover-container relative">
               <div className="w-4 h-4" />
-              {interface_.name}
+              {isEditing ? (
+                <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={nameValue}
+                    onChange={handleNameChange}
+                    onBlur={handleNameSave}
+                    onKeyDown={handleKeyDown}
+                    className="w-full bg-[#232326] border border-[#2a2a2c] rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center flex-1">
+                  <Layers className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                  <span>{interface_.name}</span>
+                  <span
+                    onClick={handleEditStart}
+                    className="ml-1.5 p-0.5 rounded-sm opacity-0 hover:opacity-100 hover:bg-[#2a2a2c] cursor-pointer transition-opacity duration-200 edit-button"
+                    aria-label={`Edit ${interface_.name}`}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </span>
+                </div>
+              )}
               <div 
-                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddFeature();
@@ -850,6 +1071,9 @@ function InterfaceTreeItem({
         <ContextMenuContent>
           <ContextMenuItem onClick={onAddFeature}>
             Add Feature
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleEditStart}>
+            Rename Interface
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -936,7 +1160,7 @@ function FeatureTreeItem({
               onOpenChange={setIsExpanded}
             >
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton onClick={handleFeatureClick}>
+                <SidebarMenuButton onClick={handleFeatureClick} className="hover-container relative">
                   {featureReleases.length > 0 ? (
                     <ChevronRight 
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
@@ -958,19 +1182,22 @@ function FeatureTreeItem({
                       />
                     </div>
                   ) : (
-                    <>
+                    <div className="flex items-center flex-1">
+                      <Puzzle className="h-4 w-4 mr-1.5 text-muted-foreground" />
                       <span className="truncate">{feature.name}</span>
-                      <button 
+                      <span
                         onClick={handleEditStart}
-                        className="ml-1.5 p-0.5 rounded-sm opacity-0 group-hover:opacity-50 hover:opacity-100 hover:bg-[#2a2a2c]"
+                        className="ml-1.5 p-0.5 rounded-sm opacity-0 hover:opacity-100 hover:bg-[#2a2a2c] cursor-pointer transition-opacity duration-200 edit-button"
                         aria-label={`Edit ${feature.name}`}
+                        role="button"
+                        tabIndex={0}
                       >
                         <Pencil className="h-3 w-3" />
-                      </button>
-                    </>
+                      </span>
+                    </div>
                   )}
                   <div 
-                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                    className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onAddRelease();
@@ -999,8 +1226,8 @@ function FeatureTreeItem({
                           <div className="ml-2 text-xs text-muted-foreground">
                             {new Date(release.releaseDate).toLocaleDateString()}
                           </div>
+                          <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
                         </SidebarMenuButton>
-                        <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
                       </SidebarMenuItem>
                     ))
                   )}
@@ -1008,7 +1235,7 @@ function FeatureTreeItem({
               </CollapsibleContent>
             </Collapsible>
           ) : (
-            <SidebarMenuButton onClick={handleFeatureClick}>
+            <SidebarMenuButton onClick={handleFeatureClick} className="hover-container relative">
               <div className="w-4 h-4" />
               {isEditing ? (
                 <div onClick={e => e.stopPropagation()} className="flex-1 mx-1">
@@ -1023,19 +1250,22 @@ function FeatureTreeItem({
                   />
                 </div>
               ) : (
-                <>
+                <div className="flex items-center flex-1">
+                  <Puzzle className="h-4 w-4 mr-1.5 text-muted-foreground" />
                   <span className="truncate">{feature.name}</span>
-                  <button 
+                  <span
                     onClick={handleEditStart}
-                    className="ml-1.5 p-0.5 rounded-sm opacity-0 group-hover:opacity-50 hover:opacity-100 hover:bg-[#2a2a2c]"
+                    className="ml-1.5 p-0.5 rounded-sm opacity-0 hover:opacity-100 hover:bg-[#2a2a2c] cursor-pointer transition-opacity duration-200 edit-button"
                     aria-label={`Edit ${feature.name}`}
+                    role="button"
+                    tabIndex={0}
                   >
                     <Pencil className="h-3 w-3" />
-                  </button>
-                </>
+                  </span>
+                </div>
               )}
               <div 
-                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer"
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddRelease();

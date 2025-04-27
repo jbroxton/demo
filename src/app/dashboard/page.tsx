@@ -3,7 +3,6 @@
 import { useAuth } from "@/stores/auth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { AppSidebar } from "@/components/app-sidebar"
 import { TabsContainer } from "@/components/tabs-container"
 import { TabContent } from "@/components/tab-content"
@@ -24,7 +23,7 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated } = useAuth()
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,19 +51,6 @@ export default function DashboardPage() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          
-          <div className="ml-auto">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                logout()
-                router.push('/auth/signin')
-              }}
-            >
-              Sign Out
-            </Button>
-          </div>
         </header>
         
         {/* Tabs Container */}

@@ -20,6 +20,7 @@ type InterfacesStore = {
   getInterfacesByProductId: (productId: string) => Interface[]
   getInterfaceById: (interfaceId: string) => Interface | undefined
   updateInterfaceWithFeature: (interfaceId: string, featureId: string) => void
+  updateInterfaceName: (interfaceId: string, name: string) => void
 }
 
 // Generate a simple ID
@@ -55,6 +56,18 @@ export const useInterfacesStore = create<InterfacesStore>()(
                   ...interface_, 
                   features: [...(interface_.features || []), featureId] 
                 } 
+              : interface_
+          )
+        }))
+      },
+      updateInterfaceName: (interfaceId, name) => {
+        // Don't update if name is empty
+        if (!name.trim()) return;
+        
+        set((state) => ({
+          interfaces: state.interfaces.map(interface_ => 
+            interface_.id === interfaceId 
+              ? { ...interface_, name } 
               : interface_
           )
         }))

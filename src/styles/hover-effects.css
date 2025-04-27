@@ -1,0 +1,16 @@
+/* Hover effects for sidebar items */
+.hover-container .edit-button,
+.hover-container .plus-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.hover-container:hover .edit-button,
+.hover-container:hover .plus-button {
+  opacity: 0.5;
+}
+
+.hover-container .edit-button:hover,
+.hover-container .plus-button:hover {
+  opacity: 1 !important; /* Using important to override any other opacity settings */
+} 

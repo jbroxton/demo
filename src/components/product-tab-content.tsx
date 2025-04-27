@@ -1,36 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { useFeaturesStore } from '@/stores/features';
-import { FeatureEditor } from './feature-editor';
+import { useProductsStore } from '@/stores/products';
 import { useTabsStore } from '@/stores/tabs';
 import { Input } from '@/components/ui/input';
-import { Pencil, Check, Puzzle } from 'lucide-react';
+import { Pencil, Check, Package } from 'lucide-react';
 
-interface FeatureTabContentProps {
-  featureId: string;
+interface ProductTabContentProps {
+  productId: string;
 }
 
-export function FeatureTabContent({ featureId }: FeatureTabContentProps) {
-  const { getFeatureById, updateFeatureName } = useFeaturesStore();
+export function ProductTabContent({ productId }: ProductTabContentProps) {
+  const { getProductById, updateProductName } = useProductsStore();
   const { updateTabTitle } = useTabsStore();
   const [isClient, setIsClient] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [nameValue, setNameValue] = useState('');
-  const feature = getFeatureById(featureId);
+  const product = getProductById(productId);
   
   // Handle client-side rendering
   useEffect(() => {
     setIsClient(true);
     
-    // Initialize name value from feature
-    if (feature) {
-      setNameValue(feature.name);
+    // Initialize name value from product
+    if (product) {
+      setNameValue(product.name);
     }
-  }, [feature]);
+  }, [product]);
   
-  if (!feature) {
+  if (!product) {
     return (
       <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
-        Feature not found
+        Product not found
       </div>
     );
   }
@@ -40,12 +39,12 @@ export function FeatureTabContent({ featureId }: FeatureTabContentProps) {
   };
   
   const handleNameSave = () => {
-    if (nameValue.trim() !== '' && nameValue !== feature.name) {
-      updateFeatureName(featureId, nameValue);
-      updateTabTitle(featureId, 'feature', nameValue);
+    if (nameValue.trim() !== '' && nameValue !== product.name) {
+      updateProductName(productId, nameValue);
+      updateTabTitle(productId, 'product', nameValue);
     } else {
       // Reset to original name if empty or unchanged
-      setNameValue(feature.name);
+      setNameValue(product.name);
     }
     setIsEditing(false);
   };
@@ -54,7 +53,7 @@ export function FeatureTabContent({ featureId }: FeatureTabContentProps) {
     if (e.key === 'Enter') {
       handleNameSave();
     } else if (e.key === 'Escape') {
-      setNameValue(feature.name);
+      setNameValue(product.name);
       setIsEditing(false);
     }
   };
@@ -76,7 +75,7 @@ export function FeatureTabContent({ featureId }: FeatureTabContentProps) {
               <button 
                 onClick={handleNameSave}
                 className="ml-2 p-1 rounded-md hover:bg-[#232326]"
-                aria-label="Save feature name"
+                aria-label="Save product name"
               >
                 <Check className="h-4 w-4 text-green-500" />
               </button>
@@ -86,39 +85,37 @@ export function FeatureTabContent({ featureId }: FeatureTabContentProps) {
               className="text-xl font-medium text-white flex items-center cursor-pointer hover:bg-[#232326] px-2 py-0.5 rounded-md"
               onClick={() => setIsEditing(true)}
             >
-              <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
-              {feature.name}
+              <Package className="h-5 w-5 mr-2 text-muted-foreground" />
+              {product.name}
               <Pencil className="ml-2 h-4 w-4 opacity-50" />
             </h1>
           )}
         </div>
-        <div className="flex items-center mt-2 gap-4">
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full ${
-              feature.priority === 'High' ? 'bg-red-500' : 
-              feature.priority === 'Med' ? 'bg-yellow-500' : 'bg-blue-500'
-            } mr-2`}></div>
-            <span className="text-sm text-[#a0a0a0]">{feature.priority} Priority</span>
+        {product.description && (
+          <div className="text-sm text-[#a0a0a0] mt-2">
+            {product.description}
           </div>
-          {feature.description && (
-            <div className="text-sm text-[#a0a0a0] truncate max-w-md">
-              {feature.description}
-            </div>
-          )}
-        </div>
+        )}
       </div>
       
       <div className="flex-1 overflow-hidden p-4">
-        {!isClient ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-[#a0a0a0]">Loading editor...</div>
+        <div className="text-white">
+          <h2 className="text-lg font-medium mb-4">Product Details</h2>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[#a0a0a0] text-sm mb-1">Description</p>
+              <p>{product.description || "No description provided."}</p>
+            </div>
+            
+            <div>
+              <p className="text-[#a0a0a0] text-sm mb-1">Interfaces</p>
+              <p>{product.interfaces && product.interfaces.length > 0 
+                ? `${product.interfaces.length} interfaces connected` 
+                : "No interfaces connected to this product."}
+              </p>
+            </div>
           </div>
-        ) : (
-          <FeatureEditor 
-            featureId={featureId} 
-            initialContent={feature.content || "Enter details about this feature here..."}
-          />
-        )}
+        </div>
       </div>
     </div>
   );
