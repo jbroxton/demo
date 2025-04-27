@@ -23,6 +23,41 @@ export async function GET(request: NextRequest) {
     const stmt = db.prepare(`SELECT value FROM ${storeName}_state WHERE key = ?`);
     const result = stmt.get(key) as { value: string } | undefined;
     
+    // Special handling for releases to ensure fresh feature names
+    if (storeName === 'releases' && result && result.value) {
+      try {
+        // Parse the state to get releases array
+        const stateObj = JSON.parse(result.value);
+        
+        if (stateObj?.state?.releases && Array.isArray(stateObj.state.releases)) {
+          // For each release, get the current feature name from the database
+          const enhancedReleases = stateObj.state.releases.map((release: any) => {
+            if (release.featureId) {
+              // Use database query to get current feature name
+              const feature = db.prepare('SELECT name FROM features WHERE id = ?')
+                .get(release.featureId) as { name: string } | undefined;
+              
+              // Return release with fresh feature name
+              return {
+                ...release,
+                _currentFeatureName: feature && feature.name ? feature.name : 'Unknown Feature'
+              };
+            }
+            return release;
+          });
+          
+          // Replace the releases in the state with enhanced data
+          stateObj.state.releases = enhancedReleases;
+          
+          // Return the enhanced state
+          return NextResponse.json({ value: JSON.stringify(stateObj) });
+        }
+      } catch (error) {
+        console.error('Error enhancing releases with feature names:', error);
+        // Continue with default behavior if enhancement fails
+      }
+    }
+    
     return NextResponse.json({ value: result ? result.value : null });
   } catch (error) {
     console.error(`Error retrieving data:`, error);

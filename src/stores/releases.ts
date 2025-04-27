@@ -21,6 +21,7 @@ type ReleasesStore = {
   getReleases: () => Release[]
   getReleasesByFeatureId: (featureId: string) => Release[]
   getReleaseById: (releaseId: string) => Release | undefined
+  updateReleaseName: (releaseId: string, name: string) => void
 }
 
 // Generate a simple ID
@@ -47,6 +48,13 @@ export const useReleasesStore = create<ReleasesStore>()(
       },
       getReleaseById: (releaseId) => {
         return get().releases.find(release => release.id === releaseId)
+      },
+      updateReleaseName: (releaseId, name) => {
+        set((state) => ({
+          releases: state.releases.map(release => 
+            release.id === releaseId ? { ...release, name } : release
+          )
+        }))
       }
     }),
     {

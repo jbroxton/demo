@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeatureTabContent } from './feature-tab-content';
 import { ProductTabContent } from './product-tab-content';
 import { InterfaceTabContent } from './interface-tab-content';
+import { ReleaseTabContent } from './release-tab-content';
 
 export function TabContent() {
   const { tabs, activeTabId } = useTabsStore();
@@ -31,54 +32,85 @@ export function TabContent() {
   const activeTab = tabs.find(tab => tab.id === activeTabId);
   if (!activeTab) return null;
 
+  console.log('[TabContent] activeTab:', activeTab);
+
   let content;
   
   // Render content based on the active tab's type
   switch (activeTab.type) {
     case 'product': {
-      // Use our new ProductTabContent component
-      content = <ProductTabContent productId={activeTab.itemId} />;
+      // Check if this is a new product tab
+      const isNew = activeTab.itemId.startsWith('new-product-');
+      console.log('[TabContent] Rendering ProductTabContent', { itemId: activeTab.itemId, isNew });
+      content = <ProductTabContent key={activeTab.itemId} productId={activeTab.itemId} tabId={activeTab.id} isNew={isNew} />;
       break;
     }
     case 'interface': {
-      // Use our new InterfaceTabContent component
-      content = <InterfaceTabContent interfaceId={activeTab.itemId} />;
+      // Check if this is a new interface tab
+      const isNew = activeTab.itemId.startsWith('new-interface-');
+      
+      // Extract the product ID from the itemId if this is a new interface
+      let selectedProductId: string | undefined;
+      if (isNew) {
+        const parts = activeTab.itemId.split('-');
+        if (parts.length >= 4) {
+          // The format is 'new-interface-timestamp-productId'
+          selectedProductId = parts.slice(3).join('-');
+        } else {
+          selectedProductId = useProductsStore.getState().products[0]?.id;
+        }
+      }
+      
+      content = <InterfaceTabContent key={activeTab.itemId} interfaceId={activeTab.itemId} tabId={activeTab.id} isNew={isNew} selectedProductId={selectedProductId} />;
       break;
     }
     case 'feature': {
-      // Use our FeatureTabContent component
-      content = <FeatureTabContent featureId={activeTab.itemId} />;
+      // Check if this is a new feature tab
+      const isNew = activeTab.itemId.startsWith('new-feature-');
+      
+      // Extract the interface ID from the itemId if this is a new feature
+      let selectedInterfaceId: string | undefined;
+      if (isNew) {
+        const parts = activeTab.itemId.split('-');
+        if (parts.length >= 4) {
+          // The format is 'new-feature-timestamp-interfaceId'
+          selectedInterfaceId = parts.slice(3).join('-');
+        } else {
+          selectedInterfaceId = useInterfacesStore.getState().interfaces[0]?.id;
+        }
+      }
+      
+      console.log('[TabContent] Rendering FeatureTabContent', { itemId: activeTab.itemId, isNew, selectedInterfaceId });
+      content = <FeatureTabContent 
+        featureId={activeTab.itemId} 
+        tabId={activeTab.id} 
+        isNew={isNew} 
+        selectedInterfaceId={selectedInterfaceId} 
+      />;
       break;
     }
     case 'release': {
-      const release = getReleaseById(activeTab.itemId);
-      if (!release) {
-        content = <div className="text-[#a0a0a0]">Release not found</div>;
-      } else {
-        content = (
-          <div className="bg-[#1e1e20] rounded-none p-6">
-            <h1 className="text-xl font-medium text-white mb-6">{release.name}</h1>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-white">Release Date</h3>
-                <p className="text-sm text-[#a0a0a0] mt-1">
-                  {new Date(release.releaseDate).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-white">Priority</h3>
-                <div className="mt-1 flex items-center">
-                  <div className={`w-3 h-3 rounded-full ${
-                    release.priority === 'High' ? 'bg-red-500' : 
-                    release.priority === 'Med' ? 'bg-yellow-500' : 'bg-blue-500'
-                  } mr-2`}></div>
-                  <span className="text-sm text-[#a0a0a0]">{release.priority}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+      // Check if this is a new release tab
+      const isNew = activeTab.itemId.startsWith('new-release-');
+      
+      // Extract the feature ID from the itemId if this is a new release
+      let selectedFeatureId: string | undefined;
+      if (isNew) {
+        const parts = activeTab.itemId.split('-');
+        if (parts.length >= 4) {
+          // The format is 'new-release-timestamp-featureId'
+          selectedFeatureId = parts.slice(3).join('-');
+        } else {
+          selectedFeatureId = useFeaturesStore.getState().features[0]?.id;
+        }
       }
+      
+      content = <ReleaseTabContent 
+        releaseId={activeTab.itemId} 
+        tabId={activeTab.id}
+        isNew={isNew} 
+        selectedFeatureId={selectedFeatureId} 
+      />;
       break;
     }
     default:
@@ -86,7 +118,7 @@ export function TabContent() {
   }
 
   return (
-    <div className="bg-[#1e1e20] h-full">
+    <div key={activeTab.itemId} className="bg-[#1e1e20] h-full">
       {content}
     </div>
   );

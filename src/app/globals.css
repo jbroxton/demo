@@ -166,4 +166,34 @@
   font-style: italic;
 }
 
+/* React Quill Editor Styles */
+.quill-editor .ql-container {
+  border-color: #2a2a2c;
+  background-color: #232326;
+  color: white;
+  min-height: 150px;
+}
+
+.quill-editor .ql-toolbar {
+  border-color: #2a2a2c;
+  background-color: #1e1e20;
+  color: white;
+}
+
+.quill-editor .ql-stroke {
+  stroke: #a0a0a0;
+}
+
+.quill-editor .ql-fill {
+  fill: #a0a0a0;
+}
+
+.quill-editor .ql-picker {
+  color: #a0a0a0;
+}
+
+.quill-editor .ql-editor.ql-blank::before {
+  color: #575757;
+}
+
 

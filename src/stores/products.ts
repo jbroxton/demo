@@ -15,7 +15,7 @@ export type Product = {
 type ProductsStore = {
   products: Product[]
   // Actions
-  addProduct: (product: Omit<Product, 'id'>) => void
+  addProduct: (product: Omit<Product, 'id'>) => Product
   getProducts: () => Product[]
   getProductById: (productId: string) => Product | undefined
   updateProductWithInterface: (productId: string, interfaceId: string) => void
@@ -39,6 +39,7 @@ export const useProductsStore = create<ProductsStore>()(
         set((state) => ({
           products: [...state.products, newProduct]
         }))
+        return newProduct
       },
       getProducts: () => get().products,
       getProductById: (productId) => {

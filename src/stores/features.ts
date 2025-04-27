@@ -1,7 +1,8 @@
 "use client"
 
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
+import { createHybridStorage } from '@/utils/hybrid-storage'
 
 // Define Feature model
 export type Feature = {
@@ -18,13 +19,14 @@ export type Feature = {
 type FeaturesStore = {
   features: Feature[]
   // Actions
-  addFeature: (feature: Omit<Feature, 'id'>) => void
+  addFeature: (feature: Omit<Feature, 'id'>) => Feature
   getFeatures: () => Feature[]
   getFeaturesByInterfaceId: (interfaceId: string) => Feature[]
   getFeatureById: (featureId: string) => Feature | undefined
   updateFeatureWithRelease: (featureId: string, releaseId: string) => void
   saveFeatureContent: (featureId: string, content: string) => void
   updateFeatureName: (featureId: string, name: string) => void
+  updateFeatureDescription: (featureId: string, description: string) => void
 }
 
 // Generate a simple ID
@@ -44,6 +46,7 @@ export const useFeaturesStore = create<FeaturesStore>()(
         set((state) => ({
           features: [...state.features, newFeature]
         }))
+        return newFeature
       },
       getFeatures: () => get().features,
       getFeaturesByInterfaceId: (interfaceId) => {
@@ -84,11 +87,23 @@ export const useFeaturesStore = create<FeaturesStore>()(
               : feature
           )
         }))
+      },
+      updateFeatureDescription: (featureId, description) => {
+        // Don't update if description is empty
+        if (!description.trim()) return;
+        
+        set((state) => ({
+          features: state.features.map(feature => 
+            feature.id === featureId 
+              ? { ...feature, description: description.trim() } 
+              : feature
+          )
+        }))
       }
     }),
     {
       name: 'features-storage',
-      storage: createJSONStorage(() => localStorage)
+      storage: createHybridStorage('features')
     }
   )
 ) 

@@ -15,19 +15,29 @@ export function createHybridStorage(storeName: string) {
       return {
         getItem: async (name: string): Promise<string | null> => {
           try {
-            // Check cache first
-            if (memoryCache.has(storeName)) {
+            // For features store, always use fresh data without cache
+            // For other stores, check cache first
+            if (storeName !== 'features' && memoryCache.has(storeName)) {
               const storeCache = memoryCache.get(storeName);
               if (storeCache && storeCache[name]) {
                 return storeCache[name];
               }
             }
             
-            const response = await fetch(`/api/store?key=${encodeURIComponent(name)}&store=${encodeURIComponent(storeName)}`);
+            // Use cache control to ensure we get fresh data (especially for features)
+            const fetchOptions: RequestInit = storeName === 'features' 
+              ? { cache: 'no-cache' }  // Always use fresh data for features
+              : {};                    // Default behavior for other stores
+            
+            const response = await fetch(
+              `/api/store?key=${encodeURIComponent(name)}&store=${encodeURIComponent(storeName)}`,
+              fetchOptions
+            );
+            
             if (!response.ok) return null;
             const data = await response.json();
             
-            // Cache the result
+            // Cache the result (except for features if it's being accessed from releases)
             if (data.value) {
               let storeCache = memoryCache.get(storeName);
               if (!storeCache) {

@@ -17,6 +17,8 @@ interface TabsStore {
   activateTab: (tabId: string) => void;
   getActiveTab: () => Tab | undefined;
   updateTabTitle: (itemId: string, type: Tab['type'], newTitle: string) => void;
+  updateTab: (tabId: string, newTabProps: Partial<Tab>) => void;
+  updateNewTabToSavedItem: (temporaryTabId: string, newItemId: string, newItemName: string, type: Tab['type']) => void;
 }
 
 export const useTabsStore = create<TabsStore>((set, get) => ({
@@ -81,5 +83,37 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
           : tab
       )
     }));
-  }
+  },
+  
+  updateTab: (tabId, newTabProps) => {
+    // Update a specific tab by its id with new properties
+    set((state) => ({
+      tabs: state.tabs.map(tab => 
+        tab.id === tabId 
+          ? { ...tab, ...newTabProps } 
+          : tab
+      )
+    }));
+  },
+
+  // Function to transition a temporary 'new' tab to a persistent one
+  updateNewTabToSavedItem: (temporaryTabId, newItemId, newItemName, type) => {
+    console.log('[updateNewTabToSavedItem] called with:', { temporaryTabId, newItemId, newItemName, type });
+    set((state) => {
+      // Remove the old tab
+      const filteredTabs = state.tabs.filter(tab => tab.id !== temporaryTabId);
+      // Add a new tab with the new itemId and title
+      const newTab: Tab = {
+        id: Math.random().toString(36).substring(2, 9),
+        itemId: newItemId,
+        title: newItemName,
+        type
+      };
+      console.log('[updateNewTabToSavedItem] creating new tab:', newTab);
+      return {
+        tabs: [...filteredTabs, newTab],
+        activeTabId: newTab.id
+      };
+    });
+  },
 })); 

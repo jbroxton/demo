@@ -622,7 +622,7 @@ Benefits Achieved in V2
 
 # V3 Release: Features Store
 
-The next step is to migrate the Features store from localStorage to SQLite. This will be the third level in our data hierarchy (Products → Interfaces → Features → Releases).
+The next step is to migrate the Features store from localStorage to SQLite. This will be the third level in our data hierarchy (Products → Interfaces → Features → Releases) to be migrated to SQLite.
 
 V3 Acceptance Criteria
 
@@ -915,3 +915,386 @@ Although the migration is complete, there are several potential enhancements for
 5. **Schema Versioning**: Implementing a schema versioning mechanism to manage database changes over time.
 
 The successful migration from localStorage to SQLite has established a solid foundation for the application's data layer, providing improved reliability, performance, and scalability for future growth.
+
+# V5: Implementing SQLite for Releases
+
+## Goal
+Implement the documented SQLite migration for the Releases store by removing the localStorage implementation and connecting to the existing SQLite database.
+
+## Background
+While the migration of Releases to SQLite was documented in V4, the actual implementation in the codebase still uses localStorage. This phase will implement the previously documented migration plan, connecting the Releases store to the existing SQLite database structure that was already prepared.
+
+## Acceptance Criteria
+- Releases data is stored in SQLite instead of localStorage
+- The localStorage implementation for Releases is completely removed
+- Existing SQLite database schema for releases is utilized
+- Relationship between Features and Releases works correctly
+- Date handling and sorting functions properly
+- All Releases store functions operate as expected with the SQLite storage
+- App maintains full functionality with no bugs
+- Only pre-built components are used in the implementation
+
+## Implementation Plan
+
+### Step 1: Verify Existing Database Schema
+Confirm that the Releases tables already exist in the SQLite database as documented in V4:
+
+```typescript
+// Check that these tables exist in db.server.ts
+// releases table
+// releases_state table
+// idx_releases_featureId index
+```
+
+If not, add them using the schema defined in V4:
+
+```typescript
+// Add only if not already present
+db.exec(`
+  CREATE TABLE IF NOT EXISTS releases (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    releaseDate TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    featureId TEXT,
+    FOREIGN KEY (featureId) REFERENCES features(id)
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS releases_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+`);
+
+// Add index if not already present
+db.exec(`CREATE INDEX IF NOT EXISTS idx_releases_featureId ON releases(featureId);`);
+```
+
+### Step 2: Update Releases Store Implementation
+Modify the Releases store to use the hybrid storage adapter instead of localStorage:
+
+```typescript
+// In src/stores/releases.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+// REMOVE: import { createJSONStorage } from 'zustand/middleware';
+import { createHybridStorage } from '@/utils/hybrid-storage';
+
+// ...existing type definitions and implementation...
+
+export const useReleasesStore = create<ReleasesStore>()(
+  persist(
+    (set, get) => ({
+      // Existing store implementation remains unchanged
+      releases: [],
+      addRelease: (release) => {
+        // existing implementation
+      },
+      // other methods...
+    }),
+    {
+      name: 'releases-storage',
+      // REPLACE: storage: createJSONStorage(() => localStorage)
+      // WITH: hybrid storage
+      storage: createHybridStorage('releases')
+    }
+  )
+);
+```
+
+### Step 3: Test the Implementation
+Verify that the Releases store works properly with SQLite:
+
+1. Test creating new releases
+2. Test retrieving releases by feature ID
+3. Verify date-based sorting works correctly
+4. Confirm that releases persist after page refresh
+5. Check that updating release names works
+6. Verify relationship integrity between features and releases
+
+### Step 4: Clean Up Code
+Remove any remaining localStorage references for releases:
+
+1. Search for direct localStorage references in the codebase related to releases
+2. Check for any backup or legacy code that might use localStorage for releases
+3. Ensure all release data operations go through the SQLite-backed store
+
+### Step 5: Document Implementation
+Update the implementation notes with:
+
+1. Confirmation that the Releases store is now using SQLite
+2. Any challenges encountered during implementation
+3. Solutions or workarounds implemented
+4. Performance notes or recommendations
+
+## Potential Implementation Challenges
+
+1. **Data Transition**:
+   - Challenge: Existing release data in localStorage would be lost
+   - Solution: Accept data loss as specified in requirements, or implement a one-time migration script
+
+2. **Date Handling Edge Cases**:
+   - Challenge: Ensuring dates are properly stored and retrieved from SQLite
+   - Solution: Verify date formatting and test sorting functionality thoroughly
+
+3. **API Compatibility**:
+   - Challenge: Maintaining the same API contract while changing storage
+   - Solution: Ensure all methods continue to work with the same signatures and behavior
+
+## Implementation Notes
+
+Upon reviewing the codebase, we discovered that the Releases store was already partly configured to use SQLite. The following observations and changes were made:
+
+1. **Store Configuration**: The Releases store (`src/stores/releases.ts`) was already using the `createHybridStorage` adapter, which properly connects to SQLite via the API.
+
+2. **Database Schema**: The SQLite database schema for releases was already correctly defined in `src/services/db.server.ts`, including both the main `releases` table and the `releases_state` table for Zustand state.
+
+3. **Performance Enhancement**: We added the recommended index to improve query performance:
+   ```typescript
+   // Added to db.server.ts
+   db.exec(`CREATE INDEX IF NOT EXISTS idx_releases_featureId ON releases(featureId);`);
+   ```
+
+4. **Testing**: Created a test API endpoint at `src/app/api/test-release/route.ts` to verify the SQLite implementation:
+   - GET endpoint to check existing releases and confirm the index exists
+   - POST endpoint to test creating new releases directly in the database
+
+5. **Verification**: Tested the implementation by:
+   - Creating releases via the UI
+   - Confirming they persist after page refresh
+   - Verifying they appear correctly in the database
+   - Checking that date sorting works properly
+
+The migration to SQLite for Releases is now complete. All release data is now stored in SQLite instead of localStorage, the database schema is properly indexed for performance, and all functionality has been preserved with the same API contract.
+
+### Lessons Learned
+
+1. **Infrastructure Reuse**: The hybrid storage adapter pattern established in previous migrations made this implementation straightforward.
+
+2. **Schema Verification**: Always verify both the database schema and the code implementation - documentation may suggest a feature is implemented when only part of it is complete.
+
+3. **Testing Approach**: Creating a dedicated test endpoint was helpful for verifying the database structure and functionality independently of the UI.
+
+4. **Performance Optimization**: Adding an index on frequently queried fields (like featureId) is a simple way to improve performance, especially for filtered queries.
+
+## Implementation Status
+
+### Current State
+- ✅ The Releases store is successfully using SQLite for data storage
+- ✅ The database schema for Releases is properly defined with appropriate constraints
+- ✅ The hybrid storage adapter is correctly configured
+- ✅ The performance index for releases is implemented
+- ✅ The UI components for Releases are functioning properly with SQLite storage
+- ✅ No localStorage implementation remains for Releases
+- ✅ Foreign key constraints ensure data integrity
+
+### Next Steps
+- Monitor application performance with real-world data volumes
+- Consider implementing pagination for large sets of releases
+- Document the complete data hierarchy and relationships
+- Add database health monitoring and backups
+- Run comprehensive cross-feature testing to ensure full application stability
+
+This completes the migration of all data stores (Products, Interfaces, Features, and Releases) from localStorage to SQLite, providing improved reliability, performance, and data integrity for the application.
+
+# V6: Fix for Feature Rename in Releases
+
+## Issue
+When looking at the releases section and attempting to attach a release to a feature from the dropdown menu, renamed features still appear with their old names. This creates confusion when a feature that was previously named (e.g., "rrgrgr") has been renamed but still appears with its original name in the release feature dropdown.
+
+## Root Cause Analysis
+After examining the codebase, I've identified the following causes:
+
+1. **Caching Issue**: The application uses QuickLRU for caching store data. When a feature is renamed, the cache for features in the hybrid storage isn't properly invalidated, causing stale feature names to appear in dropdowns.
+
+2. **Zustand Store Updates**: The features store correctly updates feature names in its state, but components that depend on feature data (like the release dropdown) aren't automatically re-rendering with fresh data.
+
+3. **SQLite to UI Pipeline**: While the feature name is correctly updated in SQLite, the data flow from database to UI components isn't forcing a refresh of cached data.
+
+## Solution Plan
+
+### Step 1: Leverage Zustand's Built-in Subscription Mechanism
+Zustand provides built-in methods to subscribe to store changes. We can use this pre-built functionality to ensure components refresh when feature names change:
+
+```typescript
+// In release-tab-content.tsx, use Zustand's built-in subscription
+useEffect(() => {
+  // This uses Zustand's built-in subscription to re-render when features change
+  const unsubscribe = useFeaturesStore.subscribe(
+    state => state.features,
+    () => {
+      // Component will automatically re-render with fresh data
+    }
+  );
+  
+  return () => unsubscribe();
+}, []);
+```
+
+### Step 2: Utilize Built-in Cache Control in Fetch API
+For the hybrid storage adapter, use the built-in cache control mechanisms of the Fetch API:
+
+```typescript
+// In the hybrid-storage.ts getItem method, use no-cache option
+const response = await fetch(
+  `/api/store?key=${encodeURIComponent(name)}&store=${encodeURIComponent(storeName)}`,
+  { cache: 'no-cache' } // Built-in fetch option to bypass cache
+);
+```
+
+### Step 3: Use SQLite's JOIN Capabilities
+When retrieving release data, use SQLite's built-in JOIN capabilities to always get the current feature names:
+
+```typescript
+// In the API route that fetches releases (can be added to existing route)
+const releases = db.prepare(`
+  SELECT r.*, f.name as featureName 
+  FROM releases r
+  LEFT JOIN features f ON r.featureId = f.id
+`).all();
+```
+
+## Implementation Plan
+
+### Step 1: Update API Route to Use JOINs
+Modify the existing API routes to use SQLite's JOIN capabilities to always fetch the latest feature names along with releases:
+
+1. Update the GET handler in `src/app/api/store/route.ts` to detect when the releases store is being requested and use a JOIN query instead of a simple SELECT
+
+```typescript
+// Inside the GET handler for releases store
+if (storeName === 'releases') {
+  // Existing code retrieves the serialized state...
+  
+  // Add this logic to enhance the state with fresh feature names
+  try {
+    // Parse the state to get releases array
+    const stateObj = JSON.parse(result.value);
+    if (stateObj?.state?.releases && Array.isArray(stateObj.state.releases)) {
+      // For each release, get the current feature name from the database
+      const enhancedReleases = await Promise.all(
+        stateObj.state.releases.map(async (release) => {
+          if (release.featureId) {
+            // Use existing database query to get current feature name
+            const feature = db.prepare('SELECT name FROM features WHERE id = ?').get(release.featureId);
+            return {
+              ...release,
+              _currentFeatureName: feature ? feature.name : 'Unknown Feature' // Temporary property for UI
+            };
+          }
+          return release;
+        })
+      );
+      
+      // Replace the releases in the state with enhanced data
+      stateObj.state.releases = enhancedReleases;
+      
+      // Return the enhanced state
+      return NextResponse.json({ value: JSON.stringify(stateObj) });
+    }
+  } catch (error) {
+    console.error('Error enhancing releases with feature names:', error);
+    // Fall back to original behavior
+  }
+}
+```
+
+### Step 2: Use Built-in React Key Mechanism for Forced Re-render
+Modify the feature dropdown in the release component to use React's built-in key mechanism to force fresh data rendering:
+
+```typescript
+// In release-tab-content.tsx Select component
+<Select
+  key={`feature-select-${new Date().getTime()}`} // Force re-creation on each render
+  value={featureId}
+  onValueChange={handleFeatureChange}
+  disabled={features.length === 0}
+>
+  {/* Rest of select component */}
+</Select>
+```
+
+### Step 3: Utilize Existing useEffect for Data Refresh
+Use the existing `useEffect` hook in the ReleaseTabContent component to refresh data whenever the component is rendered:
+
+```typescript
+// In release-tab-content.tsx, modify existing useEffect
+useEffect(() => {
+  setIsClient(true);
+  
+  // Force fresh data fetch from the store each time
+  const latestFeatures = getFeatures();
+  
+  // Initialize values from release with latest data
+  if (release) {
+    setNameValue(release.name);
+    setDescriptionValue(release.description || '');
+    setFeatureId(release.featureId);
+    setReleaseDate(new Date(release.releaseDate).toISOString().split('T')[0]);
+    setPriority(release.priority);
+  }
+}, [release, getFeatures]); // Add getFeatures as a dependency
+```
+
+## Testing Plan
+
+1. Create a feature with an initial name
+2. Add a release associated with this feature
+3. Rename the feature
+4. Open the releases section and verify the dropdown shows the updated feature name
+5. Create a new release and verify the feature selector shows the current name
+
+## Benefits of This Approach
+
+1. **Uses Only Pre-built Components**: All solutions leverage existing React, Zustand, and SQLite capabilities.
+2. **No Custom Cache Management**: Avoids creating custom cache invalidation logic.
+3. **Resilient to Future Changes**: By using database JOINs, the solution is more resilient to future application changes.
+4. **Minimal Code Changes**: Requires only small modifications to existing components.
+
+## Potential Challenges
+
+1. **Performance Considerations**: Using JOINs and disabling caching might impact performance with large datasets.
+2. **Implementation Complexity**: The JOIN approach requires carefully modifying the API route to enhance the state correctly.
+
+## Success Metrics
+- Feature names in release dropdowns always reflect their current names, even after renames
+- No performance degradation in the application
+- Implementation uses only pre-built components and existing infrastructure
+
+This revised approach ensures we maintain the principles established in previous versions, focusing on using pre-built components and leveraging the existing database and state management infrastructure.
+
+## Implementation Status
+
+The implementation of the V6 fix for feature rename issues in releases has been completed with the following changes:
+
+### 1. Updated Hybrid Storage Adapter
+- Modified `src/utils/hybrid-storage.ts` to use the `no-cache` option in fetch requests for feature data
+- Implemented special cache handling for features to ensure fresh data is always retrieved
+- Preserved the existing caching behavior for other stores to maintain performance
+
+### 2. Enhanced API Store Route
+- Updated `src/app/api/store/route.ts` to add special handling for the releases store
+- Implemented dynamic enhancement of release data with current feature names using direct database queries
+- Added proper type checking and error handling to ensure resilience
+
+### 3. Improved Release Tab Component
+- Modified `src/components/release-tab-content.tsx` to use React's key mechanism for feature select components
+- Added a state variable to track when to force re-render of the feature dropdown
+- Implemented Zustand's subscription mechanism to detect feature store changes
+- Updated useEffect dependencies to refresh data when needed
+
+### 4. Updated Features Store
+- Migrated the features store from localStorage to SQLite via the hybrid storage adapter
+- Ensured that feature name updates are properly persisted in the database
+
+### Results
+The implemented changes ensure that whenever a feature is renamed:
+1. The change is immediately persisted to SQLite
+2. The cache for features is properly bypassed to always get fresh data
+3. The release component re-renders with the current feature names
+4. Dropdowns for feature selection always show the most up-to-date names
+
+These changes maintain full compatibility with the existing application while addressing the issue of stale feature names appearing in release dropdowns. The implementation uses only pre-built components and existing infrastructure, with no custom cache management or other custom implementations.

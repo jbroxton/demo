@@ -92,4 +92,7 @@ function initDatabase() {
       value TEXT NOT NULL
     );
   `);
+  
+  // Create index for improving query performance when filtering releases by featureId
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_releases_featureId ON releases(featureId);`);
 } 

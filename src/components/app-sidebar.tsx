@@ -85,6 +85,7 @@ import {
 } from "@/components/ui/context-menu"
 import { useTabsStore } from "@/stores/tabs"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 // This is sample data for changes.
 const changesData = {
@@ -117,16 +118,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { interfaces, addInterface, getInterfacesByProductId, updateInterfaceWithFeature, updateInterfaceName } = useInterfacesStore();
   const { features, addFeature, getFeaturesByInterfaceId, updateFeatureWithRelease } = useFeaturesStore();
   const { releases, addRelease, getReleasesByFeatureId } = useReleasesStore();
+  const { openTab } = useTabsStore();
   
-  // Drawer state
-  const [isOpen, setIsOpen] = useState(false);
+  // Dialog states
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
-  const [activeForm, setActiveForm] = useState<'product' | 'interface' | 'feature' | 'release'>('product');
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   
-  // Selected items for hierarchy
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [selectedInterfaceId, setSelectedInterfaceId] = useState<string | null>(null);
-  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
+  // Form and selection states
+  const [activeForm, setActiveForm] = useState<'product' | 'interface' | 'feature' | 'release'>('product');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedInterfaceId, setSelectedInterfaceId] = useState<string>('');
+  const [selectedFeatureId, setSelectedFeatureId] = useState<string>('');
+  
+  // For backward compatibility with existing code, maintain isOpen state
+  const [isOpen, setIsOpen] = useState(false);
   
   // Product form
   const [productName, setProductName] = useState('');
@@ -278,349 +283,115 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   
   // Open drawer to add a new product
   const handleAddProduct = () => {
-    setActiveForm('product');
-    setIsOpen(true);
+    // Open a new tab for creating a product
+    const newProductId = `new-product-${Date.now()}`;
+    openTab({
+      title: 'New Product',
+      type: 'product',
+      itemId: newProductId
+    });
     setIsTypeDialogOpen(false);
   };
   
   // Open drawer to add a new interface
   const handleAddInterface = (productId: string) => {
-    setSelectedProductId(productId);
-    setActiveForm('interface');
-    setIsOpen(true);
+    // Open a new tab for creating an interface
+    const newInterfaceId = `new-interface-${Date.now()}-${productId}`;
+    openTab({
+      title: 'New Interface',
+      type: 'interface',
+      itemId: newInterfaceId
+    });
     setIsTypeDialogOpen(false);
   };
   
   // Open drawer to add a new feature
   const handleAddFeature = (interfaceId: string) => {
-    setSelectedInterfaceId(interfaceId);
-    setActiveForm('feature');
-    setIsOpen(true);
+    // Open a new tab for creating a feature
+    const newFeatureId = `new-feature-${Date.now()}-${interfaceId}`;
+    openTab({
+      title: 'New Feature',
+      type: 'feature',
+      itemId: newFeatureId
+    });
     setIsTypeDialogOpen(false);
   };
   
   // Open drawer to add a new release
   const handleAddRelease = (featureId: string) => {
-    setSelectedFeatureId(featureId);
-    setActiveForm('release');
-    setIsOpen(true);
+    // Open a new tab for creating a release
+    const newReleaseId = `new-release-${Date.now()}-${featureId}`;
+    openTab({
+      title: 'New Release',
+      type: 'release',
+      itemId: newReleaseId
+    });
     setIsTypeDialogOpen(false);
   };
   
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="p-3 space-y-3">
-        <div className="bg-muted/50 rounded-md p-3 flex items-center">
-          <div className="bg-primary/10 rounded-full p-2 mr-3">
-            <UserIcon className="h-4 w-4 text-primary" />
+    <Sidebar className={props.className} {...props}>
+      <div className="flex flex-col h-full">
+        <div className="p-3 flex justify-between items-center border-b border-[#232326]">
+          <div className="flex items-center space-x-2">
+            <div className="bg-zinc-800 w-8 h-8 rounded-md flex items-center justify-center">
+              <div className="w-4 h-4 bg-zinc-300 rounded-sm"></div>
           </div>
           <div>
-            <div className="text-sm font-medium">Welcome, {user?.name}</div>
-            <div className="text-xs text-muted-foreground">Logged in as: {user?.role}</div>
+              <div className="text-sm font-medium text-white">specky</div>
+              <div className="text-xs text-[#a0a0a0]">spec editor</div>
           </div>
         </div>
-        
-        {/* Add Type Selection Dialog */}
-        <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full" variant="outline">
-              <Plus className="mr-2 h-4 w-4" />
-              Add New
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Item</DialogTitle>
-              <DialogDescription>
-                Select what type of item you want to add.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-3 py-4">
-              <Button 
-                variant="outline"
-                className="justify-start h-12 text-left px-4"
-                onClick={handleAddProduct}
-              >
-                <Package className="mr-2 h-4 w-4" />
-                <div>
-                  <div className="font-medium">Product</div>
-                  <div className="text-xs text-muted-foreground">Top-level container for interfaces</div>
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline"
-                className="justify-start h-12 text-left px-4"
+          <button 
+            className="p-1.5 rounded-md text-[#a0a0a0] hover:bg-[#232326] hover:text-white"
                 onClick={() => {
-                  if (products.length > 0) {
-                    setSelectedProductId(products[0].id);
-                    handleAddInterface(products[0].id);
-                  }
-                }}
-                disabled={products.length === 0}
-              >
-                <Layers className="mr-2 h-4 w-4" />
-                <div>
-                  <div className="font-medium">Interface</div>
-                  <div className="text-xs text-muted-foreground">Container for features</div>
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline"
-                className="justify-start h-12 text-left px-4"
-                onClick={() => {
-                  if (interfaces.length > 0) {
-                    setSelectedInterfaceId(interfaces[0].id);
-                    handleAddFeature(interfaces[0].id);
-                  }
-                }}
-                disabled={interfaces.length === 0}
-              >
-                <Puzzle className="mr-2 h-4 w-4" />
-                <div>
-                  <div className="font-medium">Feature</div>
-                  <div className="text-xs text-muted-foreground">Product capabilities or user stories</div>
-                </div>
-              </Button>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsTypeDialogOpen(false)}>Cancel</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Form Drawer (existing) */}
-        <Drawer direction="right" open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerContent 
-            className="rounded-t-lg border-2 border-border bg-background !w-[50vw] !max-w-[50vw]" 
-            style={{ 
-              backgroundColor: 'var(--background)',
-              width: '50vw',
-              maxWidth: '50vw'
+              logout();
+              router.push('/auth/signin');
             }}
           >
-            <DrawerHeader className="border-b-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              <DrawerTitle>
-                {activeForm === 'product' && 'Add New Product'}
-                {activeForm === 'interface' && 'Add New Interface'}
-                {activeForm === 'feature' && 'Add New Feature'}
-                {activeForm === 'release' && 'Add New Release'}
-              </DrawerTitle>
-              <DrawerDescription>
-                {activeForm === 'product' && 'Create a new top-level product'}
-                {activeForm === 'interface' && 'Add a new interface to the selected product'}
-                {activeForm === 'feature' && 'Add a new feature to the selected interface'}
-                {activeForm === 'release' && 'Add a new release to the selected feature'}
-              </DrawerDescription>
-            </DrawerHeader>
-            
-            <div className="p-6 space-y-4 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              {/* Product Form */}
-              {activeForm === 'product' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="product-name">Product Name*</Label>
-                    <Input 
-                      id="product-name" 
-                      placeholder="Enter product name" 
-                      value={productName}
-                      onChange={(e) => setProductName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="product-description">Description</Label>
-                    <Textarea 
-                      id="product-description" 
-                      placeholder="Enter product description"
-                      value={productDescription}
-                      onChange={(e) => setProductDescription(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
+            <LogOut className="h-4 w-4" />
+          </button>
                 </div>
-              )}
-              
-              {/* Interface Form */}
-              {activeForm === 'interface' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Parent Product</Label>
-                    <div className="p-3 border rounded-md bg-muted/20 text-sm">
-                      {products.find(p => p.id === selectedProductId)?.name || 'Unknown Product'}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="interface-name">Interface Name*</Label>
-                    <Input 
-                      id="interface-name" 
-                      placeholder="Enter interface name" 
-                      value={interfaceName}
-                      onChange={(e) => setInterfaceName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="interface-description">Description</Label>
-                    <Textarea 
-                      id="interface-description" 
-                      placeholder="Enter interface description"
-                      value={interfaceDescription}
-                      onChange={(e) => setInterfaceDescription(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Feature Form */}
-              {activeForm === 'feature' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Parent Interface</Label>
-                    <div className="p-3 border rounded-md bg-muted/20 text-sm">
-                      {interfaces.find(i => i.id === selectedInterfaceId)?.name || 'Unknown Interface'}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="feature-name">Feature Name*</Label>
-                    <Input 
-                      id="feature-name" 
-                      placeholder="Enter feature name" 
-                      value={featureName}
-                      onChange={(e) => setFeatureName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="feature-priority">Priority</Label>
-                    <Select 
-                      value={featurePriority} 
-                      onValueChange={(value) => setFeaturePriority(value as 'High' | 'Med' | 'Low')}
-                    >
-                      <SelectTrigger id="feature-priority">
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Med">Medium</SelectItem>
-                        <SelectItem value="Low">Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="feature-description">Description</Label>
-                    <Textarea 
-                      id="feature-description" 
-                      placeholder="Enter feature description"
-                      value={featureDescription}
-                      onChange={(e) => setFeatureDescription(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Release Form */}
-              {activeForm === 'release' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Parent Feature</Label>
-                    <div className="p-3 border rounded-md bg-muted/20 text-sm">
-                      {features.find(f => f.id === selectedFeatureId)?.name || 'Unknown Feature'}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="release-name">Release Name*</Label>
-                    <Input 
-                      id="release-name" 
-                      placeholder="Enter release name" 
-                      value={releaseName}
-                      onChange={(e) => setReleaseName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="release-description">Description</Label>
-                    <Textarea 
-                      id="release-description" 
-                      placeholder="Enter release description"
-                      value={releaseDescription}
-                      onChange={(e) => setReleaseDescription(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="release-date">Release Date*</Label>
-                    <Input 
-                      id="release-date" 
-                      type="date" 
-                      value={releaseDate}
-                      onChange={(e) => setReleaseDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="release-priority">Priority</Label>
-                    <Select 
-                      value={releasePriority} 
-                      onValueChange={(value) => setReleasePriority(value as 'High' | 'Med' | 'Low')}
-                    >
-                      <SelectTrigger id="release-priority">
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Med">Medium</SelectItem>
-                        <SelectItem value="Low">Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <DrawerFooter className="border-t-2 bg-background" style={{ backgroundColor: 'var(--background)' }}>
-              <Button onClick={handleAdd}>
-                {activeForm === 'product' && 'Create Product'}
-                {activeForm === 'interface' && 'Create Interface'}
-                {activeForm === 'feature' && 'Create Feature'}
-                {activeForm === 'release' && 'Create Release'}
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-      </SidebarHeader>
-      
-      <SidebarContent>
+
         <SidebarGroup>
+          <SidebarGroupLabel>Changes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {changesData.changes.map((item, index) => (
-                <SidebarMenuItem key={index}>
+              {changesData.changes.map((change) => (
+                <SidebarMenuItem key={change.file}>
                   <SidebarMenuButton>
-                    {item.icon ? <item.icon /> : <File />}
-                    {item.file}
+                    <change.icon className="h-4 w-4 text-muted-foreground" />
+                    <span>{change.file}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
         <SidebarGroup>
-          <SidebarGroupLabel className="font-bold">Products</SidebarGroupLabel>
+          <SidebarGroupLabel className="flex justify-between items-center">
+            <span>Products</span>
+            <button 
+              onClick={() => {
+                setIsTypeDialogOpen(true);
+                setActiveForm('product');
+              }}
+              className="h-5 w-5 flex items-center justify-center rounded-sm hover:bg-[#2a2a2c]"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {products.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  No products yet. Create one by clicking "Add New".
+                <SidebarMenuItem>
+                  <div className="flex justify-center py-4 text-[#a0a0a0] text-sm">
+                    No products yet
                 </div>
+                </SidebarMenuItem>
               ) : (
-                products.map((product) => (
+                products.map(product => (
                   <ProductTreeItem 
                     key={product.id} 
                     product={product}
@@ -630,36 +401,129 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     getInterfacesByProductId={getInterfacesByProductId}
                     getFeaturesByInterfaceId={getFeaturesByInterfaceId}
                     getReleasesByFeatureId={getReleasesByFeatureId}
-                    onAddInterface={() => handleAddInterface(product.id)}
-                    onAddFeature={handleAddFeature}
-                    onAddRelease={handleAddRelease}
+                    onAddInterface={() => {
+                      handleAddInterface(product.id);
+                    }}
+                    onAddFeature={(interfaceId) => {
+                      handleAddFeature(interfaceId);
+                    }}
+                    onAddRelease={(featureId) => {
+                      handleAddRelease(featureId);
+                    }}
                   />
                 ))
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      </SidebarContent>
-      
-      <SidebarFooter className="p-3 flex flex-col gap-2">
-        <Button variant="outline" className="w-full">
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
-        </Button>
-        <Button 
-          variant="outline" 
-          className="w-full" 
-          onClick={() => {
-            logout();
-            router.push('/auth/signin');
-          }}
+
+        <Dialog 
+          open={isTypeDialogOpen} 
+          onOpenChange={setIsTypeDialogOpen}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
-        </Button>
-      </SidebarFooter>
-      
-      <SidebarRail />
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Item</DialogTitle>
+              <DialogDescription>
+                Choose the type of item you want to add
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <Card className="cursor-pointer hover:bg-muted/50" onClick={handleAddProduct}>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Package className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Product
+                  </CardTitle>
+                  <DialogDescription>
+                    Create a new product
+                  </DialogDescription>
+                </CardHeader>
+              </Card>
+              <Card 
+                className={cn(
+                  "cursor-pointer", 
+                  products.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
+                )} 
+                onClick={products.length > 0 ? () => {
+                  // If there are products, select the first one and create an interface for it
+                  if (products.length > 0) {
+                    handleAddInterface(products[0].id);
+                  }
+                  setIsTypeDialogOpen(false);
+                } : undefined}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Layers className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Interface
+                  </CardTitle>
+                  <DialogDescription>
+                    {products.length > 0 
+                      ? "Add a new interface" 
+                      : "Create a product first"
+                    }
+                  </DialogDescription>
+                </CardHeader>
+              </Card>
+            </div>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <Card 
+                className={cn(
+                  "cursor-pointer", 
+                  interfaces.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
+                )} 
+                onClick={interfaces.length > 0 ? () => {
+                  // If there are interfaces, select the first one and create a feature for it
+                  if (interfaces.length > 0) {
+                    handleAddFeature(interfaces[0].id);
+                  }
+                  setIsTypeDialogOpen(false);
+                } : undefined}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Feature
+                  </CardTitle>
+                  <DialogDescription>
+                    {interfaces.length > 0 
+                      ? "Add a new feature" 
+                      : "Create an interface first"
+                    }
+                  </DialogDescription>
+                </CardHeader>
+              </Card>
+              <Card 
+                className={cn(
+                  "cursor-pointer", 
+                  features.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
+                )} 
+                onClick={features.length > 0 ? () => {
+                  // If there are features, select the first one and create a release for it
+                  if (features.length > 0) {
+                    handleAddRelease(features[0].id);
+                  }
+                  setIsTypeDialogOpen(false);
+                } : undefined}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Release
+                  </CardTitle>
+                  <DialogDescription>
+                    {features.length > 0 
+                      ? "Add a new release" 
+                      : "Create a feature first"
+                    }
+                  </DialogDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </Sidebar>
   )
 }
@@ -744,7 +608,7 @@ function ProductTreeItem({
       inputRef.current.focus();
     }
   }, [isEditing]);
-
+  
   return (
     <SidebarMenuItem>
       <ContextMenu>
@@ -755,7 +619,7 @@ function ProductTreeItem({
               defaultOpen
               onOpenChange={setIsExpanded}
             >
-              <CollapsibleTrigger asChild>
+            <CollapsibleTrigger asChild>
                 <SidebarMenuButton onClick={handleProductClick} className="hover-container relative">
                   {productInterfaces.length > 0 ? (
                     <ChevronRight 
@@ -794,34 +658,34 @@ function ProductTreeItem({
                   )}
                   <div 
                     className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddInterface();
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </div>
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddInterface();
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </div>
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
                   {productInterfaces.length === 0 ? null : (
-                    productInterfaces.map((interface_) => (
-                      <InterfaceTreeItem 
-                        key={interface_.id}
-                        interface_={interface_}
-                        features={features}
-                        releases={releases}
-                        getFeaturesByInterfaceId={getFeaturesByInterfaceId}
-                        getReleasesByFeatureId={getReleasesByFeatureId}
-                        onAddFeature={() => onAddFeature(interface_.id)}
-                        onAddRelease={onAddRelease}
-                      />
-                    ))
-                  )}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </Collapsible>
+                  productInterfaces.map((interface_) => (
+                    <InterfaceTreeItem 
+                      key={interface_.id}
+                      interface_={interface_}
+                      features={features}
+                      releases={releases}
+                      getFeaturesByInterfaceId={getFeaturesByInterfaceId}
+                      getReleasesByFeatureId={getReleasesByFeatureId}
+                      onAddFeature={() => onAddFeature(interface_.id)}
+                      onAddRelease={onAddRelease}
+                    />
+                  ))
+                )}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
           ) : (
             <SidebarMenuButton onClick={handleProductClick} className="hover-container relative">
               <div className="w-4 h-4" />
@@ -951,7 +815,7 @@ function InterfaceTreeItem({
       inputRef.current.focus();
     }
   }, [isEditing]);
-
+  
   return (
     <SidebarMenuItem>
       <ContextMenu>
@@ -962,7 +826,7 @@ function InterfaceTreeItem({
               defaultOpen
               onOpenChange={setIsExpanded}
             >
-              <CollapsibleTrigger asChild>
+            <CollapsibleTrigger asChild>
                 <SidebarMenuButton onClick={handleInterfaceClick} className="hover-container relative">
                   {interfaceFeatures.length > 0 ? (
                     <ChevronRight 
@@ -1001,31 +865,31 @@ function InterfaceTreeItem({
                   )}
                   <div 
                     className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddFeature();
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </div>
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddFeature();
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </div>
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
                   {interfaceFeatures.length === 0 ? null : (
-                    interfaceFeatures.map((feature) => (
-                      <FeatureTreeItem 
-                        key={feature.id}
-                        feature={feature}
-                        releases={releases}
-                        getReleasesByFeatureId={getReleasesByFeatureId}
-                        onAddRelease={() => onAddRelease(feature.id)}
-                      />
-                    ))
-                  )}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </Collapsible>
+                  interfaceFeatures.map((feature) => (
+                    <FeatureTreeItem 
+                      key={feature.id}
+                      feature={feature}
+                      releases={releases}
+                      getReleasesByFeatureId={getReleasesByFeatureId}
+                      onAddRelease={() => onAddRelease(feature.id)}
+                    />
+                  ))
+                )}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
           ) : (
             <SidebarMenuButton onClick={handleInterfaceClick} className="hover-container relative">
               <div className="w-4 h-4" />
@@ -1159,7 +1023,7 @@ function FeatureTreeItem({
               defaultOpen
               onOpenChange={setIsExpanded}
             >
-              <CollapsibleTrigger asChild>
+            <CollapsibleTrigger asChild>
                 <SidebarMenuButton onClick={handleFeatureClick} className="hover-container relative">
                   {featureReleases.length > 0 ? (
                     <ChevronRight 
@@ -1198,20 +1062,20 @@ function FeatureTreeItem({
                   )}
                   <div 
                     className="ml-auto h-5 w-5 flex items-center justify-center rounded-sm opacity-0 hover:opacity-100 hover:bg-muted/50 cursor-pointer transition-opacity duration-200 plus-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddRelease();
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </div>
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddRelease();
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </div>
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
                   {featureReleases.length === 0 ? null : (
-                    featureReleases.map((release) => (
-                      <SidebarMenuItem key={release.id}>
+                  featureReleases.map((release) => (
+                    <SidebarMenuItem key={release.id}>
                         <SidebarMenuButton 
                           className="pl-[4.5rem]"
                           onClick={() => {
@@ -1222,18 +1086,18 @@ function FeatureTreeItem({
                             });
                           }}
                         >
-                          {release.name}
-                          <div className="ml-2 text-xs text-muted-foreground">
-                            {new Date(release.releaseDate).toLocaleDateString()}
-                          </div>
-                          <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
+                        {release.name}
+                        <div className="ml-2 text-xs text-muted-foreground">
+                          {new Date(release.releaseDate).toLocaleDateString()}
+                        </div>
+                      <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
                         </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))
-                  )}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </Collapsible>
+                    </SidebarMenuItem>
+                  ))
+                )}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
           ) : (
             <SidebarMenuButton onClick={handleFeatureClick} className="hover-container relative">
               <div className="w-4 h-4" />
