@@ -1653,7 +1653,7 @@ const handleSaveFeature = async () => {
       priority: priorityValue,
       interfaceId: interfaceId
     });
-
+    
     if (newFeature && newFeature.id) {
       // Use the *current* featureId prop which is the temporary tab ID
       const temporaryTabId = featureId; 
@@ -1726,21 +1726,21 @@ export function FeatureTabContent({
   }, []);
 
   // Effect to initialize form when featureId changes OR feature data loads
-  useEffect(() => {
-    if (isNew) {
+useEffect(() => {
+  if (isNew) {
       // Setup for a new feature
-      setNameValue('New Feature');
-      setDescriptionValue('');
-      setPriorityValue('Med');
-      setInterfaceId(selectedInterfaceId || '');
+    setNameValue('New Feature');
+    setDescriptionValue('');
+    setPriorityValue('Med');
+    setInterfaceId(selectedInterfaceId || '');
       setIsEditingName(true); // Ensure name is editable for new features
       setIsEditingDescription(false); // Don't auto-edit description
-    } else if (feature) {
+  } else if (feature) {
       // Setup for an existing feature
-      setNameValue(feature.name);
-      setDescriptionValue(feature.description || '');
-      setPriorityValue(feature.priority);
-      setInterfaceId(feature.interfaceId);
+    setNameValue(feature.name);
+    setDescriptionValue(feature.description || '');
+    setPriorityValue(feature.priority);
+    setInterfaceId(feature.interfaceId);
       setIsEditingName(false); // Not editing by default
       setIsEditingDescription(false);
     } 
@@ -2009,3 +2009,345 @@ Each entity will be fixed and tested in sequence. After each step, the implement
 - ✅ Implementation uses pre-built components where possible.
 
 ---
+
+
+
+
+# V14: Add Requirments to Feaures Page
+
+## Goal
+User Story
+As a user I want to add requirments to a feature
+
+About
+Update Feature Details View extends user affordanes to add a requirements to a Feautire.
+
+Components
+- Add Feature Button
+- Requirements Table
+- Requirements Table Columns
+   - Name
+   - Owner
+   - Description
+   - Priority
+   - Release
+   - CUJ
+   - Acceptance Criteria
+- Add Row Buton 
+- Save Button
+
+CUJ
+- I want to add a requirments to a feature
+   - Add a button called "Add requirements" to Feature Details Page (all states: new, edit, and view)
+   - If  "Add requirments" is clicked by the user, a table is inserted under Description in an edit state
+   - If the user clicks save, the added information is saved and the table changes to a view state
+
+   # V15: Update Feature Page Layout
+   Goal: update the feature layout page - page openend in the main content section 
+  [Done] Step 1.Upddate the feature page layout to a two row grid
+      - Head Row: 
+         - Layout left to right
+         - Column1: Name (existing)
+         - Column2: Action Bar (Add Requirement, Edit, Save)
+      - Main (multi row grid but only one row is requiremnts, the others shuold be added dymaically)
+         - Description Text (react Quill)
+         - Requirements Table (only needed if user adds requrements)
+      - Foot (no footer)
+   [Done] Step 2. Add Buttons / heading / Fields
+      Head
+         - Column1: Feature name (existing, no change)
+         - Column 2: Buttons:
+            - Add Feature
+            - Edit/Save
+               - Edit shows in View/Modified states
+               - Save shows in New, Edit states
+            - Cancel 
+            - Save
+         Body
+         - Row 1: Meta data: Priority
+         - Row 2: Description (use the same implementation as now with Description and the react quill text editor)
+         - Row 3: Is Optional when the user clicks add feature,  render "Requirements a blank space to act as a placeholer for now
+     
+     [Done] Step 3. Remove Edit functionlaity from individual page components and allow features to be deleted from Feature Details Page:
+         - Remove edit control function and UI Elements from individual compoenents. 
+         - Make Featurer Page edit state controlled by the edit button in the action bar 
+         - Add Delete Button to Feaures (not needed in new state since the feature has not been saved
+         - If the user clicks delete: 
+            open a confiration (dialog) menu to confirm and say Are you sure you? this cannot be undone with a Cancel and Delete button in the dialog
+            If the user clicks delete
+               - then delete the Feaure from our database
+               - show a toast when the delete is successful
+               - Close the tab of the now deleted feature
+               - Update the side nav to reflect the deleted feature so its accurate
+            If the the user clicks cancel then close the menu
+
+
+   Acceptance Crtiera
+   - No bugs in app
+   - No existing functilaity is broken
+   - Pre-build conponents are used
+   - Change works for states: New/View,Edit,Modified/Saved
+   - No changes made to other entity pages
+   - Any old code not needed from this project is deleted
+   - Implementation notes are added in a section below called " ## Implementation notes for V15" with lessons learned and best practices to make future development easier and reduced bugs
+
+## Implementation Plan for V15
+
+### Overview
+This plan outlines the steps needed to restructure the Feature page layout as specified in the V15 requirements, focusing on a two-row grid layout with improved action buttons and optional requirements section.
+
+### Core Components to Modify
+1. `feature-tab-content.tsx` - Main component that needs to be restructured
+2. `feature-description-editor.tsx` - Will remain mostly the same but needs placement adjustment
+3. `features.ts` store - May need updates to support new requirements functionality and features can hold many requirements. Exptend the SQLite data model for features.
+
+### Step 1: Update Layout Structure [DONE]
+1. Restructure the `FeatureTabContent` component to use a two-row grid layout:
+   - Head row with Feature name and Action buttons
+   - Main content with Description and (optional) Requirements
+
+2. Component structure changes:
+   ```
+   <FeatureTabContent>
+     <HeaderSection>
+       <NameColumn />
+       <ActionColumn>
+         <AddRequirementButton />
+         <EditSaveButton />
+         <CancelButton />
+         <SaveButton />
+       </ActionColumn>
+     </HeaderSection>
+     <BodySection>
+       <MetadataRow>
+         <PrioritySelector />
+       </MetadataRow>
+       <DescriptionRow>
+         <FeatureDescriptionEditor />
+       </DescriptionRow>
+       {showRequirements && (
+         <RequirementsRow>
+           <RequirementsPlaceholder />
+         </RequirementsRow>
+       )}
+     </BodySection>
+   </FeatureTabContent>
+   ```
+
+### Step 2: Implement Action Bar Buttons [DONE]
+1. Create conditional rendering logic for buttons:
+   - "Add Requirement" button (all states)
+   - "Edit" button (View/Modified states)
+   - "Save" button (New/Edit states)
+   - "Cancel" button (all states)
+
+2. Implement the button click handlers:
+   - Toggle requirements section visibility
+   - Switch between view and edit states
+   - Save feature changes
+   - Cancel edits
+
+### Step 3: Implement Delete Feature Functionality and Centralize Edit Controls
+
+#### Part 1: Update Features Store
+1. Add a new `deleteFeature` function to the Features store that:
+   - Removes the feature from the features array
+   - Returns success status for confirmation
+
+#### Part 2: Create a Confirmation Dialog Component
+1. Create a reusable `ConfirmationDialog` component with:
+   - Title and confirmation message
+   - Cancel and Confirm buttons
+   - Customizable styling for different types of confirmations
+
+#### Part 3: Remove Individual Edit Controls and Centralize Edit State
+1. Update `FeatureTabContent` component to:
+   - Remove inline edit controls from individual fields/elements
+   - Make all editable elements read-only when not in edit mode
+   - Make the name field no longer separately editable - only editable in edit mode
+   - Ensure feature name field has consistent styling across modes
+
+#### Part 4: Add Delete Feature Functionality
+1. Add a delete button to the action bar (only visible in view mode for existing features)
+2. Implement the delete confirmation dialog that appears when delete is clicked
+3. Handle delete confirmation:
+   - Delete the feature from the store
+   - Close the current tab
+   - Show a success toast notification
+   - Trigger a refresh of the side navigation
+
+#### Part 5: Update Side Navigation
+1. Make sure the navigation store is subscribed to changes in the features store
+2. Implement a refresh mechanism for the side nav when a feature is deleted
+
+### Testing Strategy for Step 3
+1. Test feature deletion flow:
+   - Confirm dialog opens when delete is clicked
+   - Confirm feature is removed when confirmed
+   - Confirm tab closes and side nav updates
+2. Test centralized edit mode:
+   - Confirm all fields are read-only in view mode
+   - Confirm all fields become editable in edit mode
+   - Confirm edit state is properly toggled by the action bar buttons
+
+### Dependencies for Step 3
+- Shadcn UI Dialog component for confirmation dialog
+- Shadcn UI Toast component for success notifications
+- Zustand store updates for feature deletion
+- Navigation/tabs system for tab updates and closures
+
+### Acceptance Criteria Verification
+1. All edit functionality is controlled from the central action bar
+2. No individual edit controls on the fields (only in edit mode)
+3. Delete feature capability works correctly
+4. Side navigation updates after feature deletion
+5. User is prompted for confirmation before deletion
+6. Toast notification confirms successful deletion
+7. There are no bugs in existing functionality
+8. Removed code that is no longer needed
+
+## Implementation notes for V15
+
+### Changes Made for Steps 1 & 2
+1. Updated the Feature page layout to use a two-row grid structure:
+   - Header row with feature name in the first column and action buttons in the second column
+   - Main content area with metadata (priority), description, and optional requirements sections
+
+2. Extended the Feature model in the features store:
+   - Added `requirements` array to store feature requirements
+   - Added `showRequirements` boolean flag to track visibility state
+   - Implemented CRUD operations for requirements: add, update, delete, and toggle visibility
+
+3. Created a new RequirementsPlaceholder component:
+   - Simple card-based UI to display when requirements section is toggled on
+   - Shows requirement count when requirements exist
+   - Shows appropriate messaging based on edit/view state
+
+4. Implemented action buttons in the header:
+   - "Add Requirement" button (visible in all states)
+   - "Edit" button (visible in view/modified states)
+   - "Save" button (visible in new/edit states)
+   - "Cancel" button (visible in new/edit states)
+
+5. Refactored state management:
+   - Unified editing states under a single `isEditing` flag
+   - Maintained separate `isEditingName` for inline name editing
+   - Added local state for new features to track requirements visibility
+
+### Changes Made for Step 3
+1. Added a `deleteFeature` function to the features store:
+   - Removes the feature from the features array
+   - Returns a success status to confirm the deletion
+
+2. Centralized edit functionality:
+   - Removed individual edit controls from component elements
+   - Consolidated all editing operations under a single edit state
+   - Removed inline edit capability for feature name
+   - Made all fields read-only in view mode
+
+3. Added delete functionality:
+   - Added a Delete button in the action bar (next to Edit)
+   - Implemented a confirmation dialog using the existing Dialog component
+   - Added dialog with warning message and red Delete button
+   - Added toast notification for successful deletion
+
+4. Updated UI behavior:
+   - Feature name is now only editable when in edit mode
+   - Priority is now displayed as static text in view mode
+   - Interface is now displayed as static text in view mode
+   - Description is no longer clickable in view mode
+   - Tab is automatically closed when feature is deleted
+
+### Technical Approach
+- Used CSS Grid for layout structure to ensure proper alignment and responsiveness
+- Leveraged existing Shadcn UI components for consistent styling
+- Implemented conditional rendering for different UI states
+- Extended the Zustand store with new feature capabilities
+- Used a placeholder component for requirements that can be expanded in future versions
+- Used the Sonner toast library for success notifications
+- Used Shadcn Dialog component for confirmation dialogs
+- Simplified the component by removing redundant state
+
+### Lessons Learned
+1. **Centralized State Management**: Consolidating editing functionality under a single state variable greatly simplifies component logic and reduces potential for bugs.
+
+2. **Declarative UI**: Using conditional rendering based on a single state flag makes the code more maintainable as the UI complexity grows.
+
+3. **Confirmation Patterns**: Implementing a confirmation step for destructive actions (like delete) is an important UX pattern that helps prevent accidental data loss.
+
+4. **Toast Notifications**: Using toast notifications for success/error messages provides non-intrusive feedback to the user.
+
+5. **Side Navigation Integration**: Changes in data need to be reflected immediately in navigation to maintain UI consistency.
+
+### Best Practices
+1. Always provide visual feedback for user actions (e.g., save confirmation messages)
+2. Use consistent button placement and styling across the application
+3. Require confirmation for destructive actions
+4. Centralize state management for related UI elements
+5. Use a single source of truth for data state
+6. Provide clear visual distinction between view and edit modes
+7. Minimize the number of clickable elements in the UI to reduce confusion
+
+### Future Enhancement Opportunities
+1. Implement full requirements table with CRUD operations
+2. Add sorting and filtering for requirements
+3. Allow requirements to be linked to releases
+4. Provide import/export functionality for requirements
+5. Implement relationship visualization between features and requirements
+6. Add version history or audit trail for feature changes and deletions
+
+
+V16: Side nav Header changes
+Requirements
+- The header in the side nav should be updated to show:
+   - "Specky" as the primary app name
+   - An avatar using the "Proportions" icon from the Lucide icon library (https://lucide.dev/icons/proportions)
+- Above "Goals" in the side nav
+   - Add a welcome message above the quick links section that displays "Welcome, [user name]" where [user name] is the current logged-in user's name from the auth store
+   - Remove "Changes" above goals
+
+Acceptance Criteria
+- No bugs are introduced in the application
+- No existing functionality is broken during implementation
+- Only pre-built components from the project are used
+- Changes work consistently across all application states: New/View, Edit, Modified/Saved
+- No changes are made to other entity pages that are outside the scope of this task
+- Any obsolete code related to the previous header implementation is removed
+- Implementation notes are added in a section below called "## Implementation notes for V16" with lessons learned and best practices to make future development easier and reduce bugs
+- All changes follow existing UX patterns in the application
+- Only Shadcn components are used for the implementation
+
+## Implementation Plan for V16
+
+### Step 1: Update Side Navigation Header
+1. Modify the existing header in the app-sidebar.tsx component:
+   - Keep the existing "Specky" and "Spec Editor" text which is already present
+   - Replace the current square logo with the Proportions icon from Lucide
+   - Ensure proper styling and alignment of all header elements
+
+### Step 2: Add Welcome Message Section
+1. Add a new section below the header that contains:
+   - A welcome message that displays "Welcome, [user name]"
+   - Retrieve the user's name from the auth store (useAuth hook)
+   - Apply appropriate styling consistent with the application's design
+
+### Step 3: Implement Quick Links Section
+1. Create a new sidebar group below the welcome message:
+   - Add a SidebarGroupLabel with the text "Quick links"
+   - Populate with appropriate quick link items that are relevant to the application
+   - Use existing SidebarMenu and SidebarMenuItem components for consistency
+
+### Step 4: Testing & Cleanup
+1. Test the implementation across all application states:
+   - Verify the header displays correctly across all UI states
+   - Ensure the welcome message correctly shows the logged-in user's name
+   - Confirm quick links section displays and functions as expected
+   - Validate that no existing functionality is broken
+2. Remove any obsolete code related to the old header implementation
+3. Add detailed implementation notes with lessons learned
+
+// ... existing code ...
+
+
+
+

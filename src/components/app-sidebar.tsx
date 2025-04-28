@@ -16,7 +16,8 @@ import {
   Rocket,
   Map,
   Settings,
-  LogOut
+  LogOut,
+  Proportions
 } from "lucide-react"
 
 import {
@@ -87,27 +88,25 @@ import { useTabsStore } from "@/stores/tabs"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-// This is sample data for changes.
-const changesData = {
-  changes: [
-    {
-      file: "Goals",
-      icon: Target
-    },
-    {
-      file: "Approvals",
-      icon: CheckSquare
-    },
-    {
-      file: "Launches",
-      icon: Rocket
-    },
-    {
-      file: "Roadmap",
-      icon: Map
-    }
-  ],
-}
+// Data for Goals section
+const goalsData = [
+  {
+    name: "Goals",
+    icon: Target
+  },
+  {
+    name: "Approvals",
+    icon: CheckSquare
+  },
+  {
+    name: "Launches",
+    icon: Rocket
+  },
+  {
+    name: "Roadmap",
+    icon: Map
+  }
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuth();
@@ -334,34 +333,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <div className="flex flex-col h-full">
         <div className="p-3 flex justify-between items-center border-b border-[#232326]">
           <div className="flex items-center space-x-2">
-            <div className="bg-zinc-800 w-8 h-8 rounded-md flex items-center justify-center">
-              <div className="w-4 h-4 bg-zinc-300 rounded-sm"></div>
-          </div>
-          <div>
-              <div className="text-sm font-medium text-white">specky</div>
-              <div className="text-xs text-[#a0a0a0]">spec editor</div>
+            <div className="w-8 h-8 rounded-md flex items-center justify-center">
+              <Proportions className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="text-base font-medium text-white">speqq</div>
+            </div>
           </div>
         </div>
+
+        <div className="p-3 border-b border-[#232326] flex justify-between items-center">
+          <div className="text-xs text-[#a0a0a0]">
+            Welcome, {user?.name || 'User'}
+          </div>
           <button 
             className="p-1.5 rounded-md text-[#a0a0a0] hover:bg-[#232326] hover:text-white"
-                onClick={() => {
+            onClick={() => {
               logout();
               router.push('/auth/signin');
             }}
           >
             <LogOut className="h-4 w-4" />
           </button>
-                </div>
+        </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Changes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {changesData.changes.map((change) => (
-                <SidebarMenuItem key={change.file}>
+              {goalsData.map((item) => (
+                <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton>
-                    <change.icon className="h-4 w-4 text-muted-foreground" />
-                    <span>{change.file}</span>
+                    <item.icon className="h-4 w-4 text-muted-foreground" />
+                    <span>{item.name}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

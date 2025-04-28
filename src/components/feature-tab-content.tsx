@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { useFeaturesStore, Feature } from '@/stores/features';
+import { useFeaturesStore, Feature, Requirement } from '@/stores/features';
 import { useInterfacesStore } from '@/stores/interfaces';
 import { useTabsStore } from '@/stores/tabs';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Pencil, Check, Puzzle, Save, X } from 'lucide-react';
+import { Pencil, Check, Puzzle, Save, X, Plus, FileText, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FeatureDescriptionEditor } from './feature-description-editor';
+import { RequirementsPlaceholder } from './requirements-placeholder';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface FeatureTabContentProps {
   featureId: string;
@@ -22,27 +31,41 @@ export function FeatureTabContent({
   isNew = false,
   selectedInterfaceId 
 }: FeatureTabContentProps) {
-  const { getFeatureById, updateFeatureName, updateFeatureDescription, addFeature } = useFeaturesStore();
+  // Store hooks
+  const { 
+    getFeatureById, 
+    updateFeatureName, 
+    updateFeatureDescription, 
+    addFeature,
+    toggleRequirementsVisibility,
+    deleteFeature
+  } = useFeaturesStore();
   const { getInterfaceById, getInterfaces, updateInterfaceWithFeature } = useInterfacesStore();
   const { updateTabTitle, closeTab, updateNewTabToSavedItem, activateTab } = useTabsStore();
   
-  // State
+  // State hooks - declare ALL hooks at the top before any conditional logic
   const [isClient, setIsClient] = useState(false);
-  const [isEditingName, setIsEditingName] = useState(isNew);
+  const [isEditing, setIsEditing] = useState(isNew);
   const [nameValue, setNameValue] = useState('');
   const [descriptionValue, setDescriptionValue] = useState('');
-  const [isDescriptionEditing, setIsDescriptionEditing] = useState(false);
   const [priorityValue, setPriorityValue] = useState<'High' | 'Med' | 'Low'>('Med');
   const [interfaceId, setInterfaceId] = useState(selectedInterfaceId || '');
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showRequirements, setShowRequirements] = useState(false);
   
   // Get feature data
   const feature = !isNew ? getFeatureById(featureId) : null;
   const interfaces = getInterfaces();
   const selectedInterface = interfaceId ? getInterfaceById(interfaceId) : null;
   
-  // Handle client-side rendering and initialize from feature data
+  // Determine if we should show requirements
+  const shouldShowRequirements = isNew 
+    ? showRequirements 
+    : feature?.showRequirements;
+  
+  // Initialize from feature data on component mount
   useEffect(() => {
     setIsClient(true);
     
@@ -55,22 +78,9 @@ export function FeatureTabContent({
     }
   }, [feature]);
   
-  // Show "not found" for non-existent features
-  if (!isNew && !feature) {
-    return (
-      <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
-        Feature not found or not loaded yet.
-      </div>
-    );
-  }
-  
   // Event handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNameValue(e.target.value);
-  };
-  
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescriptionValue(e.target.value);
   };
   
   const handlePriorityChange = (value: string) => {
@@ -81,24 +91,42 @@ export function FeatureTabContent({
     setInterfaceId(value);
   };
   
-  const handleNameSave = () => {
-    if (!isNew && feature && nameValue.trim()) {
-      const trimmedName = nameValue.trim();
-      if (trimmedName !== feature.name) {
-        updateFeatureName(featureId, trimmedName);
-        updateTabTitle(featureId, 'feature', trimmedName);
+  const handleSaveFeature = () => {
+    if (!isNew && feature) {
+      if (nameValue.trim() !== feature.name) {
+        updateFeatureName(featureId, nameValue);
+        updateTabTitle(featureId, 'feature', nameValue);
       }
-      setIsEditingName(false);
-    } else if (!isNew && feature) {
-      setNameValue(feature.name);
-      setIsEditingName(false);
+      
+      if (descriptionValue !== feature.description) {
+        updateFeatureDescription(featureId, descriptionValue);
+      }
+      
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 3000);
+      setIsEditing(false);
     }
   };
   
-  const handleDescriptionSave = () => {
+  const handleToggleRequirements = () => {
     if (!isNew && feature) {
-      updateFeatureDescription(featureId, descriptionValue);
-      setIsDescriptionEditing(false);
+      toggleRequirementsVisibility(featureId);
+    } else {
+      // For new features, just track in local state until saved
+      setShowRequirements(true);
+    }
+  };
+  
+  const handleDeleteFeature = () => {
+    if (!isNew && feature) {
+      const success = deleteFeature(featureId);
+      if (success) {
+        toast.success('Feature deleted successfully');
+        // Close this specific tab using the tabId prop, not the featureId
+        closeTab(tabId);
+      } else {
+        toast.error('Failed to delete feature');
+      }
     }
   };
   
@@ -117,6 +145,7 @@ export function FeatureTabContent({
         description: descriptionValue,
         priority: priorityValue,
         interfaceId: interfaceId,
+        showRequirements: showRequirements
       };
 
       const savedFeature = await addFeature(newFeatureData);
@@ -131,7 +160,8 @@ export function FeatureTabContent({
         setTimeout(() => setShowSaveSuccess(false), 3000);
 
         updateInterfaceWithFeature(interfaceId, savedFeature.id); 
-
+        
+        setIsEditing(false);
         console.log('New Feature saved successfully. Tab updated.');
 
       } else {
@@ -145,169 +175,254 @@ export function FeatureTabContent({
     }
   };
   
-  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleNameSave();
-    } else if (e.key === 'Escape') {
+  const handleToggleEditMode = () => {
+    if (isEditing) {
+      // Save changes when exiting edit mode
       if (!isNew && feature) {
-        setNameValue(feature.name);
+        handleSaveFeature();
       }
-      setIsEditingName(false);
+    } else {
+      // Enter edit mode - reset form values to current feature values
+      if (feature) {
+        setNameValue(feature.name);
+        setDescriptionValue(feature.description || '');
+        setPriorityValue(feature.priority);
+      }
+      setIsEditing(true);
     }
   };
   
   const handleCancelNewFeature = () => {
-    closeTab(featureId);
+    if (isNew) {
+      closeTab(featureId);
+    } else {
+      // Reset to feature values and exit edit mode
+      if (feature) {
+        setNameValue(feature.name);
+        setDescriptionValue(feature.description || '');
+        setPriorityValue(feature.priority);
+      }
+      setIsEditing(false);
+    }
   };
+  
+  // Show "not found" for non-existent features
+  if (!isNew && !feature) {
+    return (
+      <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
+        Feature not found or not loaded yet.
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col h-full bg-[#1e1e20]">
-      <div className="px-6 py-4 border-b border-[#232326]">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center">
-            <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
-            {isEditingName ? (
-              <div className="flex items-center w-full max-w-lg">
-                <Input
-                  value={nameValue}
-                  onChange={handleNameChange}
-                  onBlur={isNew ? undefined : handleNameSave}
-                  onKeyDown={handleNameKeyDown}
-                  autoFocus
-                  className="text-xl font-medium text-white bg-[#232326] border-[#2a2a2c]"
-                  placeholder="Enter feature name"
-                />
-                {!isNew && (
-                  <button 
-                    onClick={handleNameSave}
-                    className="ml-2 p-1 rounded-md hover:bg-[#232326]"
-                    aria-label="Save feature name"
-                  >
-                    <Check className="h-4 w-4 text-green-500" />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <h1 
-                className="text-xl font-medium text-white flex items-center cursor-pointer hover:bg-[#232326] px-2 py-0.5 rounded-md"
-                onClick={() => setIsEditingName(true)}
-                title="Click to edit feature name"
-              >
-                {nameValue} 
-                <Pencil className="h-4 w-4 ml-2 opacity-50" />
-              </h1>
-            )}
-          </div>
-          {!isNew && feature && (
-             <div className="flex items-center">
-               <span className="text-sm text-[#a0a0a0] mr-2">Priority:</span>
-               <span className="text-sm text-white">{feature.priority}</span> 
-             </div>
+      {/* Header section with feature name and action buttons */}
+      <div className="px-6 py-4 border-b border-[#232326] grid grid-cols-2">
+        {/* Column 1: Feature name */}
+        <div className="flex items-center">
+          <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
+          {isEditing ? (
+            <div className="flex items-center w-full max-w-lg">
+              <Input
+                value={nameValue}
+                onChange={handleNameChange}
+                autoFocus
+                className="text-xl font-medium text-white bg-[#232326] border-[#2a2a2c]"
+                placeholder="Enter feature name"
+              />
+            </div>
+          ) : (
+            <h1 className="text-xl font-medium text-white">
+              {nameValue}
+            </h1>
           )}
         </div>
+        
+        {/* Column 2: Action buttons */}
+        <div className="flex items-center justify-end space-x-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+            onClick={handleToggleRequirements}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Add Requirement
+          </Button>
+          
+          {!isNew && !isEditing && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+                onClick={handleToggleEditMode}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+              
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            </>
+          )}
+          
+          {(isNew || isEditing) && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+                onClick={handleCancelNewFeature}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+              
+              <Button
+                size="sm"
+                onClick={isNew ? handleSaveNewFeature : handleToggleEditMode}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isSaving || (!nameValue.trim() || (isNew && !interfaceId))}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </>
+          )}
+        </div>
+        
         {showSaveSuccess && (
-          <div className="text-sm text-green-500 mt-1 transition-opacity duration-300">
-             Saved successfully!
+          <div className="col-span-2 text-sm text-green-500 mt-1 transition-opacity duration-300">
+            Saved successfully!
           </div>
         )}
       </div>
       
+      {/* Main content area with metadata, description, and optional requirements */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Row 1: Metadata - Priority and Interface selector */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-[#a0a0a0] text-sm mb-1 block">Priority</label>
+            {isEditing ? (
+              <Select
+                value={priorityValue}
+                onValueChange={handlePriorityChange}
+              >
+                <SelectTrigger className="bg-[#232326] border-[#2a2a2c] text-white">
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#232326] border-[#2a2a2c] text-white">
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Med">Medium</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="text-white">{priorityValue}</div>
+            )}
+          </div>
+          
+          {isNew && (
+            <div>
+              <label className="text-[#a0a0a0] text-sm mb-1 block">Interface</label>
+              <Select
+                value={interfaceId}
+                onValueChange={handleInterfaceChange}
+              >
+                <SelectTrigger className="bg-[#232326] border-[#2a2a2c] text-white">
+                  <SelectValue placeholder="Select interface" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#232326] border-[#2a2a2c] text-white">
+                  {interfaces.map(interface_ => (
+                    <SelectItem key={interface_.id} value={interface_.id}>
+                      {interface_.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {!isNew && !isEditing && (
+            <div>
+              <label className="text-[#a0a0a0] text-sm mb-1 block">Interface</label>
+              <div className="text-white">{selectedInterface?.name || 'None'}</div>
+            </div>
+          )}
+        </div>
+        
+        {/* Row 2: Description */}
         <div>
           <p className="text-[#a0a0a0] text-sm mb-1">Description</p>
-          {isNew || isDescriptionEditing ? (
+          {isEditing ? (
             <div className="border border-[#2a2a2c] rounded-md overflow-hidden">
               <FeatureDescriptionEditor
                 initialContent={descriptionValue}
                 onChange={(value) => setDescriptionValue(value)}
                 placeholder="Enter feature description..."
               />
-              {!isNew && (
-                 <div className="p-2 bg-[#1e1e20] flex justify-end">
-                   <Button 
-                     size="sm"
-                     onClick={handleDescriptionSave}
-                     className="bg-blue-600 hover:bg-blue-700 text-white"
-                   >
-                     Save Description
-                   </Button>
-                 </div>
-              )}
             </div>
           ) : (
-            <div 
-              className="prose prose-invert max-w-none cursor-pointer hover:bg-[#232326] px-2 py-1 rounded-md border border-transparent hover:border-[#2a2a2c] flex items-start min-h-[50px]"
-              onClick={() => {
-                setDescriptionValue(feature?.description || ''); 
-                setIsDescriptionEditing(true);
-              }}
-              title="Click to edit description"
-            >
+            <div className="prose prose-invert max-w-none px-2 py-1 rounded-md border border-transparent min-h-[50px]">
               {isClient && feature?.description ? (
                 <div 
                   className="flex-1 quill-editor-display ql-editor"
                   dangerouslySetInnerHTML={{ __html: feature.description }}
                 />
               ) : (
-                <span className="text-[#575757] italic flex-1">No description provided. Click to edit.</span>
+                <div className="text-[#a0a0a0] italic">No description provided.</div>
               )}
-              <Pencil className="h-4 w-4 opacity-50 ml-2 flex-shrink-0 self-center" />
             </div>
           )}
         </div>
         
-        <div>
-          <p className="text-[#a0a0a0] text-sm mb-1">Interface</p>
-          {isNew ? (
-            <div className="max-w-md">
-              <Select
-                value={interfaceId}
-                onValueChange={handleInterfaceChange}
-                disabled={interfaces.length === 0}
-              >
-                <SelectTrigger className="w-full bg-[#232326] border-[#2a2a2c]">
-                  <SelectValue placeholder="Select an interface..." />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1e1e20] border-[#2a2a2c] text-white">
-                  {interfaces.map((iface) => (
-                    <SelectItem key={iface.id} value={iface.id} className="hover:bg-[#2a2a2c]">
-                      {iface.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {interfaces.length === 0 && (
-                <p className="text-sm text-red-400 mt-1">
-                  No interfaces available. Create an interface first.
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-white">{selectedInterface ? selectedInterface.name : "N/A"}</p>
-          )}
-        </div>
-
-        {isNew && (
-          <div className="mt-8 flex justify-end space-x-3">
-             <Button 
-                variant="outline"
-                onClick={handleCancelNewFeature}
-                className="text-white border-[#555] hover:bg-[#333]"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-            <Button 
-              onClick={handleSaveNewFeature}
-              disabled={!nameValue.trim() || !interfaceId || isSaving}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Feature'}
-            </Button>
+        {/* Row 3: Requirements (optional) */}
+        {shouldShowRequirements && (
+          <div>
+            <RequirementsPlaceholder 
+              requirements={feature?.requirements}
+              isEditing={isEditing}
+            />
           </div>
         )}
       </div>
+      
+      {/* Delete confirmation dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-[#1e1e20] border-[#2a2a2c] text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Feature</DialogTitle>
+            <DialogDescription className="text-[#a0a0a0]">
+              Are you sure? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c] text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteFeature}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
