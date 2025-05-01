@@ -1,11 +1,99 @@
-@import "tailwindcss";
-@import '../styles/hover-effects.css';
-
-@custom-variant dark (&:is(.dark *));
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import '/src/styles/sonner.css';
+
+/* Material React Table fixes for dark mode */
+.dark .MuiTable-root,
+.dark .MuiTableCell-root,
+.dark .MuiTableBody-root td,
+.dark .MuiTableHead-root th,
+.dark .MuiPaper-root,
+.dark .MuiToolbar-root,
+.dark .MuiTableRow-root {
+  background-color: var(--sidebar) !important;
+  color: var(--sidebar-foreground) !important;
+  border-color: var(--sidebar-border) !important;
+}
+
+/* Force text to be visible in all MUI components */
+.MuiTable-root *,
+.MuiTableBody-root *,
+.MuiTableHead-root *,
+.MuiTableCell-root *,
+.MuiToolbar-root *,
+.MuiTable-root span,
+.MuiTableBody-root span,
+.MuiTableHead-root span,
+.MuiTableCell-root span {
+  color: white !important;
+}
+
+.dark .MuiTableContainer-root {
+  min-height: 360px;
+  max-height: 360px;
+}
+
+/* Button text fixes */
+.MuiButton-root {
+  color: inherit !important;
+}
+
+.MuiButton-contained {
+  color: white !important;
+  background-color: #232326 !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiButton-contained:hover {
+  background-color: #2a2a2c !important;
+}
+
+.MuiButton-outlined {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+.MuiButton-root.requirement-add-button {
+  color: white !important;
+}
+
+.MuiButton-root.requirement-delete-button {
+  color: #ef4444 !important;
+}
+
+.MuiButton-root.requirement-delete-button.Mui-disabled {
+  color: #666 !important;
+}
+
+/* Force SVG icons in buttons to be visible */
+.MuiButton-root .MuiSvgIcon-root {
+  color: inherit !important;
+}
+
+.requirement-add-button .MuiSvgIcon-root {
+  color: white !important;
+}
+
+.requirement-delete-button .MuiSvgIcon-root {
+  color: #ef4444 !important;
+}
+
+.requirement-delete-button.Mui-disabled .MuiSvgIcon-root {
+  color: #666 !important;
+}
+
+/* MUI Theme Integration with global theme */
+.MuiPaper-root {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.MuiTableCell-root {
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
 
 @layer base {
   :root {
@@ -194,6 +282,63 @@
 
 .quill-editor .ql-editor.ql-blank::before {
   color: #575757;
+}
+
+/* Action bar and footer styling */
+.MuiToolbar-root {
+  background-color: var(--sidebar) !important;
+  border-bottom: 1px solid var(--sidebar-border) !important;
+  padding: 8px !important;
+}
+
+.MuiTable-root + .MuiToolbar-root {
+  border-bottom: none !important;
+  border-top: 1px solid #1a1a1c !important;
+}
+
+/* Table footer text color fix */
+.MuiTablePagination-root,
+.MuiTablePagination-root *,
+.MuiTablePagination-selectLabel,
+.MuiTablePagination-displayedRows {
+  color: white !important;
+}
+
+/* Table container styling */
+.MuiTableContainer-root {
+  background-color: var(--sidebar) !important;
+  border: none !important;
+}
+
+.MuiPaper-root.MuiPaper-elevation {
+  background-color: var(--sidebar) !important;
+  border: 1px solid var(--sidebar-border) !important;
+  border-radius: 0.375rem !important;
+  box-shadow: none !important;
+}
+
+/* Table layout styles */
+.MuiTableContainer-root .MuiTable-root {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Allow cell text to wrap */
+.MuiTableCell-root {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  max-width: none !important;
+  padding: 8px 12px !important;
+}
+
+/* Make sure header wraps properly */
+.MuiTableCell-head {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  font-weight: 600 !important;
 }
 
 

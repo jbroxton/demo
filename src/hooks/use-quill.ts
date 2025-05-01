@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 
 /**
@@ -13,7 +14,7 @@ export function useQuill() {
       // Load Quill styles
       try {
         // @ts-ignore: Importing CSS file
-        require('react-quill-new/dist/quill.snow.css');
+        require('react-quill/dist/quill.snow.css');
       } catch (e) {
         console.warn('Could not load Quill styles:', e);
       }

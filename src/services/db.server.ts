@@ -95,4 +95,46 @@ function initDatabase() {
   
   // Create index for improving query performance when filtering releases by featureId
   db.exec(`CREATE INDEX IF NOT EXISTS idx_releases_featureId ON releases(featureId);`);
+  
+  // Requirements table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS requirements (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      owner TEXT,
+      description TEXT,
+      priority TEXT,
+      featureId TEXT NOT NULL,
+      releaseId TEXT,
+      cuj TEXT,
+      acceptanceCriteria TEXT,
+      FOREIGN KEY (featureId) REFERENCES features(id),
+      FOREIGN KEY (releaseId) REFERENCES releases(id)
+    );
+  `);
+  
+  // Create storage table for Requirements Zustand state
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS requirements_state (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+  
+  // Create indexes for improving query performance for requirements
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_requirements_featureId ON requirements(featureId);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_requirements_releaseId ON requirements(releaseId);`);
+  
+  // Grid settings table for storing AG-Grid UI preferences
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS grid_settings (
+      userId TEXT,
+      gridId TEXT,
+      columnState TEXT,
+      filterState TEXT,
+      sortState TEXT,
+      lastUpdated TEXT,
+      PRIMARY KEY (userId, gridId)
+    );
+  `);
 } 

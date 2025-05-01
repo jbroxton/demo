@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Check, Puzzle, Save, X, Plus, FileText, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FeatureDescriptionEditor } from './feature-description-editor';
-import { RequirementsPlaceholder } from './requirements-placeholder';
+import { FeatureRequirementsSection } from './feature-requirements-section';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -110,10 +110,12 @@ export function FeatureTabContent({
   
   const handleToggleRequirements = () => {
     if (!isNew && feature) {
+      console.log('Toggling requirements visibility for existing feature:', featureId);
       toggleRequirementsVisibility(featureId);
     } else {
       // For new features, just track in local state until saved
-      setShowRequirements(true);
+      console.log('Toggling requirements visibility in local state');
+      setShowRequirements(!showRequirements);
     }
   };
   
@@ -248,7 +250,7 @@ export function FeatureTabContent({
             onClick={handleToggleRequirements}
           >
             <FileText className="h-4 w-4 mr-1" />
-            Add Requirement
+            {shouldShowRequirements ? "Hide Requirements" : "Show Requirements"}
           </Button>
           
           {!isNew && !isEditing && (
@@ -389,9 +391,9 @@ export function FeatureTabContent({
         {/* Row 3: Requirements (optional) */}
         {shouldShowRequirements && (
           <div>
-            <RequirementsPlaceholder 
-              requirements={feature?.requirements}
-              isEditing={isEditing}
+            <FeatureRequirementsSection 
+              featureId={featureId}
+              isNew={isNew}
             />
           </div>
         )}

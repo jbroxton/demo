@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTabsStore } from '@/stores/tabs';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Pencil, Package, Layers, Puzzle } from 'lucide-react';
+import { X, Pencil, Package, Layers, Puzzle, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFeaturesStore } from '@/stores/features';
 import { useProductsStore } from '@/stores/products';
@@ -81,6 +81,8 @@ export function TabsContainer() {
         return <Layers className="h-4 w-4 mr-1.5 text-muted-foreground" />;
       case 'feature':
         return <Puzzle className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+      case 'release':
+        return <Calendar className="h-4 w-4 mr-1.5 text-muted-foreground" />;
       default:
         return null;
     }

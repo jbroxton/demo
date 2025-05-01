@@ -6,7 +6,7 @@ import { useQuill } from '@/hooks/use-quill';
 
 // Dynamically import ReactQuill with ssr disabled
 const ReactQuill = dynamic(
-  () => import('react-quill-new'),
+  () => import('react-quill'),
   { ssr: false }
 );
 

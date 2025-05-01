@@ -1,0 +1,22 @@
+
+> specky-demo@0.1.0 build
+> next build
+
+   ▲ Next.js 14.1.0
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/dashboard/page.tsx:41:27
+Type error: Type '{ className: string; }' is not assignable to type 'IntrinsicAttributes & RefAttributes<unknown>'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & RefAttributes<unknown>'.
+
+[0m [90m 39 |[39m       [33m<[39m[33mSidebarInset[39m[33m>[39m[0m
+[0m [90m 40 |[39m         [33m<[39m[33mheader[39m className[33m=[39m[32m"flex h-16 shrink-0 items-center gap-2 border-b px-4"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 41 |[39m           [33m<[39m[33mSidebarTrigger[39m className[33m=[39m[32m"-ml-1"[39m [33m/[39m[33m>[39m[0m
+[0m [90m    |[39m                           [31m[1m^[22m[39m[0m
+[0m [90m 42 |[39m           [33m<[39m[33mSeparator[39m orientation[33m=[39m[32m"vertical"[39m className[33m=[39m[32m"mr-2 h-4"[39m [33m/[39m[33m>[39m[0m
+[0m [90m 43 |[39m           [33m<[39m[33mBreadcrumb[39m[33m>[39m[0m
+[0m [90m 44 |[39m             [33m<[39m[33mBreadcrumbList[39m[33m>[39m[0m

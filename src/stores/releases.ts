@@ -22,6 +22,8 @@ type ReleasesStore = {
   getReleasesByFeatureId: (featureId: string) => Release[]
   getReleaseById: (releaseId: string) => Release | undefined
   updateReleaseName: (releaseId: string, name: string) => void
+  updateReleaseDescription: (releaseId: string, description: string) => void
+  deleteRelease: (releaseId: string) => boolean
 }
 
 // Generate a simple ID
@@ -55,6 +57,24 @@ export const useReleasesStore = create<ReleasesStore>()(
             release.id === releaseId ? { ...release, name } : release
           )
         }))
+      },
+      updateReleaseDescription: (releaseId, description) => {
+        set((state) => ({
+          releases: state.releases.map(release => 
+            release.id === releaseId ? { ...release, description } : release
+          )
+        }))
+      },
+      deleteRelease: (releaseId) => {
+        try {
+          set((state) => ({
+            releases: state.releases.filter(release => release.id !== releaseId)
+          }))
+          return true
+        } catch (error) {
+          console.error('Failed to delete release:', error)
+          return false
+        }
       }
     }),
     {

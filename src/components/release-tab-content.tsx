@@ -5,8 +5,17 @@ import { useTabsStore } from '@/stores/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Pencil, Check, Calendar, Save } from 'lucide-react';
+import { Pencil, Check, Calendar, Save, X, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ReleaseTabContentProps {
   releaseId: string;
@@ -21,7 +30,7 @@ export function ReleaseTabContent({
   isNew = false,
   selectedFeatureId
 }: ReleaseTabContentProps) {
-  const { getReleaseById, addRelease, updateReleaseName } = useReleasesStore();
+  const { getReleaseById, addRelease, updateReleaseName, updateReleaseDescription, deleteRelease } = useReleasesStore();
   const { getFeatures, getFeatureById } = useFeaturesStore();
   const { updateTabTitle, closeTab, tabs, updateNewTabToSavedItem } = useTabsStore();
   
@@ -34,6 +43,8 @@ export function ReleaseTabContent({
   const [priority, setPriority] = useState<'High' | 'Med' | 'Low'>('Med');
   const [isSaving, setIsSaving] = useState(false);
   const [selectKey, setSelectKey] = useState(Date.now());
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const release = isNew ? null : getReleaseById(releaseId);
   const features = getFeatures();
@@ -89,53 +100,96 @@ export function ReleaseTabContent({
     setPriority(value as 'High' | 'Med' | 'Low');
   };
   
-  const handleNameSave = () => {
-    if (!isNew && release) {
-      if (nameValue.trim() !== '' && nameValue !== release.name) {
-        updateReleaseName(releaseId, nameValue);
-        updateTabTitle(releaseId, 'release', nameValue);
-      } else {
+  const handleToggleEditMode = () => {
+    if (isEditing) {
+      // Save changes when exiting edit mode
+      if (!isNew && release) {
+        handleSaveRelease();
+      }
+    } else {
+      // Enter edit mode - reset form values to current release values
+      if (release) {
         setNameValue(release.name);
+        setDescriptionValue(release.description || '');
+      }
+      setIsEditing(true);
+    }
+  };
+  
+  const handleCancelEdit = () => {
+    if (isNew) {
+      closeTab(tabId);
+    } else {
+      // Reset to release values and exit edit mode
+      if (release) {
+        setNameValue(release.name);
+        setDescriptionValue(release.description || '');
       }
       setIsEditing(false);
     }
   };
   
-  const handleSaveRelease = async () => {
-    if (!nameValue.trim() || !featureId) {
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const isoDate = new Date(releaseDate).toISOString();
-      await addRelease({
-        name: nameValue.trim(),
-        description: descriptionValue.trim(),
-        featureId: featureId,
-        releaseDate: isoDate,
-        priority: priority
-      });
-      // Find the new release by featureId and name (assuming addRelease appends to the store)
-      const releases = useReleasesStore.getState().getReleasesByFeatureId?.(featureId) || [];
-      const newRelease = releases.find(r => r.name === nameValue.trim());
-      const currentTab = tabs.find(tab => tab.id === tabId);
-      if (currentTab && newRelease) {
-        updateNewTabToSavedItem(currentTab.id, newRelease.id, nameValue.trim(), 'release');
+  const handleDeleteRelease = () => {
+    if (!isNew && release) {
+      const success = deleteRelease(releaseId);
+      if (success) {
+        toast.success('Release deleted successfully');
+        // Close this specific tab using the tabId prop
+        closeTab(tabId);
+      } else {
+        toast.error('Failed to delete release');
       }
-    } catch (error) {
-      console.error('Failed to save release:', error);
-    } finally {
-      setIsSaving(false);
+      setIsDeleteDialogOpen(false);
     }
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleNameSave();
-    } else if (e.key === 'Escape') {
-      if (!isNew && release) {
-        setNameValue(release.name);
+  const handleSaveRelease = async () => {
+    if (!nameValue.trim()) {
+      return;
+    }
+    
+    if (isNew) {
+      if (!featureId) {
+        return;
       }
+      
+      setIsSaving(true);
+      try {
+        const isoDate = new Date(releaseDate).toISOString();
+        await addRelease({
+          name: nameValue.trim(),
+          description: descriptionValue.trim(),
+          featureId: featureId,
+          releaseDate: isoDate,
+          priority: priority
+        });
+        // Find the new release by featureId and name (assuming addRelease appends to the store)
+        const releases = useReleasesStore.getState().getReleasesByFeatureId?.(featureId) || [];
+        const newRelease = releases.find(r => r.name === nameValue.trim());
+        const currentTab = tabs.find(tab => tab.id === tabId);
+        if (currentTab && newRelease) {
+          updateNewTabToSavedItem(currentTab.id, newRelease.id, nameValue.trim(), 'release');
+          setShowSaveSuccess(true);
+          setTimeout(() => setShowSaveSuccess(false), 3000);
+        }
+      } catch (error) {
+        console.error('Failed to save release:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    } else if (release) {
+      // Update existing release
+      if (nameValue.trim() !== release.name) {
+        updateReleaseName(releaseId, nameValue);
+        updateTabTitle(releaseId, 'release', nameValue);
+      }
+      
+      if (descriptionValue.trim() !== release.description) {
+        updateReleaseDescription(releaseId, descriptionValue);
+      }
+      
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 3000);
       setIsEditing(false);
     }
   };
@@ -151,55 +205,91 @@ export function ReleaseTabContent({
   
   return (
     <div className="flex flex-col h-full bg-[#1e1e20]">
-      <div className="px-6 py-4 border-b border-[#232326]">
-        <div className="flex items-center mb-1">
+      <div className="px-6 py-4 border-b border-[#232326] grid grid-cols-2">
+        <div className="flex items-center">
+          <Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
           {isEditing ? (
             <div className="flex items-center w-full max-w-lg">
               <Input
                 value={nameValue}
                 onChange={handleNameChange}
-                onBlur={isNew ? undefined : handleNameSave}
-                onKeyDown={isNew ? undefined : handleKeyDown}
                 autoFocus
                 className="text-xl font-medium text-white bg-[#232326] border-[#2a2a2c]"
                 placeholder="Enter release name"
               />
-              {!isNew && (
-                <button 
-                  onClick={handleNameSave}
-                  className="ml-2 p-1 rounded-md hover:bg-[#232326]"
-                  aria-label="Save release name"
-                >
-                  <Check className="h-4 w-4 text-green-500" />
-                </button>
-              )}
             </div>
           ) : (
-            <h1 
-              className="text-xl font-medium text-white flex items-center cursor-pointer hover:bg-[#232326] px-2 py-0.5 rounded-md"
-              onClick={() => setIsEditing(true)}
-            >
-              <Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
-              {release ? release.name : nameValue}
-              <Pencil className="ml-2 h-4 w-4 opacity-50" />
+            <h1 className="text-xl font-medium text-white">
+              {nameValue}
             </h1>
           )}
         </div>
-        {!isNew && release && release.description && (
-          <div className="text-sm text-[#a0a0a0] mt-2">
-            {release.description}
-          </div>
-        )}
+        
+        <div className="flex items-center justify-end space-x-2">
+          {!isNew && !isEditing && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+                onClick={handleToggleEditMode}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+              
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            </>
+          )}
+          
+          {(isNew || isEditing) && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+                onClick={handleCancelEdit}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+              
+              <Button
+                size="sm"
+                onClick={handleSaveRelease}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isSaving || !nameValue.trim() || (isNew && !featureId)}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </>
+          )}
+          
+          {showSaveSuccess && (
+            <div className="text-sm text-green-500 transition-opacity duration-300">
+              Saved successfully!
+            </div>
+          )}
+        </div>
       </div>
       
-      <div className="flex-1 overflow-hidden p-4">
+      <div className="flex-1 overflow-auto p-4">
         <div className="text-white">
           <h2 className="text-lg font-medium mb-4">Release Details</h2>
           
           <div className="space-y-4">
             <div>
               <p className="text-[#a0a0a0] text-sm mb-1">Description</p>
-              {isNew ? (
+              {isEditing ? (
                 <Textarea
                   value={descriptionValue}
                   onChange={handleDescriptionChange}
@@ -308,21 +398,35 @@ export function ReleaseTabContent({
               )}
             </div>
             
-            {isNew && (
-              <div className="mt-8 flex justify-end">
-                <Button 
-                  onClick={handleSaveRelease}
-                  disabled={!nameValue.trim() || !featureId || isSaving}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Release'}
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </div>
+      
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-[#232326] border-[#2a2a2c] text-white">
+          <DialogHeader>
+            <DialogTitle>Delete Release</DialogTitle>
+            <DialogDescription className="text-[#a0a0a0]">
+              Are you sure you want to delete this release? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="text-white"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteRelease}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

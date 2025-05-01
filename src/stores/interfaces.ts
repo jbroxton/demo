@@ -1,7 +1,8 @@
 "use client"
 
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
+import { createHybridStorage } from '@/utils/hybrid-storage'
 
 // Define Interface model
 export type Interface = {
@@ -21,6 +22,8 @@ type InterfacesStore = {
   getInterfaceById: (interfaceId: string) => Interface | undefined
   updateInterfaceWithFeature: (interfaceId: string, featureId: string) => void
   updateInterfaceName: (interfaceId: string, name: string) => void
+  updateInterfaceDescription: (interfaceId: string, description: string) => void
+  deleteInterface: (interfaceId: string) => boolean
 }
 
 // Generate a simple ID
@@ -71,11 +74,39 @@ export const useInterfacesStore = create<InterfacesStore>()(
               : interface_
           )
         }))
+      },
+      updateInterfaceDescription: (interfaceId, description) => {
+        // Don't update if description is empty
+        if (!description.trim()) return;
+        
+        set((state) => ({
+          interfaces: state.interfaces.map(interface_ => 
+            interface_.id === interfaceId 
+              ? { ...interface_, description: description.trim() } 
+              : interface_
+          )
+        }))
+      },
+      deleteInterface: (interfaceId) => {
+        // Find the interface to check if it exists
+        const interfaceExists = get().interfaces.some(interface_ => interface_.id === interfaceId);
+        
+        if (!interfaceExists) {
+          return false;
+        }
+        
+        // Remove the interface from the store
+        set((state) => ({
+          interfaces: state.interfaces.filter(interface_ => interface_.id !== interfaceId)
+        }));
+        
+        return true;
       }
     }),
     {
       name: 'interfaces-storage',
-      storage: createJSONStorage(() => localStorage)
+      // Changed from localStorage to hybrid storage to ensure database persistence
+      storage: createHybridStorage('interfaces')
     }
   )
 ) 

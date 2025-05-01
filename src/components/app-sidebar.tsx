@@ -39,6 +39,7 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import {
   Drawer,
@@ -108,7 +109,7 @@ const goalsData = [
   }
 ];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { user, logout } = useAuth();
   const router = useRouter();
   
@@ -329,19 +330,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
   
   return (
-    <Sidebar className={props.className} {...props}>
-      <div className="flex flex-col h-full">
-        <div className="p-3 flex justify-between items-center border-b border-[#232326]">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-md flex items-center justify-center">
-              <Proportions className="w-5 h-5 text-white" />
+    <div className="h-full flex flex-col" {...props}>
+      {/* Fixed header section - NO overflow */}
+      <div className="flex-shrink-0">
+        {/* App header */}
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Proportions className="h-5 w-5 text-indigo-500" />
+              <span className="text-lg font-medium">Speqq</span>
             </div>
-            <div>
-              <div className="text-base font-medium text-white">speqq</div>
-            </div>
+            <SidebarTrigger />
           </div>
         </div>
-
+        
+        {/* User info section */}
         <div className="p-3 border-b border-[#232326] flex justify-between items-center">
           <div className="text-xs text-[#a0a0a0]">
             Welcome, {user?.name || 'User'}
@@ -357,24 +360,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </button>
         </div>
 
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
+        {/* Main navigation section - fixed */}
+        <div className="p-2">
+          <div className="mb-2">
+            <ul className="flex flex-col gap-1">
               {goalsData.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton>
+                <li key={item.name} className="group/menu-item relative">
+                  <button className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden hover:bg-[#232326]">
                     <item.icon className="h-4 w-4 text-muted-foreground" />
                     <span>{item.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </button>
+                </li>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex justify-between items-center">
-            <span>Products</span>
+            </ul>
+          </div>
+        </div>
+        
+        {/* Products header - stay fixed */}
+        <div className="px-4 py-2">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-xs font-medium text-[#a0a0a0]">Products</span>
             <button 
               onClick={() => {
                 setIsTypeDialogOpen(true);
@@ -384,150 +389,161 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Plus className="h-3 w-3" />
             </button>
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {products.length === 0 ? (
-                <SidebarMenuItem>
-                  <div className="flex justify-center py-4 text-[#a0a0a0] text-sm">
-                    No products yet
-                </div>
-                </SidebarMenuItem>
-              ) : (
-                products.map(product => (
-                  <ProductTreeItem 
-                    key={product.id} 
-                    product={product}
-                    interfaces={interfaces}
-                    features={features}
-                    releases={releases}
-                    getInterfacesByProductId={getInterfacesByProductId}
-                    getFeaturesByInterfaceId={getFeaturesByInterfaceId}
-                    getReleasesByFeatureId={getReleasesByFeatureId}
-                    onAddInterface={() => {
-                      handleAddInterface(product.id);
-                    }}
-                    onAddFeature={(interfaceId) => {
-                      handleAddFeature(interfaceId);
-                    }}
-                    onAddRelease={(featureId) => {
-                      handleAddRelease(featureId);
-                    }}
-                  />
-                ))
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <Dialog 
-          open={isTypeDialogOpen} 
-          onOpenChange={setIsTypeDialogOpen}
-        >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Item</DialogTitle>
-              <DialogDescription>
-                Choose the type of item you want to add
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <Card className="cursor-pointer hover:bg-muted/50" onClick={handleAddProduct}>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center">
-                    <Package className="h-5 w-5 mr-2 text-muted-foreground" />
-                    Product
-                  </CardTitle>
-                  <DialogDescription>
-                    Create a new product
-                  </DialogDescription>
-                </CardHeader>
-              </Card>
-              <Card 
-                className={cn(
-                  "cursor-pointer", 
-                  products.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
-                )} 
-                onClick={products.length > 0 ? () => {
-                  // If there are products, select the first one and create an interface for it
-                  if (products.length > 0) {
-                    handleAddInterface(products[0].id);
-                  }
-                  setIsTypeDialogOpen(false);
-                } : undefined}
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center">
-                    <Layers className="h-5 w-5 mr-2 text-muted-foreground" />
-                    Interface
-                  </CardTitle>
-                  <DialogDescription>
-                    {products.length > 0 
-                      ? "Add a new interface" 
-                      : "Create a product first"
-                    }
-                  </DialogDescription>
-                </CardHeader>
-              </Card>
-            </div>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <Card 
-                className={cn(
-                  "cursor-pointer", 
-                  interfaces.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
-                )} 
-                onClick={interfaces.length > 0 ? () => {
-                  // If there are interfaces, select the first one and create a feature for it
-                  if (interfaces.length > 0) {
-                    handleAddFeature(interfaces[0].id);
-                  }
-                  setIsTypeDialogOpen(false);
-                } : undefined}
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center">
-                    <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
-                    Feature
-                  </CardTitle>
-                  <DialogDescription>
-                    {interfaces.length > 0 
-                      ? "Add a new feature" 
-                      : "Create an interface first"
-                    }
-                  </DialogDescription>
-                </CardHeader>
-              </Card>
-              <Card 
-                className={cn(
-                  "cursor-pointer", 
-                  features.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
-                )} 
-                onClick={features.length > 0 ? () => {
-                  // If there are features, select the first one and create a release for it
-                  if (features.length > 0) {
-                    handleAddRelease(features[0].id);
-                  }
-                  setIsTypeDialogOpen(false);
-                } : undefined}
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
-                    Release
-                  </CardTitle>
-                  <DialogDescription>
-                    {features.length > 0 
-                      ? "Add a new release" 
-                      : "Create a feature first"
-                    }
-                  </DialogDescription>
-                </CardHeader>
-              </Card>
-            </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       </div>
-    </Sidebar>
+      
+      {/* Scrollable products tree section with explicit height */}
+      <div 
+        className="flex-grow overflow-y-auto" 
+        style={{ 
+          height: 'calc(100% - 200px)', /* Approximate height of the fixed header section */
+          maxHeight: 'calc(100% - 200px)'
+        }}
+      >
+        <div className="p-2 pt-0">
+          <ul className="flex flex-col gap-1">
+            {products.length === 0 ? (
+              <li>
+                <div className="flex justify-center py-4 text-[#a0a0a0] text-sm">
+                  No products yet
+                </div>
+              </li>
+            ) : (
+              products.map(product => (
+                <ProductTreeItem 
+                  key={product.id} 
+                  product={product}
+                  interfaces={interfaces}
+                  features={features}
+                  releases={releases}
+                  getInterfacesByProductId={getInterfacesByProductId}
+                  getFeaturesByInterfaceId={getFeaturesByInterfaceId}
+                  getReleasesByFeatureId={getReleasesByFeatureId}
+                  onAddInterface={() => {
+                    handleAddInterface(product.id);
+                  }}
+                  onAddFeature={(interfaceId) => {
+                    handleAddFeature(interfaceId);
+                  }}
+                  onAddRelease={(featureId) => {
+                    handleAddRelease(featureId);
+                  }}
+                />
+              ))
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {/* Dialog for adding new items */}
+      <Dialog 
+        open={isTypeDialogOpen} 
+        onOpenChange={setIsTypeDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Item</DialogTitle>
+            <DialogDescription>
+              Choose the type of item you want to add
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Card className="cursor-pointer hover:bg-muted/50" onClick={handleAddProduct}>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Package className="h-5 w-5 mr-2 text-muted-foreground" />
+                  Product
+                </CardTitle>
+                <DialogDescription>
+                  Create a new product
+                </DialogDescription>
+              </CardHeader>
+            </Card>
+            <Card 
+              className={cn(
+                "cursor-pointer", 
+                products.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
+              )} 
+              onClick={products.length > 0 ? () => {
+                // If there are products, select the first one and create an interface for it
+                if (products.length > 0) {
+                  handleAddInterface(products[0].id);
+                }
+                setIsTypeDialogOpen(false);
+              } : undefined}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Layers className="h-5 w-5 mr-2 text-muted-foreground" />
+                  Interface
+                </CardTitle>
+                <DialogDescription>
+                  {products.length > 0 
+                    ? "Add a new interface" 
+                    : "Create a product first"
+                  }
+                </DialogDescription>
+              </CardHeader>
+            </Card>
+          </div>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Card 
+              className={cn(
+                "cursor-pointer", 
+                interfaces.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
+              )} 
+              onClick={interfaces.length > 0 ? () => {
+                // If there are interfaces, select the first one and create a feature for it
+                if (interfaces.length > 0) {
+                  handleAddFeature(interfaces[0].id);
+                }
+                setIsTypeDialogOpen(false);
+              } : undefined}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
+                  Feature
+                </CardTitle>
+                <DialogDescription>
+                  {interfaces.length > 0 
+                    ? "Add a new feature" 
+                    : "Create an interface first"
+                  }
+                </DialogDescription>
+              </CardHeader>
+            </Card>
+            <Card 
+              className={cn(
+                "cursor-pointer", 
+                features.length > 0 ? "hover:bg-muted/50" : "opacity-50 cursor-not-allowed"
+              )} 
+              onClick={features.length > 0 ? () => {
+                // If there are features, select the first one and create a release for it
+                if (features.length > 0) {
+                  handleAddRelease(features[0].id);
+                }
+                setIsTypeDialogOpen(false);
+              } : undefined}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
+                  Release
+                </CardTitle>
+                <DialogDescription>
+                  {features.length > 0 
+                    ? "Add a new release" 
+                    : "Create a feature first"
+                  }
+                </DialogDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
@@ -1080,7 +1096,7 @@ function FeatureTreeItem({
                   featureReleases.map((release) => (
                     <SidebarMenuItem key={release.id}>
                         <SidebarMenuButton 
-                          className="pl-[4.5rem]"
+                          className="pl-8"
                           onClick={() => {
                             openTab({
                               title: release.name,
@@ -1089,11 +1105,10 @@ function FeatureTreeItem({
                             });
                           }}
                         >
-                        {release.name}
-                        <div className="ml-2 text-xs text-muted-foreground">
-                          {new Date(release.releaseDate).toLocaleDateString()}
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                          {release.name}
                         </div>
-                      <SidebarMenuBadge>{release.priority}</SidebarMenuBadge>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))

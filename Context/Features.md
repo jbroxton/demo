@@ -2348,6 +2348,46 @@ Acceptance Criteria
 
 // ... existing code ...
 
+# V16: Database Storage Issues with Features
+
+## Issue
+Features were not being properly stored in the database. An investigation revealed that while the features store was correctly configured to use hybrid storage (both localStorage and SQLite), the interfaces store was only using localStorage. This incomplete hybrid storage implementation led to several problems:
+
+1. The feature data itself was reaching the database through the `features_state` table.
+2. However, the relationship between interfaces and features was stored only in localStorage via the `interfaces_state` table.
+3. This relationship is managed by the `updateInterfaceWithFeature` function in the interfaces store, which updates the interface with the ID of a newly created feature.
+4. Since this relationship data wasn't being persisted to the database, the connection between interfaces and features was lost after page reloads or when accessing the application from different devices/browsers.
+
+## Fix Implemented
+The solution was straightforward but critical:
+
+1. Updated the interfaces store to use the hybrid storage mechanism instead of localStorage:
+   ```typescript
+   // Changed from:
+   storage: createJSONStorage(() => localStorage)
+   
+   // To:
+   storage: createHybridStorage('interfaces')
+   ```
+
+2. This change ensures that the interfaces store, including all feature relationships, is persistently stored in both localStorage and the SQLite database.
+
+## Technical Notes
+- The hybrid storage implementation (`createHybridStorage`) was already correctly set up to communicate with the API endpoint (`/api/store`).
+- The SQLite database schema was properly configured with both `features_state` and `interfaces_state` tables.
+- The issue was purely one of configuration - using the appropriate storage adapter for all related stores.
+
+## Lessons Learned
+1. **Relationship Consistency**: When implementing a hybrid storage pattern, ensure all related stores use the same storage mechanism to maintain relationship integrity.
+2. **Data Tracing**: When troubleshooting persistence issues, it's important to trace data flow through all related stores and tables to identify inconsistencies.
+3. **Consistent Configuration**: Using a uniform storage approach across related stores helps prevent data fragmentation and relationship loss.
+
+## Best Practices
+1. Always use the same storage mechanism for stores that have relationships between their entities.
+2. Document the relationships between stores and how they should be configured.
+3. Implement integration tests that verify relationship persistence across page reloads and database restarts.
+4. Consider implementing a cascade approach to ensure that changes to relationship maps are synchronized with the database.
+
 
 
 

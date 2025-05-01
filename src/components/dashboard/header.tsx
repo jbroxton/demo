@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/stores/auth"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
+import { SyncButton } from "@/components/sync-button"
 
 export function DashboardHeader() {
   const router = useRouter()
@@ -15,7 +16,8 @@ export function DashboardHeader() {
       <div className="flex h-16 items-center px-4">
         <div className="text-lg font-medium mr-4">Hi {user?.name}</div>
         <TenantSwitcher />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <SyncButton />
           <Button 
             variant="outline" 
             onClick={() => {

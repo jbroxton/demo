@@ -20,6 +20,8 @@ type ProductsStore = {
   getProductById: (productId: string) => Product | undefined
   updateProductWithInterface: (productId: string, interfaceId: string) => void
   updateProductName: (productId: string, name: string) => void
+  updateProductDescription: (productId: string, description: string) => void
+  deleteProduct: (productId: string) => boolean
 }
 
 // Generate a simple ID
@@ -68,6 +70,33 @@ export const useProductsStore = create<ProductsStore>()(
               : product
           )
         }))
+      },
+      updateProductDescription: (productId, description) => {
+        // Don't update if description is empty
+        if (!description.trim()) return;
+        
+        set((state) => ({
+          products: state.products.map(product => 
+            product.id === productId 
+              ? { ...product, description: description.trim() } 
+              : product
+          )
+        }))
+      },
+      deleteProduct: (productId) => {
+        // Find the product to check if it exists
+        const productExists = get().products.some(product => product.id === productId);
+        
+        if (!productExists) {
+          return false;
+        }
+        
+        // Remove the product from the store
+        set((state) => ({
+          products: state.products.filter(product => product.id !== productId)
+        }));
+        
+        return true;
       }
     }),
     {

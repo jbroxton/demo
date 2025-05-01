@@ -58,6 +58,48 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    // Special handling for requirements to ensure fresh feature and release names
+    if (storeName === 'requirements' && result && result.value) {
+      try {
+        // Parse the state to get requirements array
+        const stateObj = JSON.parse(result.value);
+        
+        if (stateObj?.state?.requirements && Array.isArray(stateObj.state.requirements)) {
+          // For each requirement, get the current feature and release names from the database
+          const enhancedRequirements = stateObj.state.requirements.map((requirement: any) => {
+            const enhanced = { ...requirement };
+            
+            if (requirement.featureId) {
+              // Get current feature name
+              const feature = db.prepare('SELECT name FROM features WHERE id = ?')
+                .get(requirement.featureId) as { name: string } | undefined;
+              
+              enhanced._currentFeatureName = feature && feature.name ? feature.name : 'Unknown Feature';
+            }
+            
+            if (requirement.releaseId) {
+              // Get current release name
+              const release = db.prepare('SELECT name FROM releases WHERE id = ?')
+                .get(requirement.releaseId) as { name: string } | undefined;
+              
+              enhanced._currentReleaseName = release && release.name ? release.name : 'Unknown Release';
+            }
+            
+            return enhanced;
+          });
+          
+          // Replace the requirements in the state with enhanced data
+          stateObj.state.requirements = enhancedRequirements;
+          
+          // Return the enhanced state
+          return NextResponse.json({ value: JSON.stringify(stateObj) });
+        }
+      } catch (error) {
+        console.error('Error enhancing requirements with feature and release names:', error);
+        // Continue with default behavior if enhancement fails
+      }
+    }
+    
     return NextResponse.json({ value: result ? result.value : null });
   } catch (error) {
     console.error(`Error retrieving data:`, error);

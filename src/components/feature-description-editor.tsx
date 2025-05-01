@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuill } from '@/hooks/use-quill';
 
 // Dynamically import ReactQuill with ssr disabled
 const ReactQuill = dynamic(
-  () => import('react-quill-new'),
+  () => import('react-quill'),
   { ssr: false }
 );
 
@@ -29,7 +30,7 @@ export function FeatureDescriptionEditor({
       // Import the Quill styles
       try {
         // @ts-ignore: Importing CSS file
-        require('react-quill-new/dist/quill.snow.css');
+        require('react-quill/dist/quill.snow.css');
       } catch (e) {
         console.warn('Could not load Quill styles:', e);
       }

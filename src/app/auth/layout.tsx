@@ -1,3 +1,5 @@
+"use client"
+
 import { ReactNode } from 'react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -7,7 +9,7 @@ export default function AuthLayout({
     children: ReactNode
   }) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background" suppressHydrationWarning>
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>

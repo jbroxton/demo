@@ -1,22 +1,24 @@
-"use client"
-
-import { Geist } from "next/font/google"
+import React from "react"
+import { Inter } from "next/font/google"
 import "./globals.css"
+// AG Grid imports removed
 import { AppProviders } from '@/components/providers'
 
-const geist = Geist({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
 })
 
+type RootLayoutProps = {
+  children: React.ReactNode
+};
+
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={geist.className}>
+      <body className={inter.className}>
         <AppProviders>
           {children}
         </AppProviders>

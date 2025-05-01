@@ -34,7 +34,7 @@ export default function DashboardLayout({
   }, [isAuthenticated, currentTenant, user, router])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       {children}
     </div>
   )
