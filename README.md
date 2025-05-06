@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Specky Demo Application
+
+This is a Next.js application for feature management and requirements tracking.
 
 ## Getting Started
 
@@ -8,29 +10,59 @@ First, run the development server:
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Storage Implementation Options
+
+This application supports two different implementations for data storage:
+
+1. **Zustand with LocalStorage** (Original Implementation)
+   - Client-side state management with Zustand
+   - Data persisted to localStorage
+   - Used for initial development and prototyping
+
+2. **React Query with SQLite** (New Implementation)
+   - Server-side data storage in SQLite database
+   - React Query for data fetching and mutations
+   - Consistent data across sessions and devices
+
+### Implementation Toggle
+
+The application includes a toggle to switch between these implementations at runtime. This allows for:
+- Side-by-side comparison of implementations
+- Testing the database-backed version without removing the original
+- Graceful migration path from client-side to server-side storage
+
+To use the toggle:
+1. Look for the switch in the bottom-right corner of the dashboard
+2. Toggle between "Client Storage (Zustand)" and "Database Storage (React Query)"
+
+## Documentation
+
+- [Database Migration Plan](docs/zustand-deprecation.md) - Comprehensive plan for migrating from Zustand to SQLite
+- [Testing the Migration](docs/testing-db-migration.md) - Guidelines for testing the database implementation
+
+## Project Structure
+
+- `/src/stores` - Zustand stores for client-side state management
+- `/src/hooks` - React Query hooks for data fetching
+- `/src/services` - Database services for SQLite
+- `/src/app/api` - API routes for database access
+- `/src/components` - UI components
+  - Original components use Zustand directly
+  - Components with `-query-` in their name use React Query
+
+## Authentication
+
+The application uses NextAuth.js for authentication. You'll need to sign in to access protected features and API endpoints.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [React Query Documentation](https://tanstack.com/query/latest)
+- [Zustand Documentation](https://github.com/pmndrs/zustand)
+- [SQLite Documentation](https://www.sqlite.org/docs.html)

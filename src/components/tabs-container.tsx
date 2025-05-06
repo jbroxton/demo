@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { useTabsStore } from '@/stores/tabs';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, Pencil, Package, Layers, Puzzle, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFeaturesStore } from '@/stores/features';
-import { useProductsStore } from '@/stores/products';
-import { useInterfacesStore } from '@/stores/interfaces';
 import { Input } from '@/components/ui/input';
+import { useTabsQuery } from '@/hooks/use-tabs-query';
+import { useFeaturesQuery } from '@/hooks/use-features-query';
+import { useProductsQuery } from '@/hooks/use-products-query';
+import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 
 export function TabsContainer() {
-  const { tabs, activeTabId, activateTab, closeTab, updateTabTitle } = useTabsStore();
-  const { updateFeatureName } = useFeaturesStore();
-  const { updateProductName } = useProductsStore();
-  const { updateInterfaceName } = useInterfacesStore();
+  const { tabs, activeTabId, activateTab, closeTab, updateTabTitle } = useTabsQuery();
+  const featuresQuery = useFeaturesQuery();
+  const productsQuery = useProductsQuery();
+  const interfacesQuery = useInterfacesQuery();
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
@@ -44,11 +44,11 @@ export function TabsContainer() {
       
       // Update the appropriate store based on tab type
       if (tab.type === 'feature') {
-        updateFeatureName(tab.itemId, editingValue);
+        featuresQuery.updateFeatureName(tab.itemId, editingValue);
       } else if (tab.type === 'product') {
-        updateProductName(tab.itemId, editingValue);
+        productsQuery.updateProductName(tab.itemId, editingValue);
       } else if (tab.type === 'interface') {
-        updateInterfaceName(tab.itemId, editingValue);
+        interfacesQuery.updateInterfaceName(tab.itemId, editingValue);
       }
     }
     

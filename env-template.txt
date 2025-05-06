@@ -1,0 +1,4 @@
+# NextAuth.js configuration
+# Copy this file to .env.local and replace the secret with a secure random string
+NEXTAUTH_SECRET=complex_random_string_at_least_32_characters_long
+NEXTAUTH_URL=http://localhost:3000 

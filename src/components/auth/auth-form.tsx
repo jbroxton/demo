@@ -1,14 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import Link from "next/link"
-import { Loader2 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth" // Import from central location
+import { Loader2, AlertTriangle } from "lucide-react"
 import { toast } from 'sonner'
-import { useAuth } from "@/stores/auth"
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
@@ -18,6 +17,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -27,23 +27,50 @@ import { Checkbox } from "@/components/ui/checkbox"
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  remember: z.boolean()
-}) satisfies z.ZodType<{
-  email: string
-  password: string
-  remember: boolean
-}>
+  remember: z.boolean().optional().default(false)
+});
 
-// Infer the type from the schema
-type FormValues = z.infer<typeof formSchema>
+// Infer the type from the schema - make remember optional to match the resolver expectations
+type FormValues = {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
 
 export function AuthForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const router = useRouter()
-  const { login, isAuthenticated } = useAuth()
-  const [isHydrated, setIsHydrated] = React.useState(false)
+  const searchParams = useSearchParams()
+  
+  // Get auth state from our enhanced provider
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    isInitialized,
+    user, 
+    login, 
+    error,
+    clearError 
+  } = useAuth()
+  
+  // Local form error state
+  const [formError, setFormError] = React.useState<string | null>(null)
+  
+  // Debug log auth state with improved formatting
+  React.useEffect(() => {
+    console.log(`🔐 Auth form - Auth state:`, {
+      isAuthenticated,
+      isLoading,
+      isInitialized,
+      user: user ? `${user.email} (${user.id})` : 'No user',
+      error: error ? `${error.type}: ${error.message}` : 'none'
+    });
+  }, [isAuthenticated, isLoading, isInitialized, user, error]);
+  
+  // Get error from URL if available
+  const urlError = searchParams?.get("error")
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,31 +81,111 @@ export function AuthForm({
     },
   })
 
-  // Handle hydration
+  // Set error message if provided in URL
   React.useEffect(() => {
-    setIsHydrated(true)
-  }, [])
-
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isHydrated && isAuthenticated) {
-      router.push("/dashboard")
+    if (urlError === "CredentialsSignin") {
+      setFormError("Invalid email or password")
     }
-  }, [isHydrated, isAuthenticated, router])
+  }, [urlError])
 
+  // Handle form submission with improved error handling
   async function onSubmit(data: FormValues) {
+    setFormError(null)
+    clearError() // Clear any previous auth errors
+    
     try {
-      await login(data.email, data.password)
-      toast.success('Logged in successfully')
-      router.push("/dashboard")
-    } catch (error) {
-      toast.error('Invalid credentials')
+      console.log("🔑 Signing in with:", data.email);
+      
+      // Use the login method from our auth provider
+      const result = await login(data.email, data.password);
+      
+      if (!result.success) {
+        setFormError(result.error || "Invalid email or password")
+        toast.error(result.error || "Invalid credentials")
+      } else {
+        toast.success('Logged in successfully')
+        console.log("✅ Login successful - auth state will update")
+      }
+    } catch (err) {
+      console.error("❌ Sign in error:", err)
+      setFormError("An error occurred during sign in")
+      toast.error('An error occurred during sign in')
     }
   }
-
-  // Don't render until hydrated to avoid hydration mismatch
-  if (!isHydrated) {
-    return null
+  
+  // Use Next.js router for redirects - consistent with our approach
+  React.useEffect(() => {
+    // Only proceed if authenticated and initialization is complete
+    if (!isAuthenticated || !isInitialized) return;
+    
+    const destination = searchParams?.get("callbackUrl") || "/dashboard";
+    console.log("🔄 Auth redirect - conditions met, redirecting to:", destination);
+    
+    const redirectTimer = setTimeout(() => {
+      try {
+        router.push(destination);
+        console.log("➡️ Router redirect initiated");
+      } catch (err) {
+        console.error("❌ Redirect error:", err);
+        
+        // Fallback to hard redirect if router fails
+        window.location.href = destination;
+      }
+    }, 100);
+    
+    // Cleanup timeout if component unmounts
+    return () => clearTimeout(redirectTimer);
+  }, [isAuthenticated, isInitialized, searchParams, router]);
+  
+  // Show login form after timeout if still in loading
+  const [showLoginFormFallback, setShowLoginFormFallback] = React.useState(false);
+  
+  // Set a shorter timeout for the fallback (2 seconds)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoginFormFallback(true);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Show auth errors from the provider
+  const effectiveError = error?.message || formError;
+  
+  // Improved loading state - using error state from provider
+  // Only show loading if not initialized or loading and not showing fallback
+  if ((isLoading || !isInitialized || isAuthenticated) && !showLoginFormFallback) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="flex items-center mb-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">
+            {!isInitialized ? "Initializing auth..." :
+             isAuthenticated ? "Redirecting to dashboard..." : "Loading..."}
+          </span>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowLoginFormFallback(true)}
+          className="mt-2"
+        >
+          Show login form
+        </Button>
+        
+        {isAuthenticated && (
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+            className="mt-2"
+          >
+            Go to dashboard
+          </Button>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -91,6 +198,24 @@ export function AuthForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {effectiveError && (
+            <div className="mb-4 rounded-md bg-destructive/15 p-3 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="text-sm text-destructive">
+                {effectiveError}
+                {error && (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-xs text-destructive underline"
+                    onClick={() => clearError()}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
@@ -111,12 +236,16 @@ export function AuthForm({
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#" 
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                  <Button
+                    variant="link"
+                    className="ml-auto p-0 h-auto text-xs"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toast.info('Password reset is not implemented in this demo');
+                    }}
                   >
                     Forgot your password?
-                  </a>
+                  </Button>
                 </div>
                 <Input 
                   id="password" 
@@ -145,9 +274,9 @@ export function AuthForm({
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={form.formState.isSubmitting}
+                disabled={form.formState.isSubmitting || isLoading}
               >
-                {form.formState.isSubmitting ? (
+                {form.formState.isSubmitting || isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     <span>Signing in...</span>
@@ -156,23 +285,17 @@ export function AuthForm({
                   "Login"
                 )}
               </Button>
-              <Button variant="outline" className="w-full">
-                Login with Google
-              </Button>
-            </div>
-            <div className="mt-4 text-center">
-              <span className="text-sm">
-                Don&apos;t have an account?{" "}
-                <a 
-                  href="#" 
-                  className="text-sm underline underline-offset-4"
-                >
-                  Sign up
-                </a>
-              </span>
             </div>
           </form>
         </CardContent>
+        <CardFooter className="flex flex-col">
+          {/* Demo user info for testing */}
+          <div className="w-full rounded-md bg-muted p-3 text-xs">
+            <p className="font-medium">Demo Users:</p>
+            <p className="mt-1">Email: pm1@demo.com | Password: password</p>
+            <p>Email: admin@example.com | Password: password</p>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   )

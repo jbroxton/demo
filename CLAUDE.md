@@ -18,3 +18,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **State Management**: Zustand for global state
 - **File Structure**: Group by feature in `/src` directory
 - **Component Structure**: Declare all hooks at top, then handlers, then JSX return
+- **Components**: Do not build custom components. ONLY use existing pre-built components. If one does not exist and we need to choose a new one then choose the most popular and lightweight option that solves the need. Existing components and libraries:
+   - shadcn/ui components (from @/components/ui)
+   - Lucide React icons library
+   - React built-in components
+   - Use React's built-in hooks (useState, useEffect, useContext, etc.)
+   - Use Zustand only for global state management
+- **Styling**:
+   - Only use Tailwind CSS classes for styling
+   - Follow the project's existing design tokens and color scheme
+   - Do not use inline CSS or external CSS libraries
+   - Do not use any custom classes
+**Code Cleanup**
+- Delete unused function when possible 

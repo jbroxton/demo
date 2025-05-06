@@ -31,13 +31,112 @@
 }
 
 .dark .MuiTableContainer-root {
-  min-height: 360px;
-  max-height: 360px;
+  min-height: 300px;
+  max-height: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements Grid fixes */
+.MuiBox-root {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.MuiPaper-root {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+.MuiTable-root {
+  flex: 1 !important;
+}
+
+/* Enhanced Material React Table Styles */
+.MuiMenu-root {
+  z-index: 9999 !important;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background-color: var(--sidebar-accent) !important;
+}
+
+/* Transparent backgrounds for toolbars and headers */
+.MuiToolbar-root,
+.MuiBox-root .MuiToolbar-root,
+div[class*='MuiToolbar-root'],
+div[class*='MRT_TopToolbar'],
+.MRT_TopToolbar,
+.MRT_ToolbarInternalButtons,
+.MuiTableHead-root,
+.MuiTableHead-root tr,
+.MuiTableHead-root .MuiBox-root {
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+}
+
+/* Fix for any paper elements in the action bar */
+.MRT_TopToolbar .MuiPaper-root,
+.MuiToolbar-root .MuiPaper-root,
+.MRT_ToolbarInternalButtons .MuiPaper-root {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Target the specific toolbar that holds the action buttons */
+.MRT_TopToolbar, 
+.MRT_ToolbarInternalButtons,
+.MRT_BottomToolbar {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Make sure toolbar buttons have transparent background */
+.MuiToolbar-root .MuiButton-root {
+  background-color: transparent !important;
+}
+
+.MuiSelect-icon {
+  color: white !important;
+}
+
+.MuiOutlinedInput-notchedOutline {
+  border-color: var(--sidebar-border) !important;
+}
+
+.MuiIconButton-root {
+  color: white !important;
+}
+
+.MuiCheckbox-root {
+  color: white !important;
+}
+
+.MuiSelect-select {
+  color: white !important;
+}
+
+.MuiInputBase-input {
+  color: white !important;
+}
+
+.MuiFormLabel-root {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.MuiInput-root {
+  color: white !important;
 }
 
 /* Button text fixes */
 .MuiButton-root {
   color: inherit !important;
+  text-transform: none !important;
 }
 
 .MuiButton-contained {
@@ -82,6 +181,15 @@
 
 .requirement-delete-button.Mui-disabled .MuiSvgIcon-root {
   color: #666 !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
 }
 
 /* MUI Theme Integration with global theme */
@@ -195,6 +303,24 @@
   border-color: #2a2a2c !important;
   border-top-left-radius: 0.375rem;
   border-top-right-radius: 0.375rem;
+  display: flex !important;
+  flex-wrap: wrap;
+  padding: 8px !important;
+}
+
+.ql-snow.ql-toolbar button {
+  margin-right: 4px;
+  height: 24px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  border-radius: 4px;
+}
+
+.ql-snow.ql-toolbar button:hover {
+  background-color: #2a2a2c !important;
 }
 
 .ql-snow.ql-container {
@@ -204,7 +330,13 @@
   border-bottom-right-radius: 0.375rem;
   color: white;
   font-size: 16px;
-  min-height: 250px;
+  min-height: 150px;
+}
+
+.quill-wrapper .ql-container .ql-editor {
+  min-height: 150px;
+  max-height: 500px;
+  overflow-y: auto;
 }
 
 .ql-snow .ql-stroke {
@@ -286,9 +418,22 @@
 
 /* Action bar and footer styling */
 .MuiToolbar-root {
-  background-color: var(--sidebar) !important;
-  border-bottom: 1px solid var(--sidebar-border) !important;
-  padding: 8px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 8px 16px !important;
+}
+
+/* Ensure action buttons stay in a row */
+.MuiToolbar-root > div {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
 }
 
 .MuiTable-root + .MuiToolbar-root {
@@ -341,4 +486,4139 @@
   font-weight: 600 !important;
 }
 
+/* Fix ReactQuill content display in read mode */
+.quill-editor-display {
+  background-color: #232326;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  color: white;
+  min-height: 150px;
+}
+
+.quill-editor-display p {
+  margin-bottom: 0.5rem;
+}
+
+.quill-editor-display ul, 
+.quill-editor-display ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.quill-editor-display a {
+  color: var(--sidebar-primary);
+  text-decoration: underline;
+}
+
+.quill-editor-display blockquote {
+  border-left: 3px solid var(--sidebar-border);
+  padding-left: 1rem;
+  margin-left: 1rem;
+  color: #a0a0a0;
+}
+
+/* Material UI icon fixes */
+.MuiSvgIcon-root {
+  color: inherit !important;
+}
+
+.MuiIconButton-root .MuiSvgIcon-root {
+  color: inherit !important;
+}
+
+/* Fix table row hover */
+.MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-root {
+  background-color: rgba(42, 42, 44, 0.7) !important;
+}
+
+/* Fix cell editing */
+.MuiTableBody-root .MuiTableCell-root.MuiTableCell-body.Mui-editing {
+  background-color: #1e1e20 !important;
+  padding: 0 !important;
+}
+
+.MuiTableBody-root .MuiTableCell-root.MuiTableCell-body.Mui-editing .MuiInputBase-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+}
+
+.MuiMenuItem-root.Mui-selected {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Emergency Material UI Table fixes */
+.MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation1.MuiTableContainer-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.MuiToolbar-root.MuiToolbar-gutters.MuiToolbar-regular.MuiTablePagination-toolbar {
+  color: white !important;
+}
+
+.MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorInherit.MuiIconButton-sizeMedium {
+  color: white !important;
+}
+
+/* Force table to fit container */
+.MuiBox-root {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.MuiPaper-root.MuiTableContainer-root {
+  width: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.MuiTable-root {
+  width: 100% !important;
+}
+
+/* Additional overrides for Material UI to match dark theme */
+.MuiPaper-root,
+.MuiPaper-elevation,
+.MuiPaper-elevation1,
+.MuiPaper-elevation-1,
+.MuiTableContainer-root,
+.css-1ogqrd5-MuiPaper-root,
+div[class*='MuiPaper-root'] {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  background-image: none !important;
+}
+
+/* Force MUI components to use our dark theme colors */
+.MuiTableHead-root th,
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #232326 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.MuiTableBody-root td,
+.MuiTableBody-root .MuiTableCell-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  border-color: #2a2a2c !important;
+}
+
+.MuiToolbar-root {
+  background-color: #232326 !important;
+}
+
+.MuiTypography-root {
+  color: white !important;
+}
+
+/* Ensure Material React Table expands with container */
+.MuiBox-root,
+.MuiPaper-root.MuiTableContainer-root,
+.MuiTable-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100% !important;
+  min-height: 100%;
+}
+
+/* Make sure table body expands to fill available space */
+.MuiTableContainer-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto !important;
+}
+
+.MuiTableBody-root {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Proper height for Material React Table */
+.MuiPaper-root[class*="MuiBox-root"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements grid container spacing */
+.feature-requirements-container {
+  padding: 1rem;
+}
+
+.MuiTableContainer-root {
+  border-radius: 0.375rem;
+  overflow: hidden !important;
+}
+
+/* Table cell padding adjustments */
+.MuiTableCell-root {
+  padding: 0.5rem 1rem !important;
+}
+
+.MuiTableCell-head {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Toolbar padding */
+.MuiToolbar-root {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 8px 16px !important;
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Ensure table layout allows header text to display properly */
+.MuiTable-root {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Allow table to scroll horizontally */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Ensure cells don't grow beyond reasonable width */
+.MuiTableCell-root {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  padding: 6px 8px !important; /* Reduced padding */
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 6px 10px !important; /* Reduced padding */
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Responsive column widths */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 50% !important; 
+    width: 50% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 150px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 45% !important; 
+    width: 45% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 40% !important; 
+    width: 40% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 40% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  text-align: center !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Ensure columns are properly spaced */
+.MuiTableRow-head {
+  height: 48px !important;
+}
+
+/* Make sure all action buttons appear on one line */
+.MuiToolbar-root {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+.MuiToolbar-root::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Fix for row hover state */
+.MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-body {
+  background-color: rgba(42, 42, 44, 0.4) !important;
+}
+
+/* Menu and Popover styling fixes */
+.MuiMenu-paper,
+.MuiMenu-root .MuiPaper-root,
+.MuiPopover-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* Menu item styling */
+.MuiMenuItem-root {
+  color: white !important;
+  font-size: 0.875rem !important;
+  padding: 8px 16px !important;
+}
+
+/* Hover state for menu items */
+.MuiMenuItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Selected state for menu items */
+.MuiMenuItem-root.Mui-selected,
+.MuiMenuItem-root.Mui-selected:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Fix menu icons */
+.MuiMenuItem-root .MuiSvgIcon-root {
+  color: white !important;
+  opacity: 0.8 !important;
+  margin-right: 8px !important;
+}
+
+/* Button in menus */
+.MuiMenu-paper .MuiButton-root,
+.MuiPopover-paper .MuiButton-root {
+  color: white !important;
+  text-transform: none !important;
+  font-size: 0.875rem !important;
+}
+
+/* Input fields in menus and popovers */
+.MuiMenu-paper .MuiInputBase-root,
+.MuiPopover-paper .MuiInputBase-root,
+.MuiMenu-paper .MuiInput-root,
+.MuiPopover-paper .MuiInput-root,
+.MuiMenu-paper .MuiOutlinedInput-root,
+.MuiPopover-paper .MuiOutlinedInput-root {
+  color: white !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Divider in menus */
+.MuiMenu-paper .MuiDivider-root,
+.MuiPopover-paper .MuiDivider-root {
+  background-color: #2a2a2c !important;
+  margin: 8px 0 !important;
+}
+
+/* Column visibility menu specific styling */
+.MRT-column-visibility-menu .MuiPaper-root {
+  background-color: #232326 !important;
+  min-width: 200px !important;
+}
+
+/* Filter menus */
+.MRT-filter-panel {
+  background-color: #232326 !important;
+  padding: 16px !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Table filter popovers */
+div[role="presentation"] > .MuiPaper-root {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Fix checkbox within menus */
+.MuiMenuItem-root .MuiCheckbox-root {
+  padding: 4px !important;
+  margin-right: 8px !important;
+}
+
+/* Fix table header layout */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  overflow: visible !important;
+}
+
+/* Fix column header labels - align left */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > div:first-of-type,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > span:first-of-type {
+  flex: 1 !important;
+  text-align: left !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  color: white !important;
+  position: static !important;
+  min-width: 0 !important;
+}
+
+/* Make sure header text and buttons don't overlap */
+.MuiTableCell-head .MuiBox-root > div:last-child {
+  margin-left: 8px !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  position: static !important;
+}
+
+/* Ensure the container width is correct */
+.MuiTableCell-head {
+  position: relative !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  padding: 8px 12px !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Fix the text being pushed left - enable normal text wrapping in headers */
+.MuiTableHead-root .MuiTableCell-head span,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root span {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: initial !important;
+  word-wrap: break-word !important;
+  width: auto !important;
+  position: static !important;
+}
+
+/* Ensure the table header row has enough height */
+.MuiTableHead-root .MuiTableRow-root {
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Make sure sort/filter icons don't push the text */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root button {
+  padding: 2px !important;
+  margin: 0 2px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+
+/* Improve table header padding */
+.MuiTableCell-head {
+  padding: 8px 12px !important;
+}
+
+/* Ensure the header is properly sized */
+.MuiTableHead-root {
+  display: table-header-group !important;
+  width: 100% !important;
+}
+
+/* Make column sizes more appropriate */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 25% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 50% !important;
+    min-width: 300px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 45% !important;
+    min-width: 250px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 40% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Ensure columns are properly spaced */
+.MuiTableRow-head {
+  height: 48px !important;
+}
+
+/* Make sure all action buttons appear on one line */
+.MuiToolbar-root {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+.MuiToolbar-root::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Fix for row hover state */
+.MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-body {
+  background-color: rgba(42, 42, 44, 0.4) !important;
+}
+
+/* Menu and Popover styling fixes */
+.MuiMenu-paper,
+.MuiMenu-root .MuiPaper-root,
+.MuiPopover-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* Menu item styling */
+.MuiMenuItem-root {
+  color: white !important;
+  font-size: 0.875rem !important;
+  padding: 8px 16px !important;
+}
+
+/* Hover state for menu items */
+.MuiMenuItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Selected state for menu items */
+.MuiMenuItem-root.Mui-selected,
+.MuiMenuItem-root.Mui-selected:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Fix menu icons */
+.MuiMenuItem-root .MuiSvgIcon-root {
+  color: white !important;
+  opacity: 0.8 !important;
+  margin-right: 8px !important;
+}
+
+/* Button in menus */
+.MuiMenu-paper .MuiButton-root,
+.MuiPopover-paper .MuiButton-root {
+  color: white !important;
+  text-transform: none !important;
+  font-size: 0.875rem !important;
+}
+
+/* Input fields in menus and popovers */
+.MuiMenu-paper .MuiInputBase-root,
+.MuiPopover-paper .MuiInputBase-root,
+.MuiMenu-paper .MuiInput-root,
+.MuiPopover-paper .MuiInput-root,
+.MuiMenu-paper .MuiOutlinedInput-root,
+.MuiPopover-paper .MuiOutlinedInput-root {
+  color: white !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Divider in menus */
+.MuiMenu-paper .MuiDivider-root,
+.MuiPopover-paper .MuiDivider-root {
+  background-color: #2a2a2c !important;
+  margin: 8px 0 !important;
+}
+
+/* Column visibility menu specific styling */
+.MRT-column-visibility-menu .MuiPaper-root {
+  background-color: #232326 !important;
+  min-width: 200px !important;
+}
+
+/* Filter menus */
+.MRT-filter-panel {
+  background-color: #232326 !important;
+  padding: 16px !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Table filter popovers */
+div[role="presentation"] > .MuiPaper-root {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Fix checkbox within menus */
+.MuiMenuItem-root .MuiCheckbox-root {
+  padding: 4px !important;
+  margin-right: 8px !important;
+}
+
+/* Fix table header layout */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  overflow: visible !important;
+}
+
+/* Fix column header labels - align left */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > div:first-of-type,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > span:first-of-type {
+  flex: 1 !important;
+  text-align: left !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  color: white !important;
+  position: static !important;
+  min-width: 0 !important;
+}
+
+/* Make sure header text and buttons don't overlap */
+.MuiTableCell-head .MuiBox-root > div:last-child {
+  margin-left: 8px !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  position: static !important;
+}
+
+/* Ensure the container width is correct */
+.MuiTableCell-head {
+  position: relative !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  padding: 8px 12px !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Fix the text being pushed left - enable normal text wrapping in headers */
+.MuiTableHead-root .MuiTableCell-head span,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root span {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: initial !important;
+  word-wrap: break-word !important;
+  width: auto !important;
+  position: static !important;
+}
+
+/* Ensure the table header row has enough height */
+.MuiTableHead-root .MuiTableRow-root {
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Make sure sort/filter icons don't push the text */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root button {
+  padding: 2px !important;
+  margin: 0 2px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+
+/* Improve table header padding */
+.MuiTableCell-head {
+  padding: 8px 12px !important;
+}
+
+/* Ensure the header is properly sized */
+.MuiTableHead-root {
+  display: table-header-group !important;
+  width: 100% !important;
+}
+
+/* Make column sizes more appropriate */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 25% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 50% !important;
+    min-width: 300px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 45% !important;
+    min-width: 250px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 40% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Ensure columns are properly spaced */
+.MuiTableRow-head {
+  height: 48px !important;
+}
+
+/* Make sure all action buttons appear on one line */
+.MuiToolbar-root {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+.MuiToolbar-root::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Fix for row hover state */
+.MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-body {
+  background-color: rgba(42, 42, 44, 0.4) !important;
+}
+
+/* Menu and Popover styling fixes */
+.MuiMenu-paper,
+.MuiMenu-root .MuiPaper-root,
+.MuiPopover-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* Menu item styling */
+.MuiMenuItem-root {
+  color: white !important;
+  font-size: 0.875rem !important;
+  padding: 8px 16px !important;
+}
+
+/* Hover state for menu items */
+.MuiMenuItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Selected state for menu items */
+.MuiMenuItem-root.Mui-selected,
+.MuiMenuItem-root.Mui-selected:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Fix menu icons */
+.MuiMenuItem-root .MuiSvgIcon-root {
+  color: white !important;
+  opacity: 0.8 !important;
+  margin-right: 8px !important;
+}
+
+/* Button in menus */
+.MuiMenu-paper .MuiButton-root,
+.MuiPopover-paper .MuiButton-root {
+  color: white !important;
+  text-transform: none !important;
+  font-size: 0.875rem !important;
+}
+
+/* Input fields in menus and popovers */
+.MuiMenu-paper .MuiInputBase-root,
+.MuiPopover-paper .MuiInputBase-root,
+.MuiMenu-paper .MuiInput-root,
+.MuiPopover-paper .MuiInput-root,
+.MuiMenu-paper .MuiOutlinedInput-root,
+.MuiPopover-paper .MuiOutlinedInput-root {
+  color: white !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Divider in menus */
+.MuiMenu-paper .MuiDivider-root,
+.MuiPopover-paper .MuiDivider-root {
+  background-color: #2a2a2c !important;
+  margin: 8px 0 !important;
+}
+
+/* Column visibility menu specific styling */
+.MRT-column-visibility-menu .MuiPaper-root {
+  background-color: #232326 !important;
+  min-width: 200px !important;
+}
+
+/* Filter menus */
+.MRT-filter-panel {
+  background-color: #232326 !important;
+  padding: 16px !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Table filter popovers */
+div[role="presentation"] > .MuiPaper-root {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Fix checkbox within menus */
+.MuiMenuItem-root .MuiCheckbox-root {
+  padding: 4px !important;
+  margin-right: 8px !important;
+}
+
+/* Fix table header layout */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  overflow: visible !important;
+}
+
+/* Fix column header labels - align left */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > div:first-of-type,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > span:first-of-type {
+  flex: 1 !important;
+  text-align: left !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  color: white !important;
+  position: static !important;
+  min-width: 0 !important;
+}
+
+/* Make sure header text and buttons don't overlap */
+.MuiTableCell-head .MuiBox-root > div:last-child {
+  margin-left: 8px !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  position: static !important;
+}
+
+/* Ensure the container width is correct */
+.MuiTableCell-head {
+  position: relative !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  padding: 8px 12px !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Fix the text being pushed left - enable normal text wrapping in headers */
+.MuiTableHead-root .MuiTableCell-head span,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root span {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: initial !important;
+  word-wrap: break-word !important;
+  width: auto !important;
+  position: static !important;
+}
+
+/* Ensure the table header row has enough height */
+.MuiTableHead-root .MuiTableRow-root {
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Make sure sort/filter icons don't push the text */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root button {
+  padding: 2px !important;
+  margin: 0 2px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+
+/* Improve table header padding */
+.MuiTableCell-head {
+  padding: 8px 12px !important;
+}
+
+/* Ensure the header is properly sized */
+.MuiTableHead-root {
+  display: table-header-group !important;
+  width: 100% !important;
+}
+
+/* Make column sizes more appropriate */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 25% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 50% !important;
+    min-width: 300px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 45% !important;
+    min-width: 250px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 40% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Ensure columns are properly spaced */
+.MuiTableRow-head {
+  height: 48px !important;
+}
+
+/* Make sure all action buttons appear on one line */
+.MuiToolbar-root {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+.MuiToolbar-root::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Fix for row hover state */
+.MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-body {
+  background-color: rgba(42, 42, 44, 0.4) !important;
+}
+
+/* Menu and Popover styling fixes */
+.MuiMenu-paper,
+.MuiMenu-root .MuiPaper-root,
+.MuiPopover-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* Menu item styling */
+.MuiMenuItem-root {
+  color: white !important;
+  font-size: 0.875rem !important;
+  padding: 8px 16px !important;
+}
+
+/* Hover state for menu items */
+.MuiMenuItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Selected state for menu items */
+.MuiMenuItem-root.Mui-selected,
+.MuiMenuItem-root.Mui-selected:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Fix menu icons */
+.MuiMenuItem-root .MuiSvgIcon-root {
+  color: white !important;
+  opacity: 0.8 !important;
+  margin-right: 8px !important;
+}
+
+/* Button in menus */
+.MuiMenu-paper .MuiButton-root,
+.MuiPopover-paper .MuiButton-root {
+  color: white !important;
+  text-transform: none !important;
+  font-size: 0.875rem !important;
+}
+
+/* Input fields in menus and popovers */
+.MuiMenu-paper .MuiInputBase-root,
+.MuiPopover-paper .MuiInputBase-root,
+.MuiMenu-paper .MuiInput-root,
+.MuiPopover-paper .MuiInput-root,
+.MuiMenu-paper .MuiOutlinedInput-root,
+.MuiPopover-paper .MuiOutlinedInput-root {
+  color: white !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Divider in menus */
+.MuiMenu-paper .MuiDivider-root,
+.MuiPopover-paper .MuiDivider-root {
+  background-color: #2a2a2c !important;
+  margin: 8px 0 !important;
+}
+
+/* Column visibility menu specific styling */
+.MRT-column-visibility-menu .MuiPaper-root {
+  background-color: #232326 !important;
+  min-width: 200px !important;
+}
+
+/* Filter menus */
+.MRT-filter-panel {
+  background-color: #232326 !important;
+  padding: 16px !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Table filter popovers */
+div[role="presentation"] > .MuiPaper-root {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Fix checkbox within menus */
+.MuiMenuItem-root .MuiCheckbox-root {
+  padding: 4px !important;
+  margin-right: 8px !important;
+}
+
+/* Fix table header layout */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  overflow: visible !important;
+}
+
+/* Fix column header labels - align left */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > div:first-of-type,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > span:first-of-type {
+  flex: 1 !important;
+  text-align: left !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  color: white !important;
+  position: static !important;
+  min-width: 0 !important;
+}
+
+/* Make sure header text and buttons don't overlap */
+.MuiTableCell-head .MuiBox-root > div:last-child {
+  margin-left: 8px !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  position: static !important;
+}
+
+/* Ensure the container width is correct */
+.MuiTableCell-head {
+  position: relative !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  padding: 8px 12px !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Fix the text being pushed left - enable normal text wrapping in headers */
+.MuiTableHead-root .MuiTableCell-head span,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root span {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: initial !important;
+  word-wrap: break-word !important;
+  width: auto !important;
+  position: static !important;
+}
+
+/* Ensure the table header row has enough height */
+.MuiTableHead-root .MuiTableRow-root {
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Make sure sort/filter icons don't push the text */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root button {
+  padding: 2px !important;
+  margin: 0 2px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+
+/* Improve table header padding */
+.MuiTableCell-head {
+  padding: 8px 12px !important;
+}
+
+/* Ensure the header is properly sized */
+.MuiTableHead-root {
+  display: table-header-group !important;
+  width: 100% !important;
+}
+
+/* Make column sizes more appropriate */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 25% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 50% !important;
+    min-width: 300px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 45% !important;
+    min-width: 250px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 40% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Empty state styling */
+.MRT-empty-state {
+  color: 1e1e20 !important;
+  background-color: #1e1e20 !important;
+  min-height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  padding: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.MRT-empty-state p, 
+.MRT-empty-state div,
+.MRT-empty-state span {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Fix for table body to prevent overflow issues */
+.MuiTableBody-root {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Table container needs overflow control */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  border-radius: 0.375rem !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Table full width control */
+.MuiTable-root, .MuiTableBody-root {
+  width: 100% !important;
+}
+
+/* Make sure no text elements can overflow their containers */
+.MuiTable-root *, .MuiTableContainer-root * {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Limit width of cell content */
+.MuiTableCell-root > div {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Fix for bottom pagination row */
+.MuiTablePagination-root {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* For the custom empty state we rendered */
+.MuiTableBody-root > tr > td > div {
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Comprehensive fix for Actions column header background */
+th.MuiTableCell-root:first-child,
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root .MuiTableCell-head:first-child,
+.MuiTableHead-root tr > *:first-child,
+.MuiTableHead-root tr > *:nth-child(1),
+.MuiTableCell-root[data-column-id="mrt-row-actions"] {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Fix for Actions column text */
+th.MuiTableCell-root:first-child *,
+.MuiTableHead-root th:first-child *,
+.MuiTableHead-root .MuiTableCell-head:first-child * {
+  color: white !important;
+}
+
+/* Override the standard header background only for non-first cells */
+.MuiTableHead-root .MuiTableCell-head:not(:first-child) {
+  background-color: #232326 !important;
+}
+
+/* Make the whole header row background proper */
+.MuiTableHead-root tr.MuiTableRow-root {
+  background-color: #232326 !important;
+}
+
+/* Force transparent background on Actions cell and its containers */
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > div,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > *,
+.MuiTableHead-root .MuiTableRow-root th:first-child,
+.MuiTableHead-root .MuiTableRow-root th:first-child > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target the checkbox column specifically if different from Actions */
+.MuiTableCell-root[data-column-id="mrt-row-select"],
+.MuiTableHead-root .MuiTableCell-root[data-column-id="mrt-row-select"] {
+  background-color: #232326 !important;
+}
+
+/* For the specific item we have here */
+.MuiTableHead-root tr > td:nth-child(1),
+.MuiTableHead-root tr > th:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Extra strong selector for Actions header */
+.requirements-table-container .MuiTableHead-root tr th:first-child,
+.requirements-table-container .MuiTableCell-head:first-child,
+div[role="columnheader"]:first-child,
+th.MuiTableCell-head[data-index="0"],
+th[aria-label="Actions"],
+th[aria-label="Actions "],
+th:has(> div > span:contains("Actions")),
+th:has(> div:contains("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Even more specific selectors for the Actions section */
+.MuiTableHead-root .MuiTableRow-head .MuiTableCell-head:first-of-type {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Important override for all possible Actions headers */
+th[role="cell"]:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Direct override of all table headers */
+.MuiTableHead-root th {
+  background-color: #232326 !important;
+}
+
+/* But specifically make first column transparent */
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root tr > *:first-child {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any inline styles */
+.MuiTableHead-root th:first-child[style] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target by text content */
+.MuiTableHead-root th:has(> div > span:first-child:matches("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Table alignment fix */
+.MuiPaper-root.MuiTableContainer-root {
+  background-color: #1e1e20 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important; /* Rounded top corners only */
+}
+
+.requirements-table-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Fix table paper container */
+div.MuiPaper-root {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix outer margins */
+.MuiBox-root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Make top toolbar align with left edge */
+.MuiToolbar-root {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Tighten up selection column */
+.MuiTableCell-root[data-column-id="mrt-row-select"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+/* Comprehensive fix for main container alignment */
+.requirements-table-container,
+.requirements-grid-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+  min-width: 800px !important; /* Ensure minimum width for all columns to be visible */
+}
+
+/* Fix for MRT parent containers */
+.MRT_TableContainer, .MRT_Table {
+  border-spacing: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Set consistent padding for ALL cells */
+.MuiTableCell-root {
+  padding: 8px !important;
+}
+
+/* Force table to align with left edge by adding negative margin */
+.requirements-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Additional overrides for Material UI to match dark theme */
+.MuiPaper-root,
+.MuiPaper-elevation,
+.MuiPaper-elevation1,
+.MuiPaper-elevation-1,
+.MuiTableContainer-root,
+.css-1ogqrd5-MuiPaper-root,
+div[class*="MuiPaper-root"] {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  background-image: none !important;
+}
+
+/* Force MUI components to use our dark theme colors */
+.MuiTableHead-root th,
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #232326 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.MuiTableBody-root td,
+.MuiTableBody-root .MuiTableCell-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  border-color: #2a2a2c !important;
+}
+
+.MuiToolbar-root {
+  background-color: #232326 !important;
+}
+
+.MuiTypography-root {
+  color: white !important;
+}
+
+/* Ensure Material React Table expands with container */
+.MuiBox-root,
+.MuiPaper-root.MuiTableContainer-root,
+.MuiTable-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100% !important;
+  min-height: 100%;
+}
+
+/* Make sure table body expands to fill available space */
+.MuiTableContainer-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto !important;
+}
+
+.MuiTableBody-root {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Proper height for Material React Table */
+.MuiPaper-root[class*="MuiBox-root"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements grid container spacing */
+.feature-requirements-container {
+  padding: 1rem;
+}
+
+.MuiTableContainer-root {
+  border-radius: 0.375rem;
+  overflow: hidden !important;
+}
+
+/* Table cell padding adjustments */
+.MuiTableCell-root {
+  padding: 0.5rem 1rem !important;
+}
+
+.MuiTableCell-head {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Toolbar padding */
+.MuiToolbar-root {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 8px 16px !important;
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Ensure table layout allows header text to display properly */
+.MuiTable-root {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Allow table to scroll horizontally */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Ensure cells don't grow beyond reasonable width */
+.MuiTableCell-root {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  padding: 6px 8px !important; /* Reduced padding */
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 6px 10px !important; /* Reduced padding */
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Responsive column widths */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 50% !important; 
+    width: 50% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 150px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 45% !important; 
+    width: 45% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 40% !important; 
+    width: 40% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 40% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  text-align: center !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Empty state styling */
+.MRT-empty-state {
+  color: 1e1e20 !important;
+  background-color: #1e1e20 !important;
+  min-height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  padding: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.MRT-empty-state p, 
+.MRT-empty-state div,
+.MRT-empty-state span {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Fix for table body to prevent overflow issues */
+.MuiTableBody-root {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Table container needs overflow control */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  border-radius: 0.375rem !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Table full width control */
+.MuiTable-root, .MuiTableBody-root {
+  width: 100% !important;
+}
+
+/* Make sure no text elements can overflow their containers */
+.MuiTable-root *, .MuiTableContainer-root * {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Limit width of cell content */
+.MuiTableCell-root > div {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Fix for bottom pagination row */
+.MuiTablePagination-root {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* For the custom empty state we rendered */
+.MuiTableBody-root > tr > td > div {
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Comprehensive fix for Actions column header background */
+th.MuiTableCell-root:first-child,
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root .MuiTableCell-head:first-child,
+.MuiTableHead-root tr > *:first-child,
+.MuiTableHead-root tr > *:nth-child(1),
+.MuiTableCell-root[data-column-id="mrt-row-actions"] {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Fix for Actions column text */
+th.MuiTableCell-root:first-child *,
+.MuiTableHead-root th:first-child *,
+.MuiTableHead-root .MuiTableCell-head:first-child * {
+  color: white !important;
+}
+
+/* Override the standard header background only for non-first cells */
+.MuiTableHead-root .MuiTableCell-head:not(:first-child) {
+  background-color: #232326 !important;
+}
+
+/* Make the whole header row background proper */
+.MuiTableHead-root tr.MuiTableRow-root {
+  background-color: #232326 !important;
+}
+
+/* Force transparent background on Actions cell and its containers */
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > div,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > *,
+.MuiTableHead-root .MuiTableRow-root th:first-child,
+.MuiTableHead-root .MuiTableRow-root th:first-child > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target the checkbox column specifically if different from Actions */
+.MuiTableCell-root[data-column-id="mrt-row-select"],
+.MuiTableHead-root .MuiTableCell-root[data-column-id="mrt-row-select"] {
+  background-color: #232326 !important;
+}
+
+/* For the specific item we have here */
+.MuiTableHead-root tr > td:nth-child(1),
+.MuiTableHead-root tr > th:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Extra strong selector for Actions header */
+.requirements-table-container .MuiTableHead-root tr th:first-child,
+.requirements-table-container .MuiTableCell-head:first-child,
+div[role="columnheader"]:first-child,
+th.MuiTableCell-head[data-index="0"],
+th[aria-label="Actions"],
+th[aria-label="Actions "],
+th:has(> div > span:contains("Actions")),
+th:has(> div:contains("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Even more specific selectors for the Actions section */
+.MuiTableHead-root .MuiTableRow-head .MuiTableCell-head:first-of-type {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Important override for all possible Actions headers */
+th[role="cell"]:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Direct override of all table headers */
+.MuiTableHead-root th {
+  background-color: #232326 !important;
+}
+
+/* But specifically make first column transparent */
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root tr > *:first-child {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any inline styles */
+.MuiTableHead-root th:first-child[style] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target by text content */
+.MuiTableHead-root th:has(> div > span:first-child:matches("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Table alignment fix */
+.MuiPaper-root.MuiTableContainer-root {
+  background-color: #1e1e20 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important; /* Rounded top corners only */
+}
+
+.requirements-table-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Fix table paper container */
+div.MuiPaper-root {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix outer margins */
+.MuiBox-root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Make top toolbar align with left edge */
+.MuiToolbar-root {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Tighten up selection column */
+.MuiTableCell-root[data-column-id="mrt-row-select"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+/* Comprehensive fix for main container alignment */
+.requirements-table-container,
+.requirements-grid-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+  min-width: 800px !important; /* Ensure minimum width for all columns to be visible */
+}
+
+/* Fix for MRT parent containers */
+.MRT_TableContainer, .MRT_Table {
+  border-spacing: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Set consistent padding for ALL cells */
+.MuiTableCell-root {
+  padding: 8px !important;
+}
+
+/* Force table to align with left edge by adding negative margin */
+.requirements-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Additional overrides for Material UI to match dark theme */
+.MuiPaper-root,
+.MuiPaper-elevation,
+.MuiPaper-elevation1,
+.MuiPaper-elevation-1,
+.MuiTableContainer-root,
+.css-1ogqrd5-MuiPaper-root,
+div[class*="MuiPaper-root"] {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  background-image: none !important;
+}
+
+/* Force MUI components to use our dark theme colors */
+.MuiTableHead-root th,
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #232326 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.MuiTableBody-root td,
+.MuiTableBody-root .MuiTableCell-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  border-color: #2a2a2c !important;
+}
+
+.MuiToolbar-root {
+  background-color: #232326 !important;
+}
+
+.MuiTypography-root {
+  color: white !important;
+}
+
+/* Ensure Material React Table expands with container */
+.MuiBox-root,
+.MuiPaper-root.MuiTableContainer-root,
+.MuiTable-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100% !important;
+  min-height: 100%;
+}
+
+/* Make sure table body expands to fill available space */
+.MuiTableContainer-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto !important;
+}
+
+.MuiTableBody-root {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Proper height for Material React Table */
+.MuiPaper-root[class*="MuiBox-root"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements grid container spacing */
+.feature-requirements-container {
+  padding: 1rem;
+}
+
+.MuiTableContainer-root {
+  border-radius: 0.375rem;
+  overflow: hidden !important;
+}
+
+/* Table cell padding adjustments */
+.MuiTableCell-root {
+  padding: 0.5rem 1rem !important;
+}
+
+.MuiTableCell-head {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Toolbar padding */
+.MuiToolbar-root {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 8px 16px !important;
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Ensure table layout allows header text to display properly */
+.MuiTable-root {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Allow table to scroll horizontally */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Ensure cells don't grow beyond reasonable width */
+.MuiTableCell-root {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  padding: 6px 8px !important; /* Reduced padding */
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 6px 10px !important; /* Reduced padding */
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Responsive column widths */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 50% !important; 
+    width: 50% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 150px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 45% !important; 
+    width: 45% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 40% !important; 
+    width: 40% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 40% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  text-align: center !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Ensure columns are properly spaced */
+.MuiTableRow-head {
+  height: 48px !important;
+}
+
+/* Make sure all action buttons appear on one line */
+.MuiToolbar-root {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+.MuiToolbar-root::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Fix for row hover state */
+.MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-body {
+  background-color: rgba(42, 42, 44, 0.4) !important;
+}
+
+/* Menu and Popover styling fixes */
+.MuiMenu-paper,
+.MuiMenu-root .MuiPaper-root,
+.MuiPopover-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* Menu item styling */
+.MuiMenuItem-root {
+  color: white !important;
+  font-size: 0.875rem !important;
+  padding: 8px 16px !important;
+}
+
+/* Hover state for menu items */
+.MuiMenuItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Selected state for menu items */
+.MuiMenuItem-root.Mui-selected,
+.MuiMenuItem-root.Mui-selected:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Fix menu icons */
+.MuiMenuItem-root .MuiSvgIcon-root {
+  color: white !important;
+  opacity: 0.8 !important;
+  margin-right: 8px !important;
+}
+
+/* Button in menus */
+.MuiMenu-paper .MuiButton-root,
+.MuiPopover-paper .MuiButton-root {
+  color: white !important;
+  text-transform: none !important;
+  font-size: 0.875rem !important;
+}
+
+/* Input fields in menus and popovers */
+.MuiMenu-paper .MuiInputBase-root,
+.MuiPopover-paper .MuiInputBase-root,
+.MuiMenu-paper .MuiInput-root,
+.MuiPopover-paper .MuiInput-root,
+.MuiMenu-paper .MuiOutlinedInput-root,
+.MuiPopover-paper .MuiOutlinedInput-root {
+  color: white !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Divider in menus */
+.MuiMenu-paper .MuiDivider-root,
+.MuiPopover-paper .MuiDivider-root {
+  background-color: #2a2a2c !important;
+  margin: 8px 0 !important;
+}
+
+/* Column visibility menu specific styling */
+.MRT-column-visibility-menu .MuiPaper-root {
+  background-color: #232326 !important;
+    min-width: 200px !important;
+  }
+  
+/* Filter menus */
+.MRT-filter-panel {
+  background-color: #232326 !important;
+  padding: 16px !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Table filter popovers */
+div[role="presentation"] > .MuiPaper-root {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+/* Fix checkbox within menus */
+.MuiMenuItem-root .MuiCheckbox-root {
+  padding: 4px !important;
+  margin-right: 8px !important;
+}
+
+/* Fix table header layout */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  overflow: visible !important;
+}
+
+/* Fix column header labels - align left */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > div:first-of-type,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root > span:first-of-type {
+  flex: 1 !important;
+  text-align: left !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  color: white !important;
+  position: static !important;
+  min-width: 0 !important;
+}
+
+/* Make sure header text and buttons don't overlap */
+.MuiTableCell-head .MuiBox-root > div:last-child {
+  margin-left: 8px !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  position: static !important;
+}
+
+/* Ensure the container width is correct */
+.MuiTableCell-head {
+  position: relative !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  padding: 8px 12px !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Fix the text being pushed left - enable normal text wrapping in headers */
+.MuiTableHead-root .MuiTableCell-head span,
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root span {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: initial !important;
+  word-wrap: break-word !important;
+  width: auto !important;
+  position: static !important;
+}
+
+/* Ensure the table header row has enough height */
+.MuiTableHead-root .MuiTableRow-root {
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+/* Make sure sort/filter icons don't push the text */
+.MuiTableHead-root .MuiTableCell-head .MuiBox-root button {
+  padding: 2px !important;
+  margin: 0 2px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+
+/* Improve table header padding */
+.MuiTableCell-head {
+  padding: 8px 12px !important;
+}
+
+/* Ensure the header is properly sized */
+.MuiTableHead-root {
+  display: table-header-group !important;
+  width: 100% !important;
+}
+
+/* Make column sizes more appropriate */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 25% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 50% !important;
+    min-width: 300px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 45% !important;
+    min-width: 250px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="description"] {
+    width: 40% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 15% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Empty state styling */
+.MRT-empty-state {
+  color: 1e1e20 !important;
+  background-color: #1e1e20 !important;
+  min-height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  padding: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.MRT-empty-state p, 
+.MRT-empty-state div,
+.MRT-empty-state span {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Fix for table body to prevent overflow issues */
+.MuiTableBody-root {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Table container needs overflow control */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  border-radius: 0.375rem !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Table full width control */
+.MuiTable-root, .MuiTableBody-root {
+  width: 100% !important;
+}
+
+/* Make sure no text elements can overflow their containers */
+.MuiTable-root *, .MuiTableContainer-root * {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Limit width of cell content */
+.MuiTableCell-root > div {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Fix for bottom pagination row */
+.MuiTablePagination-root {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* For the custom empty state we rendered */
+.MuiTableBody-root > tr > td > div {
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Comprehensive fix for Actions column header background */
+th.MuiTableCell-root:first-child,
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root .MuiTableCell-head:first-child,
+.MuiTableHead-root tr > *:first-child,
+.MuiTableHead-root tr > *:nth-child(1),
+.MuiTableCell-root[data-column-id="mrt-row-actions"] {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Fix for Actions column text */
+th.MuiTableCell-root:first-child *,
+.MuiTableHead-root th:first-child *,
+.MuiTableHead-root .MuiTableCell-head:first-child * {
+  color: white !important;
+}
+
+/* Override the standard header background only for non-first cells */
+.MuiTableHead-root .MuiTableCell-head:not(:first-child) {
+  background-color: #232326 !important;
+}
+
+/* Make the whole header row background proper */
+.MuiTableHead-root tr.MuiTableRow-root {
+  background-color: #232326 !important;
+}
+
+/* Force transparent background on Actions cell and its containers */
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > div,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > *,
+.MuiTableHead-root .MuiTableRow-root th:first-child,
+.MuiTableHead-root .MuiTableRow-root th:first-child > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target the checkbox column specifically if different from Actions */
+.MuiTableCell-root[data-column-id="mrt-row-select"],
+.MuiTableHead-root .MuiTableCell-root[data-column-id="mrt-row-select"] {
+  background-color: #232326 !important;
+}
+
+/* For the specific item we have here */
+.MuiTableHead-root tr > td:nth-child(1),
+.MuiTableHead-root tr > th:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Extra strong selector for Actions header */
+.requirements-table-container .MuiTableHead-root tr th:first-child,
+.requirements-table-container .MuiTableCell-head:first-child,
+div[role="columnheader"]:first-child,
+th.MuiTableCell-head[data-index="0"],
+th[aria-label="Actions"],
+th[aria-label="Actions "],
+th:has(> div > span:contains("Actions")),
+th:has(> div:contains("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Even more specific selectors for the Actions section */
+.MuiTableHead-root .MuiTableRow-head .MuiTableCell-head:first-of-type {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Important override for all possible Actions headers */
+th[role="cell"]:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Direct override of all table headers */
+.MuiTableHead-root th {
+  background-color: #232326 !important;
+}
+
+/* But specifically make first column transparent */
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root tr > *:first-child {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any inline styles */
+.MuiTableHead-root th:first-child[style] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target by text content */
+.MuiTableHead-root th:has(> div > span:first-child:matches("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Table alignment fix */
+.MuiPaper-root.MuiTableContainer-root {
+  background-color: #1e1e20 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important; /* Rounded top corners only */
+}
+
+.requirements-table-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Fix table paper container */
+div.MuiPaper-root {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix outer margins */
+.MuiBox-root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Make top toolbar align with left edge */
+.MuiToolbar-root {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Tighten up selection column */
+.MuiTableCell-root[data-column-id="mrt-row-select"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+/* Comprehensive fix for main container alignment */
+.requirements-table-container,
+.requirements-grid-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+  min-width: 800px !important; /* Ensure minimum width for all columns to be visible */
+}
+
+/* Fix for MRT parent containers */
+.MRT_TableContainer, .MRT_Table {
+  border-spacing: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Set consistent padding for ALL cells */
+.MuiTableCell-root {
+  padding: 8px !important;
+}
+
+/* Force table to align with left edge by adding negative margin */
+.requirements-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Additional overrides for Material UI to match dark theme */
+.MuiPaper-root,
+.MuiPaper-elevation,
+.MuiPaper-elevation1,
+.MuiPaper-elevation-1,
+.MuiTableContainer-root,
+.css-1ogqrd5-MuiPaper-root,
+div[class*="MuiPaper-root"] {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  background-image: none !important;
+}
+
+/* Force MUI components to use our dark theme colors */
+.MuiTableHead-root th,
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #232326 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.MuiTableBody-root td,
+.MuiTableBody-root .MuiTableCell-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  border-color: #2a2a2c !important;
+}
+
+.MuiToolbar-root {
+  background-color: #232326 !important;
+}
+
+.MuiTypography-root {
+  color: white !important;
+}
+
+/* Ensure Material React Table expands with container */
+.MuiBox-root,
+.MuiPaper-root.MuiTableContainer-root,
+.MuiTable-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100% !important;
+  min-height: 100%;
+}
+
+/* Make sure table body expands to fill available space */
+.MuiTableContainer-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto !important;
+}
+
+.MuiTableBody-root {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Proper height for Material React Table */
+.MuiPaper-root[class*="MuiBox-root"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements grid container spacing */
+.feature-requirements-container {
+  padding: 1rem;
+}
+
+.MuiTableContainer-root {
+  border-radius: 0.375rem;
+  overflow: hidden !important;
+}
+
+/* Table cell padding adjustments */
+.MuiTableCell-root {
+  padding: 0.5rem 1rem !important;
+}
+
+.MuiTableCell-head {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Toolbar padding */
+.MuiToolbar-root {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 8px 16px !important;
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Ensure table layout allows header text to display properly */
+.MuiTable-root {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Allow table to scroll horizontally */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Ensure cells don't grow beyond reasonable width */
+.MuiTableCell-root {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  padding: 6px 8px !important; /* Reduced padding */
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 6px 10px !important; /* Reduced padding */
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Responsive column widths */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 50% !important; 
+    width: 50% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 150px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 45% !important; 
+    width: 45% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 40% !important; 
+    width: 40% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 40% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  text-align: center !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Empty state styling */
+.MRT-empty-state {
+  color: 1e1e20 !important;
+  background-color: #1e1e20 !important;
+  min-height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  padding: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.MRT-empty-state p, 
+.MRT-empty-state div,
+.MRT-empty-state span {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Fix for table body to prevent overflow issues */
+.MuiTableBody-root {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Table container needs overflow control */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  border-radius: 0.375rem !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Table full width control */
+.MuiTable-root, .MuiTableBody-root {
+  width: 100% !important;
+}
+
+/* Make sure no text elements can overflow their containers */
+.MuiTable-root *, .MuiTableContainer-root * {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Limit width of cell content */
+.MuiTableCell-root > div {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Fix for bottom pagination row */
+.MuiTablePagination-root {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* For the custom empty state we rendered */
+.MuiTableBody-root > tr > td > div {
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Comprehensive fix for Actions column header background */
+th.MuiTableCell-root:first-child,
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root .MuiTableCell-head:first-child,
+.MuiTableHead-root tr > *:first-child,
+.MuiTableHead-root tr > *:nth-child(1),
+.MuiTableCell-root[data-column-id="mrt-row-actions"] {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Fix for Actions column text */
+th.MuiTableCell-root:first-child *,
+.MuiTableHead-root th:first-child *,
+.MuiTableHead-root .MuiTableCell-head:first-child * {
+  color: white !important;
+}
+
+/* Override the standard header background only for non-first cells */
+.MuiTableHead-root .MuiTableCell-head:not(:first-child) {
+  background-color: #232326 !important;
+}
+
+/* Make the whole header row background proper */
+.MuiTableHead-root tr.MuiTableRow-root {
+  background-color: #232326 !important;
+}
+
+/* Force transparent background on Actions cell and its containers */
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > div,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > *,
+.MuiTableHead-root .MuiTableRow-root th:first-child,
+.MuiTableHead-root .MuiTableRow-root th:first-child > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target the checkbox column specifically if different from Actions */
+.MuiTableCell-root[data-column-id="mrt-row-select"],
+.MuiTableHead-root .MuiTableCell-root[data-column-id="mrt-row-select"] {
+  background-color: #232326 !important;
+}
+
+/* For the specific item we have here */
+.MuiTableHead-root tr > td:nth-child(1),
+.MuiTableHead-root tr > th:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Extra strong selector for Actions header */
+.requirements-table-container .MuiTableHead-root tr th:first-child,
+.requirements-table-container .MuiTableCell-head:first-child,
+div[role="columnheader"]:first-child,
+th.MuiTableCell-head[data-index="0"],
+th[aria-label="Actions"],
+th[aria-label="Actions "],
+th:has(> div > span:contains("Actions")),
+th:has(> div:contains("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Even more specific selectors for the Actions section */
+.MuiTableHead-root .MuiTableRow-head .MuiTableCell-head:first-of-type {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Important override for all possible Actions headers */
+th[role="cell"]:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Direct override of all table headers */
+.MuiTableHead-root th {
+  background-color: #232326 !important;
+}
+
+/* But specifically make first column transparent */
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root tr > *:first-child {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any inline styles */
+.MuiTableHead-root th:first-child[style] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target by text content */
+.MuiTableHead-root th:has(> div > span:first-child:matches("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Table alignment fix */
+.MuiPaper-root.MuiTableContainer-root {
+  background-color: #1e1e20 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important; /* Rounded top corners only */
+}
+
+.requirements-table-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Fix table paper container */
+div.MuiPaper-root {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix outer margins */
+.MuiBox-root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Make top toolbar align with left edge */
+.MuiToolbar-root {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Tighten up selection column */
+.MuiTableCell-root[data-column-id="mrt-row-select"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+/* Comprehensive fix for main container alignment */
+.requirements-table-container,
+.requirements-grid-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+  min-width: 800px !important; /* Ensure minimum width for all columns to be visible */
+}
+
+/* Fix for MRT parent containers */
+.MRT_TableContainer, .MRT_Table {
+  border-spacing: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Set consistent padding for ALL cells */
+.MuiTableCell-root {
+  padding: 8px !important;
+}
+
+/* Force table to align with left edge by adding negative margin */
+.requirements-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Additional overrides for Material UI to match dark theme */
+.MuiPaper-root,
+.MuiPaper-elevation,
+.MuiPaper-elevation1,
+.MuiPaper-elevation-1,
+.MuiTableContainer-root,
+.css-1ogqrd5-MuiPaper-root,
+div[class*="MuiPaper-root"] {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  background-image: none !important;
+}
+
+/* Force MUI components to use our dark theme colors */
+.MuiTableHead-root th,
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #232326 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.MuiTableBody-root td,
+.MuiTableBody-root .MuiTableCell-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  border-color: #2a2a2c !important;
+}
+
+.MuiToolbar-root {
+  background-color: #232326 !important;
+}
+
+.MuiTypography-root {
+  color: white !important;
+}
+
+/* Ensure Material React Table expands with container */
+.MuiBox-root,
+.MuiPaper-root.MuiTableContainer-root,
+.MuiTable-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100% !important;
+  min-height: 100%;
+}
+
+/* Make sure table body expands to fill available space */
+.MuiTableContainer-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto !important;
+}
+
+.MuiTableBody-root {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Proper height for Material React Table */
+.MuiPaper-root[class*="MuiBox-root"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements grid container spacing */
+.feature-requirements-container {
+  padding: 1rem;
+}
+
+.MuiTableContainer-root {
+  border-radius: 0.375rem;
+  overflow: hidden !important;
+}
+
+/* Table cell padding adjustments */
+.MuiTableCell-root {
+  padding: 0.5rem 1rem !important;
+}
+
+.MuiTableCell-head {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Toolbar padding */
+.MuiToolbar-root {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 8px 16px !important;
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Ensure table layout allows header text to display properly */
+.MuiTable-root {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Allow table to scroll horizontally */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Ensure cells don't grow beyond reasonable width */
+.MuiTableCell-root {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  padding: 6px 8px !important; /* Reduced padding */
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 6px 10px !important; /* Reduced padding */
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Responsive column widths */
+@media (min-width: 1200px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 50% !important; 
+    width: 50% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 30% !important;
+    min-width: 200px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 150px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 45% !important; 
+    width: 45% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 35% !important;
+    min-width: 180px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .MuiTableCell-root[data-column-id="description"] {
+    max-width: 40% !important; 
+    width: 40% !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="name"] {
+    width: 40% !important;
+    min-width: 150px !important;
+  }
+  
+  .MuiTableCell-root[data-column-id="priority"] {
+    width: 20% !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Make sure priority labels are fully visible */
+.MuiTableCell-root[data-column-id="priority"] span {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  text-align: center !important;
+}
+
+/* Ensure column sorting and filter icons are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-root,
+.MuiTableHead-root .MuiTableCell-head .MuiTableSortLabel-icon {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Ensure the column sort buttons are visible */
+.MuiTableHead-root .MuiTableCell-head button {
+  color: white !important;
+}
+
+/* Ensure dropdown menu buttons in headers are visible */
+.MuiTableHead-root .MuiTableCell-head .MuiIconButton-root {
+  color: white !important;
+}
+
+/* Fix for dropdown menus */
+.MuiMenu-paper {
+  background-color: #232326 !important;
+  color: white !important;
+  border: 1px solid #2a2a2c !important;
+}
+
+.MuiMenuItem-root {
+  color: white !important;
+}
+
+/* Empty state styling */
+.MRT-empty-state {
+  color: 1e1e20 !important;
+  background-color: #1e1e20 !important;
+  min-height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  padding: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.MRT-empty-state p, 
+.MRT-empty-state div,
+.MRT-empty-state span {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Fix for table body to prevent overflow issues */
+.MuiTableBody-root {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Table container needs overflow control */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  border-radius: 0.375rem !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Table full width control */
+.MuiTable-root, .MuiTableBody-root {
+  width: 100% !important;
+}
+
+/* Make sure no text elements can overflow their containers */
+.MuiTable-root *, .MuiTableContainer-root * {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Limit width of cell content */
+.MuiTableCell-root > div {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Fix for bottom pagination row */
+.MuiTablePagination-root {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* For the custom empty state we rendered */
+.MuiTableBody-root > tr > td > div {
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Comprehensive fix for Actions column header background */
+th.MuiTableCell-root:first-child,
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root .MuiTableCell-head:first-child,
+.MuiTableHead-root tr > *:first-child,
+.MuiTableHead-root tr > *:nth-child(1),
+.MuiTableCell-root[data-column-id="mrt-row-actions"] {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Fix for Actions column text */
+th.MuiTableCell-root:first-child *,
+.MuiTableHead-root th:first-child *,
+.MuiTableHead-root .MuiTableCell-head:first-child * {
+  color: white !important;
+}
+
+/* Override the standard header background only for non-first cells */
+.MuiTableHead-root .MuiTableCell-head:not(:first-child) {
+  background-color: #232326 !important;
+}
+
+/* Make the whole header row background proper */
+.MuiTableHead-root tr.MuiTableRow-root {
+  background-color: #232326 !important;
+}
+
+/* Force transparent background on Actions cell and its containers */
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > div,
+.MuiTableHead-root .MuiTableRow-root .MuiTableCell-root:first-child > *,
+.MuiTableHead-root .MuiTableRow-root th:first-child,
+.MuiTableHead-root .MuiTableRow-root th:first-child > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target the checkbox column specifically if different from Actions */
+.MuiTableCell-root[data-column-id="mrt-row-select"],
+.MuiTableHead-root .MuiTableCell-root[data-column-id="mrt-row-select"] {
+  background-color: #232326 !important;
+}
+
+/* For the specific item we have here */
+.MuiTableHead-root tr > td:nth-child(1),
+.MuiTableHead-root tr > th:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Extra strong selector for Actions header */
+.requirements-table-container .MuiTableHead-root tr th:first-child,
+.requirements-table-container .MuiTableCell-head:first-child,
+div[role="columnheader"]:first-child,
+th.MuiTableCell-head[data-index="0"],
+th[aria-label="Actions"],
+th[aria-label="Actions "],
+th:has(> div > span:contains("Actions")),
+th:has(> div:contains("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Even more specific selectors for the Actions section */
+.MuiTableHead-root .MuiTableRow-head .MuiTableCell-head:first-of-type {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Important override for all possible Actions headers */
+th[role="cell"]:nth-child(1) {
+  background-color: transparent !important;
+}
+
+/* Direct override of all table headers */
+.MuiTableHead-root th {
+  background-color: #232326 !important;
+}
+
+/* But specifically make first column transparent */
+.MuiTableHead-root th:first-child,
+.MuiTableHead-root tr > *:first-child {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any inline styles */
+.MuiTableHead-root th:first-child[style] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Target by text content */
+.MuiTableHead-root th:has(> div > span:first-child:matches("Actions")) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Table alignment fix */
+.MuiPaper-root.MuiTableContainer-root {
+  background-color: #1e1e20 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important; /* Rounded top corners only */
+}
+
+.requirements-table-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Fix table paper container */
+div.MuiPaper-root {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix outer margins */
+.MuiBox-root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Make top toolbar align with left edge */
+.MuiToolbar-root {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Tighten up selection column */
+.MuiTableCell-root[data-column-id="mrt-row-select"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+/* Comprehensive fix for main container alignment */
+.requirements-table-container,
+.requirements-grid-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+  min-width: 800px !important; /* Ensure minimum width for all columns to be visible */
+}
+
+/* Fix for MRT parent containers */
+.MRT_TableContainer, .MRT_Table {
+  border-spacing: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Set consistent padding for ALL cells */
+.MuiTableCell-root {
+  padding: 8px !important;
+}
+
+/* Force table to align with left edge by adding negative margin */
+.requirements-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+/* Additional overrides for Material UI to match dark theme */
+.MuiPaper-root,
+.MuiPaper-elevation,
+.MuiPaper-elevation1,
+.MuiPaper-elevation-1,
+.MuiTableContainer-root,
+.css-1ogqrd5-MuiPaper-root,
+div[class*="MuiPaper-root"] {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  background-image: none !important;
+}
+
+/* Force MUI components to use our dark theme colors */
+.MuiTableHead-root th,
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #232326 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.MuiTableBody-root td,
+.MuiTableBody-root .MuiTableCell-root {
+  background-color: #1e1e20 !important;
+  color: white !important;
+  border-color: #2a2a2c !important;
+}
+
+.MuiToolbar-root {
+  background-color: #232326 !important;
+}
+
+.MuiTypography-root {
+  color: white !important;
+}
+
+/* Ensure Material React Table expands with container */
+.MuiBox-root,
+.MuiPaper-root.MuiTableContainer-root,
+.MuiTable-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100% !important;
+  min-height: 100%;
+}
+
+/* Make sure table body expands to fill available space */
+.MuiTableContainer-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto !important;
+}
+
+.MuiTableBody-root {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Proper height for Material React Table */
+.MuiPaper-root[class*="MuiBox-root"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Requirements grid container spacing */
+.feature-requirements-container {
+  padding: 1rem;
+}
+
+.MuiTableContainer-root {
+  border-radius: 0.375rem;
+  overflow: hidden !important;
+}
+
+/* Table cell padding adjustments */
+.MuiTableCell-root {
+  padding: 0.5rem 1rem !important;
+}
+
+.MuiTableCell-head {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Toolbar padding */
+.MuiToolbar-root {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Enhanced style for row selection */
+.MuiTableRow-root.Mui-selected > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.1) !important;
+}
+
+.MuiTableRow-root.Mui-selected:hover > .MuiTableCell-root {
+  background-color: rgba(41, 98, 255, 0.2) !important;
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 8px 16px !important;
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Ensure table layout allows header text to display properly */
+.MuiTable-root {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Allow table to scroll horizontally */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Remove this as we've replaced it with proper media queries above */
+
+/* Ensure cells don't grow beyond reasonable width */
+.MuiTableCell-root {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  padding: 6px 8px !important; /* Reduced padding */
+}
+
+/* Fix header text wrapping */
+.MuiTableHead-root .MuiTableCell-head {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  background-color: #232326 !important;
+  font-weight: 600 !important;
+  color: white !important;
+  border-bottom: 1px solid #2a2a2c !important;
+  padding: 6px 10px !important; /* Reduced padding */
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Responsive column widths */
 

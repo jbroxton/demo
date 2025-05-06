@@ -1,7 +1,8 @@
+"use client";
+
 import React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { useQuill } from '@/hooks/use-quill';
 
 // Dynamically import ReactQuill with ssr disabled
 const ReactQuill = dynamic(
@@ -22,17 +23,44 @@ export function FeatureDescriptionEditor({
   placeholder = 'Enter feature description...',
   readOnly = false
 }: FeatureDescriptionEditorProps) {
-  const { isQuillLoaded } = useQuill();
+  const [isClient, setIsClient] = useState(false);
+  const [isQuillLoaded, setIsQuillLoaded] = useState(false);
+  const [content, setContent] = useState(initialContent);
+  const initialContentRef = useRef(initialContent);
   
-  // Import Quill styles on the client side
+  // Handle content updates only when initialContent changes and is different from our tracked value
   useEffect(() => {
+    if (initialContent !== initialContentRef.current) {
+      setContent(initialContent);
+      initialContentRef.current = initialContent;
+    }
+  }, [initialContent]);
+  
+  // Handle content changes
+  const handleChange = (value: string) => {
+    setContent(value);
+    // Only call onChange if the value actually changed
+    if (value !== initialContentRef.current) {
+      onChange(value);
+    }
+  };
+  
+  // Import Quill styles on the client side and initialize
+  useEffect(() => {
+    setIsClient(true);
     if (typeof window !== 'undefined') {
       // Import the Quill styles
       try {
-        // @ts-ignore: Importing CSS file
+        // @ts-ignore - Dynamically import CSS
         require('react-quill/dist/quill.snow.css');
+        console.log('ReactQuill styles loaded in editor');
+        
+        // Add a slight delay to ensure CSS is applied
+        setTimeout(() => {
+          setIsQuillLoaded(true);
+        }, 100);
       } catch (e) {
-        console.warn('Could not load Quill styles:', e);
+        console.error('Failed to load Quill styles:', e);
       }
     }
   }, []);
@@ -45,20 +73,42 @@ export function FeatureDescriptionEditor({
     ]
   };
   
+  if (!isClient) {
+    return (
+      <div className="min-h-[150px] border rounded-md bg-[#232326] p-4">
+        <div className="text-[#a0a0a0]">Loading editor...</div>
+      </div>
+    );
+  }
+  
+  // Render the editor in read-only mode if we're not editing,
+  // or if the Quill hasn't loaded yet but we have content to show
+  if (readOnly || (!isQuillLoaded && initialContent)) {
+    return (
+      <div 
+        className="quill-editor-display min-h-[150px]"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
+  
+  // Otherwise render the editable Quill editor
   return (
     <div className="min-h-[150px]">
-      {typeof window !== 'undefined' && isQuillLoaded ? (
-        <ReactQuill
-          theme="snow"
-          value={initialContent}
-          onChange={onChange}
-          modules={modules}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          className="h-full text-white quill-editor"
-        />
+      {isQuillLoaded ? (
+        <div className="quill-wrapper relative">
+          <ReactQuill
+            theme="snow"
+            value={content}
+            onChange={handleChange}
+            modules={modules}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className="h-full text-white quill-editor"
+          />
+        </div>
       ) : (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full border rounded-md bg-[#232326] p-4">
           <div className="text-[#a0a0a0]">Loading editor...</div>
         </div>
       )}

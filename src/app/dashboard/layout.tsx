@@ -1,9 +1,8 @@
 "use client"
 
-import { useAuth } from "@/stores/auth"
-import { useTenantStore } from "@/stores/tenants"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function DashboardLayout({
   children,
@@ -11,30 +10,18 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
-  const { currentTenant } = useTenantStore()
-
+  const { isAuthenticated, isLoading } = useAuth()
+  
+  // Direct redirect to login if not authenticated
   useEffect(() => {
-    // Guard 1: Authentication Check
-    if (!isAuthenticated) {
-      router.push('/auth/signin')
-      return
+    if (!isLoading && !isAuthenticated) {
+      router.push('/signin')
     }
+  }, [isAuthenticated, isLoading, router])
 
-    // Guard 2: Tenant Selection Check
-    if (!currentTenant) {
-      router.push('/dashboard/select-tenant')
-      return
-    }
-
-    // Guard 3: Tenant Access Check
-    if (!user?.allowedTenants.includes(currentTenant.id)) {
-      router.push('/dashboard/select-tenant')
-    }
-  }, [isAuthenticated, currentTenant, user, router])
-
+  // Simply render children (which is the dashboard page)
   return (
-    <div className="min-h-screen bg-background" suppressHydrationWarning>
+    <div className="min-h-screen bg-background">
       {children}
     </div>
   )

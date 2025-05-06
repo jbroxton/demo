@@ -2,57 +2,73 @@
 
 import React, { forwardRef } from 'react'
 import { Toaster } from 'sonner'
-import { useEffect } from 'react'
-import { useAuth } from '@/stores/auth'
-import { useTenantStore } from '@/stores/tenants'
+import { useEffect, useState } from 'react'
 import { ThemeProvider } from 'next-themes'
-import { migrateFeatures } from '@/utils/migrate-features'
-import { syncData } from '@/utils/sync-data'
+import { SessionProvider } from 'next-auth/react'
+import { TanstackQueryProvider } from '@/providers/query-provider'
+import { UnifiedStateProvider } from '@/providers/unified-state-provider'
+import { AuthProvider } from '@/providers/auth-provider'
+import { getBaseUrl } from '@/lib/env'
+import { StyleLoader } from '@/components/style-loader'
+import { ApprovalSystemInit } from '@/components/approval-system-init'
 
 type AppProvidersProps = {
   children?: React.ReactNode
+  session?: any
 }
 
 export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
-  function AppProviders({ children }: AppProvidersProps, ref: React.ForwardedRef<HTMLDivElement>) {
-    // Handle Zustand hydration
-    useEffect(() => {
-      if (typeof window !== 'undefined') {
-        useAuth.persist.rehydrate()
-        useTenantStore.persist.rehydrate()
-      }
-    }, [])
-
-    // Run feature content migration
-    useEffect(() => {
-      if (typeof window !== 'undefined') {
-        // Run migration after a delay to ensure stores are loaded
-        setTimeout(() => {
-          migrateFeatures();
-        }, 1000);
-      }
-    }, []);
+  function AppProviders({ children, session }: AppProvidersProps, ref: React.ForwardedRef<HTMLDivElement>) {
+    // Add state to track client-side hydration
+    const [isHydrated, setIsHydrated] = useState(false)
     
-    // Synchronize stores using immer-based solution
+    // Handle client-side hydration
     useEffect(() => {
       if (typeof window !== 'undefined') {
-        // Run synchronization after stores are loaded and hydrated
-        setTimeout(() => {
-          const result = syncData();
-          if (result.anyChanged) {
-            console.log('Data synchronized successfully with immer:', result);
-          }
-        }, 1500);
+        // Mark as hydrated
+        setIsHydrated(true)
+        
+        console.log("App hydrated - session data:", 
+                    session ? `User: ${session.user?.email || 'No email'}` : "No session");
       }
-    }, []);
+    }, [session])
 
+    const content = (
+      <div ref={ref}>
+        {children}
+        <Toaster />
+      </div>
+    )
+
+    // Configuration for SessionProvider with dynamic base URL for proper callback handling
+    const baseUrl = getBaseUrl();
+    console.log("Using base URL:", baseUrl);
+
+    // Wrap with NextAuth SessionProvider and our custom AuthProvider
     return (
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-        <div ref={ref}>
-          {children}
-          <Toaster />
-        </div>
-      </ThemeProvider>
+      <SessionProvider 
+        session={session} 
+        refetchInterval={5 * 60} 
+        refetchOnWindowFocus={true}
+        basePath={`${baseUrl}/api/auth`}
+      >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <TanstackQueryProvider>
+            <AuthProvider>
+              <StyleLoader />
+              {isHydrated ? (
+                <UnifiedStateProvider>
+                  <ApprovalSystemInit />
+                  {content}
+                </UnifiedStateProvider>
+              ) : (
+                // Render without the UnifiedStateProvider until hydration is complete
+                content
+              )}
+            </AuthProvider>
+          </TanstackQueryProvider>
+        </ThemeProvider>
+      </SessionProvider>
     )
   }
 ) 
