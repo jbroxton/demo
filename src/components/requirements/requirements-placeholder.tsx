@@ -22,7 +22,6 @@ export function RequirementsPlaceholder({
         featureId={featureId} 
         showAddRow={showAddRow}
         onAddRowCancel={onAddRowCancel}
-        onAddRow={() => onAddRowCancel && onAddRowCancel()}
       />
     </div>
   );

@@ -109,7 +109,7 @@ async function initializeDirectly() {
     // Check if stages already exist
     const existingStages = db.prepare(`
       SELECT COUNT(*) as count FROM approval_stages
-    `).get();
+    `).get() as { count: number };
     
     if (existingStages.count === 0) {
       console.log('Inserting default stages...');
@@ -153,7 +153,7 @@ async function initializeDirectly() {
     // Check if statuses already exist
     const existingStatuses = db.prepare(`
       SELECT COUNT(*) as count FROM approval_statuses
-    `).get();
+    `).get() as { count: number };
     
     if (existingStatuses.count === 0) {
       console.log('Inserting default statuses...');
@@ -191,8 +191,8 @@ async function initializeDirectly() {
     
     return {
       success: true,
-      stagesCount: db.prepare('SELECT COUNT(*) as count FROM approval_stages').get().count,
-      statusesCount: db.prepare('SELECT COUNT(*) as count FROM approval_statuses').get().count
+      stagesCount: (db.prepare('SELECT COUNT(*) as count FROM approval_stages').get() as { count: number }).count,
+      statusesCount: (db.prepare('SELECT COUNT(*) as count FROM approval_statuses').get() as { count: number }).count
     };
   } catch (error) {
     console.error('Error in direct initialization:', error);

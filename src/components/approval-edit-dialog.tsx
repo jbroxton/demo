@@ -147,10 +147,6 @@ export function ApprovalEditDialog({
             className={selectedStatus?.color ? 'text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}
             style={selectedStatus?.color ? {
               backgroundColor: selectedStatus.color,
-              // Darken hover color slightly
-              ':hover': {
-                backgroundColor: selectedStatus.color + 'dd'
-              }
             } : {}}
           >
             Save

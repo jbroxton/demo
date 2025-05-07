@@ -57,7 +57,6 @@ export const getColumns = (): ColumnDef<Requirement>[] => {
           onSave={async (value) => {
             console.log(`Updating name for ${row.original.id}:`, value)
             await updateRequirementName(row.original.id, value)
-            return true
           }}
         />
       ),
@@ -73,7 +72,6 @@ export const getColumns = (): ColumnDef<Requirement>[] => {
           onSave={async (value) => {
             console.log(`Updating description for ${row.original.id}:`, value)
             await updateRequirementDescription(row.original.id, value)
-            return true
           }}
         />
       ),
@@ -89,7 +87,6 @@ export const getColumns = (): ColumnDef<Requirement>[] => {
           onSave={async (value) => {
             console.log(`Updating owner for ${row.original.id}:`, value)
             await updateRequirementOwner(row.original.id, value)
-            return true
           }}
         />
       ),
@@ -121,7 +118,6 @@ export const getColumns = (): ColumnDef<Requirement>[] => {
           onSave={async (value) => {
             console.log(`Updating CUJ for ${row.original.id}:`, value)
             await updateRequirementCuj(row.original.id, value)
-            return true
           }}
         />
       ),
@@ -137,7 +133,6 @@ export const getColumns = (): ColumnDef<Requirement>[] => {
           onSave={async (value) => {
             console.log(`Updating acceptance criteria for ${row.original.id}:`, value)
             await updateRequirementAcceptanceCriteria(row.original.id, value)
-            return true
           }}
         />
       ),
