@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { 
-  ChevronRight, 
+import Image from "next/image"
+import {
+  ChevronRight,
   ChevronDown,
   Calendar,
   Package,
@@ -13,8 +14,7 @@ import {
   Rocket,
   Map,
   LogOut,
-  Puzzle,
-  Proportions
+  Puzzle
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
@@ -23,6 +23,7 @@ import { useInterfacesQuery } from "@/hooks/use-interfaces-query"
 import { useFeaturesQuery } from "@/hooks/use-features-query"
 import { useReleasesQuery } from "@/hooks/use-releases-query"
 import { useTabsQuery } from "@/hooks/use-tabs-query"
+import { useRoadmapsQuery } from "@/hooks/use-roadmaps-query"
 import { Button } from "@/components/ui/button"
 import { EntityCreator } from "@/components/entity-creator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -61,6 +62,7 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
   const interfacesQuery = useInterfacesQuery();
   const featuresQuery = useFeaturesQuery();
   const releasesQuery = useReleasesQuery();
+  const roadmapsQuery = useRoadmapsQuery();
   const { openTab } = useTabsQuery();
   
   // Toggle product expansion
@@ -88,8 +90,9 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
   };
   
   // Loading state
-  if (productsQuery.isLoading || interfacesQuery.isLoading || 
-      featuresQuery.isLoading || releasesQuery.isLoading) {
+  if (productsQuery.isLoading || interfacesQuery.isLoading ||
+      featuresQuery.isLoading || releasesQuery.isLoading ||
+      roadmapsQuery.isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center" {...props}>
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white mb-4"></div>
@@ -97,10 +100,11 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
       </div>
     );
   }
-  
+
   // Error state
-  if (productsQuery.error || interfacesQuery.error || 
-      featuresQuery.error || releasesQuery.error) {
+  if (productsQuery.error || interfacesQuery.error ||
+      featuresQuery.error || releasesQuery.error ||
+      roadmapsQuery.error) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-4" {...props}>
         <div className="text-red-500 mb-4">
@@ -111,17 +115,19 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
           </svg>
         </div>
         <p className="text-red-400 text-center">
-          {productsQuery.error ? String(productsQuery.error) : 
-           interfacesQuery.error ? String(interfacesQuery.error) : 
+          {productsQuery.error ? String(productsQuery.error) :
+           interfacesQuery.error ? String(interfacesQuery.error) :
            featuresQuery.error ? String(featuresQuery.error) :
+           roadmapsQuery.error ? String(roadmapsQuery.error) :
            String(releasesQuery.error)}
         </p>
-        <button 
+        <button
           onClick={() => {
             productsQuery.refetch();
             interfacesQuery.refetch();
             featuresQuery.refetch();
             releasesQuery.refetch();
+            roadmapsQuery.refetch();
           }}
           className="mt-4 bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded text-white"
         >
@@ -136,9 +142,22 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
       {/* App header */}
       <div className="p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Proportions className="h-5 w-5 text-indigo-500" />
-            <span className="text-lg font-medium">Speqq (DB)</span>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo.svg"
+              alt="Speqq Logo"
+              width={24}
+              height={24}
+              className="w-6 h-6"
+            />
+            <Image
+              src="/text-logo.svg"
+              alt="Speqq"
+              width={80}
+              height={24}
+              priority
+              className="h-6"
+            />
           </div>
         </div>
       </div>
@@ -164,7 +183,21 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
           <ul className="flex flex-col gap-1">
             {goalsData.map((item) => (
               <li key={item.name} className="group/menu-item relative">
-                <button className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden hover:bg-[#232326]">
+                <button
+                  className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden hover:bg-[#232326]"
+                  onClick={() => {
+                    // Special handling for Roadmap item
+                    if (item.name === 'Roadmap') {
+                      // Open the roadmap tab - the useRoadmapsQuery hook will handle fetching the data
+                      openTab({
+                        title: 'Roadmaps',
+                        type: 'roadmap',
+                        itemId: 'roadmaps' // Special itemId for the roadmaps tab
+                      });
+                    }
+                    // Other items will be implemented later
+                  }}
+                >
                   <item.icon className="h-4 w-4 text-muted-foreground" />
                   <span>{item.name}</span>
                 </button>

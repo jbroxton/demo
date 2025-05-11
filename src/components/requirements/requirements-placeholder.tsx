@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { RequirementsTable } from './requirements-table';
+import { ThemedRequirementsTable } from './themed-requirements-table';
 
 interface RequirementsPlaceholderProps {
   featureId: string;
@@ -18,8 +18,8 @@ export function RequirementsPlaceholder({
 }: RequirementsPlaceholderProps) {
   return (
     <div className="w-full flex flex-col">
-      <RequirementsTable 
-        featureId={featureId} 
+      <ThemedRequirementsTable
+        featureId={featureId}
         showAddRow={showAddRow}
         onAddRowCancel={onAddRowCancel}
       />

@@ -11,6 +11,8 @@ import { AuthProvider } from '@/providers/auth-provider'
 import { getBaseUrl } from '@/lib/env'
 import { StyleLoader } from '@/components/style-loader'
 import { ApprovalSystemInit } from '@/components/approval-system-init'
+import { TableThemeProvider } from '@/providers/table-theme-provider'
+import { SidenavThemeProvider } from '@/providers/sidenav-theme-provider'
 
 type AppProvidersProps = {
   children?: React.ReactNode
@@ -58,11 +60,15 @@ export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
               <StyleLoader />
               {isHydrated ? (
                 <UnifiedStateProvider>
-                  <ApprovalSystemInit />
-                  {content}
+                  <SidenavThemeProvider>
+                    <TableThemeProvider>
+                      <ApprovalSystemInit />
+                      {content}
+                    </TableThemeProvider>
+                  </SidenavThemeProvider>
                 </UnifiedStateProvider>
               ) : (
-                // Render without the UnifiedStateProvider until hydration is complete
+                // Render without the providers until hydration is complete
                 content
               )}
             </AuthProvider>

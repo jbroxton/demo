@@ -9,6 +9,7 @@ export type EntityApproval = {
   status_id: string;
   approver?: string;
   comments?: string;
+  roadmap_status?: string;
   updated_at: string;
   created_at: string;
 };

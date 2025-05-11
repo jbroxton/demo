@@ -273,22 +273,35 @@ export function FeatureQueryTabContent({
   // Toggle approval tracking
   const handleToggleApprovals = () => {
     const newState = !showApprovals;
-    setShowApprovals(newState);
-    
-    // Save preference to localStorage
+
+    // Save preference to localStorage first, BEFORE updating state
     if (typeof window !== 'undefined' && !isNew && featureId) {
-      localStorage.setItem(`feature_approvals_${featureId}`, newState.toString());
+      try {
+        localStorage.setItem(`feature_approvals_${featureId}`, newState.toString());
+        console.log(`Saved approval preference for feature ${featureId}: ${newState}`);
+      } catch (e) {
+        console.error('Error saving approval preference to localStorage:', e);
+      }
     }
-    
-    // If turning on approvals, initialize them if they don't exist yet
-    if (newState && featureId) {
-      // Just set the state and let the table component handle initialization
-      toast.loading('Enabling approval tracking...');
-      // We'll let the approval table component handle the initialization
-    } else if (newState) {
-      toast.success('Approval tracking enabled');
+
+    // Update state after storage is handled
+    setShowApprovals(newState);
+
+    // Show appropriate toast message - use IDs to manage toast state
+    if (newState) {
+      // Use a unique ID for the toast to be able to dismiss it
+      const toastId = 'approval-toggle-' + Date.now();
+
+      // First show a loading toast
+      toast.loading('Enabling stages tracking...', { id: toastId });
+
+      // Then dismiss it and show success after a short delay
+      setTimeout(() => {
+        toast.dismiss(toastId);
+        toast.success('Stages tracking enabled');
+      }, 1500);
     } else {
-      toast.info('Approval tracking disabled');
+      toast.info('Stages tracking disabled');
     }
   };
   
@@ -357,10 +370,10 @@ export function FeatureQueryTabContent({
                   : "bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
                 }
                 onClick={handleToggleApprovals}
-                title={showApprovals ? "Disable approval tracking" : "Enable approval tracking"}
+                title={showApprovals ? "Disable stages tracking" : "Enable stages tracking"}
               >
                 <ClipboardCheck className="h-4 w-4 mr-1" />
-                Approvals
+                Stages
               </Button>
               
               <Button
@@ -511,7 +524,7 @@ export function FeatureQueryTabContent({
         {!isNew && showApprovals && (
           <div className="w-full mt-2">
             <div className="flex justify-between items-center mb-1">
-              <p className="text-[#a0a0a0] text-sm">Approvals & Status</p>
+              <p className="text-[#a0a0a0] text-sm">Stages</p>
             </div>
             <StagesApprovalTable
               entityId={featureId}

@@ -87,8 +87,10 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="space-y-2">
-      <DataTableToolbar table={table} />
+    <div className="space-y-0">
+      <div className="mb-1">
+        <DataTableToolbar table={table} />
+      </div>
       <div className="rounded-md border border-[#2a2a2c] bg-[#1e1e20] w-full">
         <div className="overflow-x-auto w-full">
           <Table className="w-full">

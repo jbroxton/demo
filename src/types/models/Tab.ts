@@ -4,6 +4,6 @@
 export interface Tab {
   id: string;
   title: string;
-  type: 'feature' | 'product' | 'interface' | 'release';
+  type: 'feature' | 'product' | 'interface' | 'release' | 'roadmap';
   itemId: string;
 }

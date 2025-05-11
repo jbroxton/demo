@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useAppTheme } from '@/providers/sidenav-theme-provider';
 
 // Dynamically import ReactQuill with ssr disabled
 const ReactQuill = dynamic(
@@ -73,30 +74,33 @@ export function FeatureDescriptionEditor({
     ]
   };
   
+  // Access app theme
+  const appTheme = useAppTheme();
+
   if (!isClient) {
     return (
-      <div className="min-h-[150px] border rounded-md bg-[#232326] p-4">
-        <div className="text-[#a0a0a0]">Loading editor...</div>
+      <div className={`${appTheme.editor} p-4`}>
+        <div className="text-white/60">Loading editor...</div>
       </div>
     );
   }
-  
+
   // Render the editor in read-only mode if we're not editing,
   // or if the Quill hasn't loaded yet but we have content to show
   if (readOnly || (!isQuillLoaded && initialContent)) {
     return (
-      <div 
-        className="quill-editor-display min-h-[150px]"
+      <div
+        className={`quill-editor-display ${appTheme.editor} p-4`}
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
   }
-  
+
   // Otherwise render the editable Quill editor
   return (
     <div className="min-h-[150px]">
       {isQuillLoaded ? (
-        <div className="quill-wrapper relative">
+        <div className={`quill-wrapper relative ${appTheme.editor} p-0 border-0`}>
           <ReactQuill
             theme="snow"
             value={content}
@@ -104,12 +108,12 @@ export function FeatureDescriptionEditor({
             modules={modules}
             placeholder={placeholder}
             readOnly={readOnly}
-            className="h-full text-white quill-editor"
+            className="text-white quill-editor"
           />
         </div>
       ) : (
-        <div className="flex items-center justify-center h-full border rounded-md bg-[#232326] p-4">
-          <div className="text-[#a0a0a0]">Loading editor...</div>
+        <div className={`flex items-center justify-center ${appTheme.editor} p-4`}>
+          <div className="text-white/60">Loading editor...</div>
         </div>
       )}
     </div>

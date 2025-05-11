@@ -24,9 +24,10 @@ export async function GET(req: NextRequest) {
     console.log('Getting table details...');
     const tableDetails = await getTableDetails();
     
-    // Direct test: try to insert a test stage
-    console.log('Attempting direct test insert...');
-    const testInsert = await testDirectInsert();
+    // DISABLED: Direct test to insert a test stage - causes duplicate test stages
+    // console.log('Attempting direct test insert...');
+    // const testInsert = await testDirectInsert();
+    const testInsert = { disabled: "Test stage creation disabled to prevent duplicates" };
     
     // Return all diagnostic info
     return NextResponse.json({

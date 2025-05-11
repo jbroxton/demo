@@ -14,4 +14,11 @@ export type Feature = {
   artifacts?: string[];
   requirements?: Requirement[];
   showRequirements?: boolean;
+
+  // Roadmap related properties
+  roadmapId?: string;
+  workflowStatus?: string;
+  releaseId?: string;
+  releaseName?: string;
+  tenantId?: string;
 };

@@ -60,7 +60,7 @@ export default function DashboardLayoutQuery() {
       {/* Main content area with tabs and content */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden">
         {/* Header with tabs */}
-        <div className="flex-shrink-0 border-b border-[#232326] bg-[#161618]">
+        <div className="flex-shrink-0 border-b border-[#232326] bg-[#0C0C0C]">
           <TabsContainer />
         </div>
         

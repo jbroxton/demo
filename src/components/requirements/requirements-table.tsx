@@ -101,9 +101,9 @@ export function RequirementsTable({
   // Show the new requirement form inline if showAddRow is true
   if (showAddRow) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-0">
         {/* Regular data table */}
-        <div className="rounded-md border">
+        <div className="rounded-md border border-[#2a2a2c]">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -184,7 +184,7 @@ export function RequirementsTable({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0">
       <DataTable
         columns={columns}
         data={requirementsData}

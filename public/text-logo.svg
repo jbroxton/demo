@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <!-- Define the gradient identical to the CSS gradient -->
+  <defs>
+    <linearGradient id="speqqTextGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9333EA" /> <!-- Purple (var(--accent-primary)) -->
+      <stop offset="100%" stop-color="#4361EE" /> <!-- Blue (var(--accent-secondary)) -->
+    </linearGradient>
+  </defs>
+  
+  <!-- Text "Speqq" -->
+  <text x="5" y="30" 
+        font-family="sans-serif" 
+        font-size="30" 
+        font-weight="700"
+        letter-spacing="-0.5px"
+        fill="url(#speqqTextGradient)">
+    Speqq
+  </text>
+</svg>

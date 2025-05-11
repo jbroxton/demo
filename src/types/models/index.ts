@@ -7,3 +7,4 @@ export * from './Tab';
 export * from './ApprovalStage';
 export * from './ApprovalStatus';
 export * from './EntityApproval';
+export * from './Roadmap';

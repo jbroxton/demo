@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Pencil, Package, Layers, Puzzle, Calendar } from 'lucide-react';
+import { X, Pencil, Package, Layers, Puzzle, Calendar, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
@@ -76,35 +76,39 @@ export function TabsContainer() {
   const getTabIcon = (tabType: string) => {
     switch (tabType) {
       case 'product':
-        return <Package className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+        return <Package className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
       case 'interface':
-        return <Layers className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+        return <Layers className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
       case 'feature':
-        return <Puzzle className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+        return <Puzzle className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
       case 'release':
-        return <Calendar className="h-4 w-4 mr-1.5 text-muted-foreground" />;
+        return <Calendar className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
+      case 'roadmap':
+        return <Map className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="bg-[#161618] border-b border-[#232326]">
+    <div className="bg-[#0C0C0C] border-b border-white/[0.02] shadow-md shadow-black/20 relative z-10 rounded-t-lg">
       <Tabs
         value={activeTabId || ''}
         className="w-full"
       >
-        <TabsList className="flex h-12 w-full rounded-none bg-[#161618]">
+        <TabsList className="flex h-12 w-full rounded-none bg-transparent px-6 items-center">
           {tabs.map((tab, index) => (
-            <div 
+            <div
               key={tab.id}
               className={cn(
-                "relative group flex-shrink-0 min-w-[140px] max-w-[200px]",
-                "border-r border-[#232326]"
+                "relative group flex-shrink-0 min-w-[160px] max-w-[240px]",
+                "border-r border-white/[0.05]",
+                "overflow-hidden flex items-center",
+                "shadow-inner shadow-black/5"
               )}
             >
               {editingTabId === tab.id ? (
-                <div className="w-full px-4 pr-8 h-12 flex items-center justify-start">
+                <div className="w-full px-4 pr-8 flex items-center justify-start">
                   <Input
                     value={editingValue}
                     onChange={handleEditChange}
@@ -112,7 +116,7 @@ export function TabsContainer() {
                     onKeyDown={(e) => handleKeyDown(e, tab)}
                     onClick={handleInputClick}
                     autoFocus
-                    className="text-sm text-white bg-[#232326] border-[#2a2a2c] h-8"
+                    className="text-[14px] tracking-[-0.006em] leading-[1.4] text-white bg-[#232326] border-[#2a2a2c] h-8"
                   />
                 </div>
               ) : (
@@ -121,52 +125,53 @@ export function TabsContainer() {
                     value={tab.id}
                     onClick={() => activateTab(tab.id)}
                     className={cn(
-                      "w-full px-4 pr-8 h-12",
+                      "w-full px-3",
                       "flex items-center justify-start",
-                      "text-sm text-[#a0a0a0]",
-                      "hover:bg-[#1e1e20]",
-                      "data-[state=active]:bg-[#1e1e20] data-[state=active]:text-white"
+                      "text-[14px] tracking-[-0.006em] leading-[1.4]",
+                      "hover:bg-[#161618]",
+                      "data-[state=active]:bg-[#161618]",
+                      "data-[state=active]:shadow-inner data-[state=active]:shadow-black/10"
                     )}
                   >
-                    <div className="flex items-center truncate">
+                    <div className="flex items-center justify-start truncate w-full">
                       {getTabIcon(tab.type)}
-                      <span className="truncate">{tab.title}</span>
+                      <span className="truncate text-white/70 my-auto">{tab.title}</span>
                     </div>
                   </TabsTrigger>
-                  
+
                   {/* Edit button for all tab types - positioned absolutely */}
                   <button
                     onClick={(e) => handleEditStart(e, tab)}
                     className={cn(
-                      "absolute left-[calc(100%-24px-20px)] top-1/2 -translate-y-1/2 rounded-sm",
-                      "p-0.5",
+                      "absolute right-8 top-1/2 -translate-y-1/2 rounded-sm",
+                      "p-1",
                       "opacity-0 hover:opacity-100 group-hover:opacity-50 transition-opacity"
                     )}
                     aria-label={`Edit ${tab.title} name`}
                   >
-                    <Pencil className="h-3 w-3 text-[#a0a0a0]" />
+                    <Pencil className="h-4 w-4 text-[#a0a0a0]" />
                   </button>
                 </>
               )}
-              
+
               {/* Close button */}
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
                 className={cn(
                   "absolute right-2 top-1/2 -translate-y-1/2 rounded-sm",
-                  "p-0.5 hover:bg-[#2a2a2c]",
+                  "p-1 hover:bg-[#161618]",
                   "opacity-0 group-hover:opacity-100 transition-opacity"
                 )}
                 aria-label={`Close ${tab.title} tab`}
               >
-                <X className="h-3.5 w-3.5 text-[#a0a0a0]" />
+                <X className="h-4 w-4 text-[#a0a0a0]" />
               </button>
             </div>
           ))}
           {/* Empty tab space filler for blank area */}
-          <div className="flex-1 border-t border-[#232326]"></div>
+          <div className="flex-1 border-t border-white/[0.05]"></div>
         </TabsList>
       </Tabs>
     </div>
   );
-} 
+}

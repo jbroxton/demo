@@ -76,7 +76,9 @@ export function useEntityApprovalsQuery(
     },
     onSuccess: (data) => {
       queryClient.setQueryData(approvalsQueryKey, data);
-      toast.success('Approvals initialized');
+      // Dismiss any loading toasts first
+      toast.dismiss();
+      toast.success('Approvals initialized', { duration: 2000 });
     },
     onError: (error) => {
       console.error('Error initializing approvals:', error);

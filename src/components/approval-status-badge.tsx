@@ -3,15 +3,47 @@ import { ApprovalStatus } from '@/types/models';
 import { cn } from '@/lib/utils';
 
 interface ApprovalStatusBadgeProps {
-  status: ApprovalStatus;
+  status: ApprovalStatus | string;
   className?: string;
 }
+
+// Define roadmap status types
+type RoadmapStatusKey = 'Backlog' | 'Not Started' | 'In Progress' | 'Launched' | 'Completed' | 'Blocked' | 'Not Needed';
+type StatusStyle = { bg: string; color: string };
+
+// Roadmap status styles
+const roadmapStatusStyles: Record<RoadmapStatusKey, StatusStyle> = {
+  'Backlog': { bg: 'bg-purple-100', color: 'text-purple-500' },
+  'Not Started': { bg: 'bg-gray-100', color: 'text-gray-500' },
+  'In Progress': { bg: 'bg-blue-100', color: 'text-blue-500' },
+  'Launched': { bg: 'bg-green-100', color: 'text-green-500' },
+  'Completed': { bg: 'bg-green-100', color: 'text-green-500' },
+  'Blocked': { bg: 'bg-orange-100', color: 'text-orange-500' },
+  'Not Needed': { bg: 'bg-gray-100', color: 'text-gray-500' }
+};
+
+// Default style for unknown status
+const defaultStatusStyle: StatusStyle = { bg: 'bg-gray-100', color: 'text-gray-500' };
 
 export function ApprovalStatusBadge({ status, className }: ApprovalStatusBadgeProps) {
   // Default style for badge
   const baseStyle = "text-xs font-medium inline-flex items-center px-2 py-1 rounded-md";
+
+  // Handle string status (roadmap status)
+  if (typeof status === 'string') {
+    const statusName = status;
+    const roadmapStyle = (roadmapStatusStyles as Record<string, StatusStyle>)[statusName] || defaultStatusStyle;
+
+    return (
+      <span
+        className={cn(baseStyle, roadmapStyle.bg, roadmapStyle.color, className)}
+      >
+        {statusName}
+      </span>
+    );
+  }
   
-  // Custom style based on status color
+  // Custom style based on status color for ApprovalStatus objects
   let customStyle = {
     backgroundColor: `${status.color}20`, // 20% opacity version of the status color
     color: status.color,

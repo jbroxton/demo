@@ -57,34 +57,50 @@ export function StagesApprovalTable({
     deleteAllApprovalsMutation
   } = useEntityApprovalsQuery(entityId, entityType);
   
-  // Initialize approvals if they don't exist yet
+  // Initialize approvals if they don't exist yet - with fix for infinite update loop
   useEffect(() => {
-    // Initialize when either:
-    // 1. First mount and hasApprovals is false, or
-    // 2. Parent explicitly requests initialization via prop
-    if ((!isLoadingApprovals && !hasApprovals && !initialized) || 
-        (shouldInitialize && !hasApprovals && mainStages.length > 0 && statuses.length > 0)) {
-      
-      setInitialized(true);
-      console.log('Initializing approvals for', entityType, entityId);
-      
-      if (mainStages.length > 0 && statuses.length > 0) {
-        console.log('Calling mutate with entityId:', entityId, 'entityType:', entityType);
-        initializeApprovalsMutation.mutate({});
-      } else {
-        console.warn('Cannot initialize approvals: stages or statuses missing');
-      }
+    // Skip if already initialized or if we're still loading data
+    if (initialized || isLoadingApprovals || isLoadingStages || isLoadingStatuses) {
+      return;
     }
+    
+    // Skip if we already have approvals - no need to initialize
+    if (hasApprovals) {
+      setInitialized(true); // Mark as initialized since we already have approvals
+      return;
+    }
+    
+    // Only initialize if we have the necessary data
+    if (mainStages.length === 0 || statuses.length === 0) {
+      return; // Not ready to initialize yet
+    }
+    
+    // Now we can safely initialize
+    if (entityId && entityType) {
+      console.log(`Initializing stages for ${entityType} ${entityId}`);
+      setInitialized(true); // Mark as initialized BEFORE calling the mutation to prevent loops
+
+      // Dismiss any existing loading toasts to prevent stuck UI
+      toast.dismiss();
+
+      // Use setTimeout to avoid any potential state update race conditions
+      setTimeout(() => {
+        initializeApprovalsMutation.mutate({});
+      }, 0);
+    }
+  // Deliberately omit initializeApprovalsMutation from dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    hasApprovals, 
-    isLoadingApprovals, 
+    hasApprovals,
+    isLoadingApprovals,
+    isLoadingStages,
+    isLoadingStatuses,
     initialized,
     shouldInitialize,
     entityId,
     entityType,
-    mainStages.length, 
-    statuses.length, 
-    initializeApprovalsMutation
+    mainStages.length,
+    statuses.length
   ]);
   
   // Handler to open the edit dialog for a stage
@@ -98,9 +114,9 @@ export function StagesApprovalTable({
     updateApprovalMutation.mutate(approvalData);
   };
   
-  // Handler to remove approval tracking
+  // Handler to remove stages tracking
   const handleRemoveApprovals = () => {
-    if (confirm('Are you sure you want to remove all approval tracking for this item?')) {
+    if (confirm('Are you sure you want to remove all stages for this item?')) {
       deleteAllApprovalsMutation.mutate();
       if (onToggle) {
         onToggle(false);
@@ -147,13 +163,6 @@ export function StagesApprovalTable({
   // Loading state
   const isLoading = isLoadingStages || isLoadingStatuses || isLoadingApprovals;
   
-  console.log('StagesApprovalTable - Data loaded:', {
-    mainStagesCount: mainStages.length,
-    launchStagesCount: launchStages.length,
-    statusesCount: statuses.length,
-    approvalsCount: Object.keys(approvals).length
-  });
-  
   // Get the stages for the active tab
   const activeStages = activeTab === 'main' ? mainStages : launchStages;
   
@@ -171,19 +180,19 @@ export function StagesApprovalTable({
                 : 'bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c] text-white'
             }
           >
-            Main Stages
+            Work Stages
           </Button>
           <Button
             variant={activeTab === 'launch' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveTab('launch')}
             className={
-              activeTab === 'launch' 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+              activeTab === 'launch'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c] text-white'
             }
           >
-            Launch Phases
+            Launch Stages
           </Button>
         </div>
         
@@ -225,7 +234,7 @@ export function StagesApprovalTable({
             className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c] text-white"
           >
             <X className="h-4 w-4 mr-1" />
-            Remove Tracking
+            Remove Stages
           </Button>
         </div>
       </div>
@@ -295,30 +304,37 @@ export function StagesApprovalTable({
                         variant="default"
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => {
-                          toast.loading('Force initializing approval system...');
-                          
+                          toast.loading('Force initializing stages system...');
+
                           // Call API endpoint directly
                           fetch('/api/approval-init')
                             .then(response => response.json())
                             .then(data => {
                               console.log('Initialization response:', data);
-                              
+
                               if (data.success) {
-                                toast.success('Approval system initialized');
+                                toast.success('Stages system initialized');
                                 // Refresh data
                                 Promise.all([refetchStages(), refetchStatuses()]).then(() => {
                                   // Finally, initialize this entity's approvals
                                   if (mainStages.length > 0 && statuses.length > 0) {
-                                    initializeApprovalsMutation.mutate({});
+                                    setInitialized(true); // Mark as initialized BEFORE calling the mutation
+
+                                    // Dismiss any pending loading toasts first
+                                    toast.dismiss();
+
+                                    setTimeout(() => {
+                                      initializeApprovalsMutation.mutate({});
+                                    }, 0);
                                   }
                                 });
                               } else {
-                                toast.error('Failed to initialize approval system');
+                                toast.error('Failed to initialize stages system');
                               }
                             })
                             .catch(err => {
                               console.error('Error initializing:', err);
-                              toast.error('Failed to initialize approval system');
+                              toast.error('Failed to initialize stages system');
                             });
                         }}
                       >
