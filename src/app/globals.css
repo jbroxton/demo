@@ -4,6 +4,32 @@
 
 @import '/src/styles/sonner.css';
 
+/* Custom scrollbar styling */
+/* For WebKit browsers (Chrome, Safari, newer versions of Opera) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #232326;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2c;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #232326 #0A0A0A;
+}
+
 /* Vercel Design System Typography */
 @layer base {
   html {

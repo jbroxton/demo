@@ -134,11 +134,12 @@ export function ThemedRequirementsTable({
           </ThemedTableHeader>
           <ThemedTableBody>
             {/* Insert the new requirement row first */}
-            <ThemedNewRequirementRow 
+            <ThemedNewRequirementRow
               featureId={featureId || ''}
               onSave={async (req) => {
-                await handleAddRequirement(req)
+                const result = await handleAddRequirement(req)
                 if (onAddRowCancel) onAddRowCancel()
+                return result
               }}
               onCancel={() => {
                 if (onAddRowCancel) onAddRowCancel()

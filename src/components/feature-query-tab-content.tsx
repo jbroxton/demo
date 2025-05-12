@@ -20,6 +20,11 @@ import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { useReleasesQuery } from '@/hooks/use-releases-query';
 import { useEntityApprovalsQuery } from '@/hooks/use-entity-approvals-query';
+import { useAttachmentsQuery } from '@/hooks/use-attachments-query';
+import { AttachmentButton } from './attachment-button';
+import { AttachmentDialog } from './attachment-dialog';
+import { AttachmentList } from './attachment-list';
+import { Attachment } from '@/types/models';
 
 interface FeatureTabContentProps {
   featureId: string;
@@ -47,11 +52,42 @@ export function FeatureQueryTabContent({
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
-  
+  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
+
   // React Query hooks
   const featuresQuery = useFeaturesQuery();
   const interfacesQuery = useInterfacesQuery();
   const releasesQuery = useReleasesQuery();
+
+  // Attachments query - only enabled when not a new feature
+  const {
+    attachments,
+    isLoading: isLoadingAttachments,
+    addAttachment: addAttachmentMutation,
+    removeAttachment,
+    isAddingAttachment,
+  } = useAttachmentsQuery(!isNew ? featureId : undefined, 'feature');
+
+  // Create adapter function to match expected signature
+  const addAttachment = async (url: string, title?: string): Promise<Attachment> => {
+    const result = await addAttachmentMutation({ url, title });
+
+    // Ensure attachments list is shown after adding an attachment
+    if (result && !showAttachments) {
+      setShowAttachments(true);
+      // Save preference to localStorage
+      if (typeof window !== 'undefined' && !isNew && featureId) {
+        try {
+          localStorage.setItem(`feature_attachments_${featureId}`, 'true');
+        } catch (e) {
+          console.error('Error saving attachments preference to localStorage:', e);
+        }
+      }
+    }
+
+    return result;
+  };
   
   // Approvals query - only enabled when showApprovals is true and not a new feature
   const { 
@@ -81,23 +117,34 @@ export function FeatureQueryTabContent({
   // Initialize from feature data on component mount
   useEffect(() => {
     setIsClient(true);
-    
+
     // Initialize values from feature when we have a feature
     if (feature && !isEditing) { // Only update if not in edit mode
       setNameValue(feature.name || '');
       setDescriptionValue(feature.description || '');
       setPriorityValue(feature.priority || 'Med');
       setInterfaceId(feature.interfaceId || '');
-      
+
       // Load approval tracking preference from localStorage
       if (typeof window !== 'undefined' && !isNew) {
         const showApprovalsPreference = localStorage.getItem(`feature_approvals_${featureId}`);
         if (showApprovalsPreference !== null) {
           setShowApprovals(showApprovalsPreference === 'true');
         }
+
+        // Load attachments display preference from localStorage
+        const showAttachmentsPreference = localStorage.getItem(`feature_attachments_${featureId}`);
+        if (showAttachmentsPreference !== null) {
+          setShowAttachments(showAttachmentsPreference === 'true');
+        } else {
+          // Only show attachments section if there are attachments
+          const hasAttachments = attachments && attachments.length > 0;
+          setShowAttachments(hasAttachments);
+          localStorage.setItem(`feature_attachments_${featureId}`, hasAttachments.toString());
+        }
       }
     }
-  }, [feature, isEditing, featureId, isNew]); // Add isEditing as a dependency
+  }, [feature, isEditing, featureId, isNew, attachments]); // Add isEditing and attachments as dependencies
   
   // Event handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,9 +268,25 @@ export function FeatureQueryTabContent({
     }
   };
   
-  // Add a handler for the attach file button
-  const handleAttachFile = () => {
-    toast.info("File attachment feature will be implemented soon");
+  // Handler for the attachments button
+  const handleAttachments = () => {
+    setIsAttachmentDialogOpen(true);
+  };
+
+  // Handler for toggling attachments section visibility
+  const handleToggleAttachments = () => {
+    const newState = !showAttachments;
+
+    // Save preference to localStorage
+    if (typeof window !== 'undefined' && !isNew && featureId) {
+      try {
+        localStorage.setItem(`feature_attachments_${featureId}`, newState.toString());
+      } catch (e) {
+        console.error('Error saving attachments preference to localStorage:', e);
+      }
+    }
+
+    setShowAttachments(newState);
   };
   
   // Handler for creating a new release
@@ -350,15 +413,12 @@ export function FeatureQueryTabContent({
         
         {/* Column 2: Action buttons */}
         <div className="flex items-center justify-end space-x-2">
-          <Button
-            size="sm"
+          <AttachmentButton
+            count={attachments?.length || 0}
+            onClick={handleAttachments}
             variant="outline"
-            className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-            onClick={handleAttachFile}
-          >
-            <Paperclip className="h-4 w-4 mr-1" />
-            Attach File
-          </Button>
+            size="sm"
+          />
           
           {!isNew && !isEditing && (
             <>
@@ -511,10 +571,42 @@ export function FeatureQueryTabContent({
             readOnly={!isEditing}
           />
         </div>
-        
-        {/* Row 3: Requirements - always show (moved up to just after description) */}
+
+        {/* Row 3: Attachments (if not a new feature) */}
+        {!isNew && (attachments?.length > 0 || isAttachmentDialogOpen) && (
+          <div className="w-full mt-4">
+            <div className="flex justify-between items-center mb-1">
+              <p
+                className="text-[#a0a0a0] text-sm cursor-pointer flex items-center"
+                onClick={handleToggleAttachments}
+              >
+                <span>Attachments</span>
+                {showAttachments ? (
+                  <span className="text-xs ml-2">▼</span>
+                ) : (
+                  <span className="text-xs ml-2">▶</span>
+                )}
+              </p>
+            </div>
+
+            {(showAttachments && attachments?.length > 0) && (
+              <div className="bg-[#232326] rounded-md p-3">
+                <AttachmentList
+                  attachments={attachments || []}
+                  onRemove={removeAttachment}
+                  onAdd={addAttachment}
+                  isLoading={isLoadingAttachments}
+                  isAddingAttachment={isAddingAttachment} // Pass specific loading state for adding
+                  showAddButton={true}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Row 4: Requirements - always show (moved up to just after description) */}
         <div className="w-full">
-          <FeatureRequirementsSectionQuery 
+          <FeatureRequirementsSectionQuery
             featureId={featureId}
             isNew={isNew}
           />
@@ -608,6 +700,16 @@ export function FeatureQueryTabContent({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Attachment dialog */}
+      {!isNew && (
+        <AttachmentDialog
+          open={isAttachmentDialogOpen}
+          onOpenChange={setIsAttachmentDialogOpen}
+          onAdd={addAttachment}
+          isLoading={isAddingAttachment}
+        />
+      )}
     </div>
   );
 }

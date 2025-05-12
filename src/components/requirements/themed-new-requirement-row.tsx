@@ -45,10 +45,10 @@ export function ThemedNewRequirementRow({
       const newRequirement: Omit<Requirement, 'id'> = {
         name: name.trim(),
         description,
-        owner: owner || null,
+        owner: owner || undefined,
         priority,
         featureId,
-        releaseId: releaseId || null
+        releaseId: releaseId || undefined
       }
 
       const success = await onSave(newRequirement)

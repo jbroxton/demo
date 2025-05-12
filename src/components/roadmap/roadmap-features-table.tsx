@@ -46,34 +46,54 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
   );
 
   // Group raw features by feature id, handling the one-to-many relationship with releases
-  const rawFeatures = featuresQuery.data || [];
   const isLoadingFeatures = featuresQuery.isLoading;
   const error = featuresQuery.error;
+
+  // Type guard to safely check if data is a Feature array
+  const isFeatureArray = (value: unknown): value is Feature[] =>
+    Array.isArray(value) && (value.length === 0 || (typeof value[0] === 'object' && value[0] !== null && 'id' in value[0]));
+
+  // Apply type guard to ensure we have a proper array
+  const rawFeatures = isFeatureArray(featuresQuery.data) ? featuresQuery.data : [];
 
   // Group features that have the same ID to handle multiple releases per feature
   const featureMap = new Map();
 
   rawFeatures.forEach(feature => {
     if (!featureMap.has(feature.id)) {
-      // Create a new feature entry with releases array
+      // Create a new feature entry
       const baseFeature = {...feature};
-      baseFeature.releases = feature.releaseId ? [{
+
+      // Add our custom releases property for UI purposes only (separate from the Feature type)
+      // Note: releaseDate doesn't exist on Feature type, so we'll use undefined
+      (baseFeature as any).releasesData = feature.releaseId ? [{
         id: feature.releaseId,
         name: feature.releaseName,
-        date: feature.releaseDate
+        date: undefined // Feature doesn't have releaseDate property
       }] : [];
+
+      // Keep the original releases property as string[] to match the Feature type
+      baseFeature.releases = feature.releaseId ? [feature.releaseId] : [];
 
       featureMap.set(feature.id, baseFeature);
     } else {
       // Add to existing feature's releases if this release isn't already included
       const existingFeature = featureMap.get(feature.id);
 
-      if (feature.releaseId && !existingFeature.releases.some(r => r.id === feature.releaseId)) {
-        existingFeature.releases.push({
-          id: feature.releaseId,
-          name: feature.releaseName,
-          date: feature.releaseDate
-        });
+      if (feature.releaseId) {
+        // Add to releasesData for UI purposes
+        if (!existingFeature.releasesData.some((r: any) => r.id === feature.releaseId)) {
+          existingFeature.releasesData.push({
+            id: feature.releaseId,
+            name: feature.releaseName,
+            date: undefined // Feature doesn't have releaseDate property
+          });
+        }
+
+        // Add to original releases array if not already included
+        if (!existingFeature.releases.includes(feature.releaseId)) {
+          existingFeature.releases.push(feature.releaseId);
+        }
       }
     }
   });
@@ -204,16 +224,12 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
                     </TableCell>
                     <TableCell className="p-2">
                       <div className="flex flex-col gap-1">
-                        {feature.releases && feature.releases.length > 0 ? (
-                          feature.releases.map(release => (
+                        {(feature as any).releasesData && (feature as any).releasesData.length > 0 ? (
+                          (feature as any).releasesData.map((release: any) => (
                             <div key={release.id} className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                               <span>{release.name}</span>
-                              {release.date && (
-                                <span className="text-xs ml-2 text-muted-foreground">
-                                  ({new Date(release.date).toLocaleDateString()})
-                                </span>
-                              )}
+                              {/* Date display removed since releaseDate doesn't exist on Feature */}
                             </div>
                           ))
                         ) : (

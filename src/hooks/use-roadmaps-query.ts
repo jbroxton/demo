@@ -97,17 +97,21 @@ export function useRoadmapsQuery() {
 
   // React Query hook for roadmap features - use this at component level
   const getRoadmapFeaturesQuery = (roadmapId: string, status?: string) => {
-    return useQuery<Feature[]>({
+    const query = useQuery<Feature[]>({
       queryKey: [ROADMAP_FEATURES_KEY, roadmapId, status],
       queryFn: () => fetchRoadmapFeatures(roadmapId, status),
       retry: 2, // Retry failed requests up to 2 times
       retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
-      onError: (error) => {
-        console.error('Error in roadmap features query:', error);
-      },
       // Return empty array instead of undefined on error to prevent UI errors
       initialData: []
-    })
+    });
+
+    // Handle errors separately, outside the options object
+    if (query.error) {
+      console.error('Error in roadmap features query:', query.error);
+    }
+
+    return query;
   }
 
   // Add feature to roadmap mutation

@@ -18,6 +18,7 @@ interface ConfirmationDialogProps {
   cancelLabel?: string;
   onConfirm: () => void;
   destructive?: boolean; // set to true for delete operations
+  isLoading?: boolean; // loading state for the confirm button
 }
 
 export function ConfirmationDialog({
@@ -28,7 +29,8 @@ export function ConfirmationDialog({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   onConfirm,
-  destructive = false
+  destructive = false,
+  isLoading = false
 }: ConfirmationDialogProps) {
   const handleConfirm = () => {
     onConfirm();
@@ -55,8 +57,9 @@ export function ConfirmationDialog({
           <Button
             onClick={handleConfirm}
             className={destructive ? "bg-red-600 hover:bg-red-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
+            disabled={isLoading}
           >
-            {confirmLabel}
+            {isLoading ? "Processing..." : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

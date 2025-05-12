@@ -108,7 +108,7 @@ export function AddFeatureToRoadmap({ roadmapId, onAddFeature }: AddFeatureToRoa
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen} className="add-feature-dialog">
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <PlusCircle className="h-4 w-4 mr-2" /> Add Features

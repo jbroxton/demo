@@ -34,13 +34,20 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
 
   // Use the query to get features
   const {
-    data: features = [],
+    data,
     isLoading: isLoadingFeatures,
     error
   } = getRoadmapFeaturesQuery(
     roadmapId,
     statusFilter !== 'All' ? statusFilter : undefined
   )
+
+  // Type guard to safely check if data is a Feature array
+  const isFeatureArray = (value: unknown): value is Feature[] =>
+    Array.isArray(value) && (value.length === 0 || (typeof value[0] === 'object' && value[0] !== null && 'id' in value[0]));
+
+  // Use type guard for safe type narrowing
+  const features = isFeatureArray(data) ? data : [];
 
   // Handle status filter change
   const handleStatusChange = (value: string) => {

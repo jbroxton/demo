@@ -182,7 +182,28 @@ function initDatabase() {
   // Create indexes for improving query performance for requirements
   db.exec(`CREATE INDEX IF NOT EXISTS idx_requirements_featureId ON requirements(featureId);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_requirements_releaseId ON requirements(releaseId);`);
-  
+
+  // Attachments table for storing references to external resources
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      type TEXT NOT NULL,
+      thumbnail_url TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      metadata TEXT,
+      tenant_id TEXT NOT NULL,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+    );
+  `);
+
+  // Create index for improving query performance when filtering attachments by entity
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_id, entity_type);`);
+
   // Tabs table for persisting application state
   db.exec(`
     CREATE TABLE IF NOT EXISTS tabs (

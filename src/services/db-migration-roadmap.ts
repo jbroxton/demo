@@ -85,7 +85,9 @@ export async function migrateRoadmapFeature() {
           try {
             db.exec(statement);
           } catch (stmtError) {
-            console.warn(`Non-fatal error in SQL statement: ${stmtError.message}`);
+            // Handle the error properly by checking its type
+            const errorMessage = stmtError instanceof Error ? stmtError.message : String(stmtError);
+            console.warn(`Non-fatal error in SQL statement: ${errorMessage}`);
             // Continue with other statements, some might be ALTER TABLE statements that fail if column already exists
           }
         }
