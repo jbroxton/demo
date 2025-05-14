@@ -38,7 +38,7 @@ import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useRequirementsQuery } from '@/hooks/use-requirements-query';
 import { useAttachmentsQuery } from '@/hooks/use-attachments-query';
-import { useDocumentQuery } from '@/hooks/use-documents-query';
+import { useDocumentQuery, useDocumentsQuery } from '@/hooks/use-documents-query';
 
 // Icons
 import {
@@ -105,9 +105,13 @@ export function RequirementCanvasContent({
     isSavingContent,
     isSavingTitle,
     error: docError,
+  } = useDocumentQuery(isNew ? undefined : requirementId);
+  
+  // Documents list query hooks (for creating new documents)
+  const {
     createDocument,
     isCreating,
-  } = useDocumentQuery(isNew ? undefined : requirementId);
+  } = useDocumentsQuery();
   
   // Attachments query - only enabled when not a new requirement
   const {
@@ -310,7 +314,7 @@ export function RequirementCanvasContent({
         // Save requirement name if changed
         if (nameValue.trim() !== requirement.name) {
           await requirementsQuery.updateRequirementName(requirementId, nameValue);
-          updateTabTitle(requirementId, 'requirement', nameValue);
+          // Note: Requirements aren't Tab types, so we don't update tab title here
         }
         
         // Save requirement owner if changed

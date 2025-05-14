@@ -30,7 +30,7 @@ import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { useReleasesQuery } from '@/hooks/use-releases-query';
 import { useEntityApprovalsQuery } from '@/hooks/use-entity-approvals-query';
 import { useAttachmentsQuery } from '@/hooks/use-attachments-query';
-import { useDocumentQuery } from '@/hooks/use-documents-query';
+import { useDocumentQuery, useDocumentsQuery } from '@/hooks/use-documents-query';
 import { AttachmentButton } from './attachment-button';
 import { AttachmentDialog } from './attachment-dialog';
 import { AttachmentList } from './attachment-list';
@@ -86,9 +86,13 @@ export function FeatureQueryTabContent({
     isSavingContent,
     isSavingTitle,
     error: docError,
+  } = useDocumentQuery(isNew ? undefined : featureId);
+  
+  // Documents list query hooks (for creating new documents)
+  const {
     createDocument,
     isCreating,
-  } = useDocumentQuery(isNew ? undefined : featureId);
+  } = useDocumentsQuery();
 
   // Attachments query - only enabled when not a new feature
   const {

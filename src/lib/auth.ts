@@ -3,7 +3,7 @@ import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { validateCredentials, Tenant, DbUser } from "@/services/auth.server";
 import { getBaseUrl } from "./env";
-import { getCookieSettings } from "@/app/api/auth/session-config";
+import { getCookieSettings, getAuthUrl } from "@/app/api/auth/session-config";
 
 // Custom User type for the authorization return value
 interface CustomUser {

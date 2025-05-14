@@ -84,6 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Process session data to extract user and tenant information
   useEffect(() => {
+    // If NextAuth is still loading, we shouldn't mark as initialized
+    if (status === 'loading') {
+      console.log('🔐 Auth provider - NextAuth still loading...');
+      return;
+    }
+
     if (status === 'authenticated' && session?.user) {
       try {
         // Map session user to our User type
@@ -114,16 +120,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           type: 'session',
           message: 'Failed to process authentication data'
         });
-      } finally {
-        // Mark auth as initialized after processing session
-        setIsInitialized(true);
       }
     } else if (status === 'unauthenticated') {
       // Clear user data when session is not authenticated
       setUser(null);
       setTenants([]);
-      setIsInitialized(true); // Still mark as initialized
     }
+
+    // Since we returned early if status is 'loading', we can mark as initialized here
+    setIsInitialized(true);
   }, [session, status])
   
   // Handle tenant switching with improved validation

@@ -87,7 +87,7 @@ async function fetchDocuments(featureId?: string, releaseId?: string) {
       return data;
     } catch (fetchError) {
       // Handle AbortController timeout
-      if (fetchError.name === 'AbortError') {
+      if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
         console.error('Fetch operation timed out after 15 seconds');
         throw new Error('Request timed out. The server took too long to respond.');
       }
@@ -302,9 +302,6 @@ export function useDocumentsQuery(featureId?: string, releaseId?: string) {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2, // Retry failed requests 2 times
     retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000), // Exponential backoff
-    onError: (error) => {
-      console.error('React Query error in useDocumentsQuery:', error);
-    }
   });
   
   // Create document mutation

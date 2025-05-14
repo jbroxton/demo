@@ -38,6 +38,13 @@ import debounce from 'lodash/debounce';
 // Import authentication hook
 import { useAuth } from '@/hooks/use-auth';
 
+// Extend window interface
+declare global {
+  interface Window {
+    editorKeystrokes?: number;
+  }
+}
+
 // 3. Internal components and hooks
 import { DocumentEditorToolbar } from './document-editor-toolbar';
 import { Button } from '@/components/ui/button';
@@ -104,6 +111,7 @@ export function DocumentEditorTabContent({
   // Documents list query hooks
   const {
     createDocument,
+    deleteDocument,
     documents,
     error: documentsError
   } = useDocumentsQuery();
@@ -500,7 +508,7 @@ export function DocumentEditorTabContent({
   const handleDeleteDocument = async () => {
     if (!isNew && documentId) {
       try {
-        await documentsQuery.deleteDocument(documentId);
+        await deleteDocument(documentId);
         toast.success('Document deleted successfully');
         // Close this specific tab
         closeTab(tabId);
@@ -771,7 +779,7 @@ export function DocumentEditorTabContent({
           <summary className="text-xs text-[#a0a0a0] cursor-pointer">Debug Information</summary>
           <div className="mt-2 text-xs text-[#a0a0a0]">
             <p>React title state: <code className="bg-[#1e1e20] p-1 rounded">{titleValue}</code></p>
-            <p>Current title: <code className="bg-[#1e1e20] p-1 rounded" id="debug-current-title">{document.getElementById('uncontrolled-title-input')?.value || 'Not available yet'}</code></p>
+            <p>Current title: <code className="bg-[#1e1e20] p-1 rounded" id="debug-current-title">{(document.getElementById('uncontrolled-title-input') as HTMLInputElement)?.value || 'Not available yet'}</code></p>
             <p>Edit mode: <code className="bg-[#1e1e20] p-1 rounded">{isEditing ? 'true' : 'false'}</code></p>
             <p>Document ID: <code className="bg-[#1e1e20] p-1 rounded">{documentId || 'new'}</code></p>
             <p>Is new document: <code className="bg-[#1e1e20] p-1 rounded">{isNew ? 'true' : 'false'}</code></p>

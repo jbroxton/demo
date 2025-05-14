@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`Documents API Request - ID: ${id}, Feature: ${featureId}, Release: ${releaseId}, Tenant: ${tenantId}`);
+    console.log('Headers:', Object.fromEntries(request.headers.entries()));
 
     // If ID is provided, get a specific document
     if (id) {

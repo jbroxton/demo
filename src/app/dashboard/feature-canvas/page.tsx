@@ -70,7 +70,7 @@ export default function FeatureCanvasPage() {
         <FeatureCanvasContent 
           featureId={featureId || 'new'} 
           isNew={isNew} 
-          interfaceId={interfaceId || undefined}
+          productId={interfaceId || undefined}
         />
       </div>
     </div>

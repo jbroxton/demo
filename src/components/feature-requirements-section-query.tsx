@@ -50,16 +50,16 @@ export function FeatureRequirementsSectionQuery({
           <div className="flex gap-2">
             <ThemedButton
               variant="primary"
-              size="sm"
               onClick={handleAddToggle}
+              className="text-sm"
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
               Add Requirement
             </ThemedButton>
             <ThemedButton
               variant="secondary"
-              size="sm"
               onClick={handleNewRequirementInEditor}
+              className="text-sm"
             >
               <FileText className="h-3.5 w-3.5 mr-1" />
               New in Editor

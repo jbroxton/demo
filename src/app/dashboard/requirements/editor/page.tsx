@@ -93,7 +93,7 @@ export default function RequirementEditorPage() {
         <RequirementCanvasContent 
           requirementId={requirementId || 'new'} 
           isNew={isNew} 
-          featureId={parentFeatureId}
+          featureId={parentFeatureId || undefined}
         />
       </div>
     </div>

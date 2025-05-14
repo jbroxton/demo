@@ -136,49 +136,6 @@ export function FeatureDescriptionEditor({
       attributes: {
         class: 'prose prose-invert max-w-none p-6 focus:outline-none min-h-full h-full',
       },
-      // Add custom styles to the editor
-      styles: `
-        .ProseMirror {
-          min-height: 100%;
-          height: 100%;
-          font-size: 15px;
-          line-height: 1.6;
-          letter-spacing: 0.2px;
-        }
-
-        .ProseMirror h1 {
-          font-size: 2rem;
-          margin-top: 1.5rem;
-          margin-bottom: 1rem;
-          font-weight: 700;
-          letter-spacing: -0.025em;
-        }
-
-        .ProseMirror h2 {
-          font-size: 1.5rem;
-          margin-top: 1.25rem;
-          margin-bottom: 0.75rem;
-          font-weight: 600;
-          letter-spacing: -0.025em;
-        }
-
-        .ProseMirror p {
-          margin-bottom: 1rem;
-        }
-
-        .ProseMirror ul, .ProseMirror ol {
-          padding-left: 1.5rem;
-          margin-bottom: 1rem;
-        }
-
-        .ProseMirror code {
-          font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-          font-size: 0.9em;
-          background-color: rgba(29, 31, 33, 0.5);
-          padding: 0.2em 0.4em;
-          border-radius: 3px;
-        }
-      `,
     },
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();

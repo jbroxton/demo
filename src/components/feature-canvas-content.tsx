@@ -103,9 +103,13 @@ export function FeatureCanvasContent({
     isSavingContent,
     isSavingTitle,
     error: docError,
+  } = useDocumentQuery(isNew ? undefined : featureId);
+  
+  // Documents list query hooks (for creating new documents)
+  const {
     createDocument,
     isCreating,
-  } = useDocumentQuery(isNew ? undefined : featureId);
+  } = useDocumentsQuery();
   
   // Attachments query - only enabled when not a new feature
   const {
@@ -334,7 +338,7 @@ export function FeatureCanvasContent({
       const newFeatureData = {
         name: nameValue.trim(),
         priority: priorityValue,
-        interfaceId: null, // In this flow, features are direct children of products
+        interfaceId: '', // Empty string for backward compatibility
         productId: productId,
         showRequirements: true, // Always show requirements
         description: '', // Description is now in the document

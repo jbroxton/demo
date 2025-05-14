@@ -2,6 +2,7 @@
 
 import { ChevronRight, MessageSquare, CheckSquare } from 'lucide-react';
 import { useUIState } from '@/providers/ui-state-provider';
+import { AIChatComponent } from '@/components/ai-chat';
 
 export function RightSidebar() {
   const { rightSidebarOpen, toggleRightSidebar, activeRightTab, setActiveRightTab, setRightSidebarOpen } = useUIState();
@@ -50,14 +51,9 @@ export function RightSidebar() {
       </div>
 
       {/* Content Panel */}
-      <div className={`p-4 overflow-y-auto flex-grow ${rightSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`flex-grow overflow-hidden ${rightSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
         {activeRightTab === 'chat' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white/90 truncate">Chat</h2>
-            <p className="text-white/70 text-sm break-words">
-              Chat functionality placeholder. This is a longer text that should wrap properly within the sidebar width.
-            </p>
-          </div>
+          <AIChatComponent />
         )}
 
         {activeRightTab === 'todo' && (
