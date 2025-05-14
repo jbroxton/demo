@@ -25,37 +25,42 @@ export function getDb() {
 function runDatabaseMigrations() {
   try {
     // Check if the releases table needs to be updated (missing tenantId)
-    const tableInfo = db.prepare("PRAGMA table_info(releases)").all() as any[];
-    const hasTenantId = tableInfo.some(column => column.name === 'tenantId');
-    
-    if (!hasTenantId) {
+    const releasesTableInfo = db.prepare("PRAGMA table_info(releases)").all() as any[];
+    const hasReleaseTenantId = releasesTableInfo.some(column => column.name === 'tenantId');
+
+    // Check if the documents table needs to be updated (missing requirementId)
+    const documentsTableInfo = db.prepare("PRAGMA table_info(documents)").all() as any[];
+    const hasRequirementId = documentsTableInfo.some(column => column.name === 'requirementId');
+
+    // Run releases migration if needed
+    if (!hasReleaseTenantId) {
       console.log('Running migration: Adding tenantId column to releases table');
-      
+
       // Start a transaction for the migration
       db.exec('BEGIN TRANSACTION;');
-      
+
       try {
         // Add tenantId column to releases table
         db.exec("ALTER TABLE releases ADD COLUMN tenantId TEXT DEFAULT 'org1';");
-        
+
         // Add foreign key constraint
         db.exec('CREATE TABLE releases_new (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, releaseDate TEXT NOT NULL, priority TEXT NOT NULL, featureId TEXT, tenantId TEXT NOT NULL, FOREIGN KEY (featureId) REFERENCES features(id), FOREIGN KEY (tenantId) REFERENCES tenants(id));');
-        
+
         // Copy data from old table to new table
         db.exec("INSERT INTO releases_new SELECT id, name, description, releaseDate, priority, featureId, 'org1' FROM releases;");
-        
+
         // Drop old table
         db.exec('DROP TABLE releases;');
-        
+
         // Rename new table to original name
         db.exec('ALTER TABLE releases_new RENAME TO releases;');
-        
+
         // Recreate the index
         db.exec('CREATE INDEX idx_releases_featureId ON releases(featureId);');
-        
+
         // Commit the transaction
         db.exec('COMMIT;');
-        
+
         console.log('Migration completed successfully');
       } catch (error) {
         // Roll back transaction if there was an error
@@ -65,6 +70,34 @@ function runDatabaseMigrations() {
       }
     } else {
       console.log('No migrations needed for releases table');
+    }
+
+    // Run documents migration if needed
+    if (!hasRequirementId) {
+      console.log('Running migration: Adding requirementId column to documents table');
+
+      // Start a transaction for the migration
+      db.exec('BEGIN TRANSACTION;');
+
+      try {
+        // Add requirementId column to documents table
+        db.exec("ALTER TABLE documents ADD COLUMN requirementId TEXT REFERENCES requirements(id);");
+
+        // Add an index for the new column
+        db.exec('CREATE INDEX IF NOT EXISTS idx_documents_requirementId ON documents(requirementId);');
+
+        // Commit the transaction
+        db.exec('COMMIT;');
+
+        console.log('Documents table migration completed successfully');
+      } catch (error) {
+        // Roll back transaction if there was an error
+        db.exec('ROLLBACK;');
+        console.error('Error during documents migration, rolled back:', error);
+        throw error;
+      }
+    } else {
+      console.log('No migrations needed for documents table');
     }
   } catch (error) {
     console.error('Error checking for migrations:', error);
@@ -141,7 +174,7 @@ function initDatabase() {
       FOREIGN KEY (tenantId) REFERENCES tenants(id)
     );
   `);
-  
+
   // Releases table
   db.exec(`
     CREATE TABLE IF NOT EXISTS releases (
@@ -156,10 +189,10 @@ function initDatabase() {
       FOREIGN KEY (tenantId) REFERENCES tenants(id)
     );
   `);
-  
+
   // Create index for improving query performance when filtering releases by featureId
   db.exec(`CREATE INDEX IF NOT EXISTS idx_releases_featureId ON releases(featureId);`);
-  
+
   // Requirements table
   db.exec(`
     CREATE TABLE IF NOT EXISTS requirements (
@@ -178,10 +211,34 @@ function initDatabase() {
       FOREIGN KEY (tenantId) REFERENCES tenants(id)
     );
   `);
-  
+
   // Create indexes for improving query performance for requirements
   db.exec(`CREATE INDEX IF NOT EXISTS idx_requirements_featureId ON requirements(featureId);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_requirements_releaseId ON requirements(releaseId);`);
+
+  // Documents table for rich-text document editing
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL, -- JSON stringified content
+      featureId TEXT,
+      releaseId TEXT,
+      requirementId TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      tenant_id TEXT NOT NULL,
+      FOREIGN KEY (featureId) REFERENCES features(id),
+      FOREIGN KEY (releaseId) REFERENCES releases(id),
+      FOREIGN KEY (requirementId) REFERENCES requirements(id),
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+    );
+  `);
+
+  // Create indexes for improving query performance for documents
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_documents_featureId ON documents(featureId);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_documents_releaseId ON documents(releaseId);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_documents_requirementId ON documents(requirementId);`);
 
   // Attachments table for storing references to external resources
   db.exec(`
@@ -229,7 +286,7 @@ function initDatabase() {
       FOREIGN KEY (tenantId) REFERENCES tenants(id)
     );
   `);
-  
+
   // Grid settings table for storing AG-Grid UI preferences
   db.exec(`
     CREATE TABLE IF NOT EXISTS grid_settings (
@@ -247,7 +304,7 @@ function initDatabase() {
 
   // Insert demo tenants if they don't exist
   insertDemoTenants();
-  
+
   // Insert demo users if they don't exist
   insertDemoUsers();
 }

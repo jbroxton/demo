@@ -337,7 +337,7 @@ export function FeatureQueryTabContentThemed({
       <div className="px-6 py-4 border-b border-white/[0.05] grid grid-cols-2">
         {/* Column 1: Feature name */}
         <div className="flex items-center">
-          <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
+          <Puzzle className="h-7 w-7 mr-3 text-muted-foreground" />
           {isEditing ? (
             <div className="flex items-center w-full max-w-lg">
               <ThemedInput
@@ -349,7 +349,7 @@ export function FeatureQueryTabContentThemed({
               />
             </div>
           ) : (
-            <h1 className="text-xl font-medium text-white">
+            <h1 className="text-3xl font-medium text-white/90">
               {nameValue}
             </h1>
           )}

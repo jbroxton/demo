@@ -1,0 +1,170 @@
+/* TipTap Editor Custom Styles */
+
+/* Make the cursor white and bolder for the entire editor */
+.ProseMirror {
+  caret-color: white;
+  caret-width: 2px;
+}
+
+/* Override default selection color */
+.ProseMirror ::selection {
+  background: rgba(86, 156, 214, 0.4); /* Soft blue color */
+}
+
+/* Add a blinking animation to the cursor for better visibility */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Custom cursor styles with pulsing effect */
+.ProseMirror .cursor {
+  position: relative;
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: white;
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+}
+
+/* Style placeholder text to be more visible */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: rgba(255, 255, 255, 0.4);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* Custom styling for the title editor */
+.title-editor .ProseMirror {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Increase size of headings */
+.ProseMirror h1 {
+  font-size: 2.25rem !important; /* text-4xl */
+  line-height: 2.5rem !important;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ProseMirror h2 {
+  font-size: 1.875rem !important; /* text-3xl */
+  line-height: 2.25rem !important;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ProseMirror h3 {
+  font-size: 1.5rem !important; /* text-2xl */
+  line-height: 2rem !important;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Improve whitespace handling in code blocks */
+.ProseMirror pre code {
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* Toolbar styling */
+.editor-toolbar {
+  background-color: #0A0A0A !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.editor-button {
+  transition: all 150ms ease !important;
+  border-radius: 6px !important;
+  color: rgba(160, 160, 160, 1) !important;
+}
+
+.editor-button svg {
+  transition: stroke 150ms ease, color 150ms ease !important;
+}
+
+.editor-button:hover {
+  background-color: rgba(147, 51, 234, 0.1) !important;
+  color: #9333EA !important;
+  font-weight: normal !important;
+}
+
+.editor-button:hover svg {
+  stroke: #9333EA !important;
+  color: #9333EA !important;
+}
+
+.editor-button.active {
+  background-color: rgba(147, 51, 234, 0.15) !important;
+  color: #9333EA !important;
+  font-weight: normal !important;
+  border: 1px solid rgba(147, 51, 234, 0.3) !important;
+}
+
+.editor-button.active svg {
+  stroke: #9333EA !important;
+  color: #9333EA !important;
+}
+
+/* Bubble and floating menu styling */
+.editor-menu {
+  background-color: #0A0A0A !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Tab styling */
+[data-state="active"] .tab-icon svg {
+  color: #9333EA !important;
+  opacity: 1 !important;
+}
+
+[data-state="inactive"] .tab-icon svg {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-state="active"]:hover .tab-icon svg,
+[data-state="inactive"]:hover .tab-icon svg {
+  color: #9333EA !important;
+  opacity: 1 !important;
+}
+
+/* Make buttons in tabs appear more responsive without jumping */
+.group:hover button {
+  opacity: 0.8;
+}
+
+.group button:hover {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 1px rgba(147, 51, 234, 0.15) !important;
+}
+
+/* Remove the bottom indicator line for active tabs */
+/* [data-state="active"]::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  background-color: #9333EA;
+  opacity: 0.7;
+  border-radius: 2px;
+} */

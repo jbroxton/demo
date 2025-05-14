@@ -165,8 +165,8 @@ export function TabQueryContentThemed() {
       key={activeTab.itemId}
       className="h-full"
       style={{
-        background: '#0A0A0A',
-        padding: '1rem 1.5rem'
+        background: '#0A0A0A', /* Already using the dark background */
+        padding: '0'
       }}
     >
       {content}

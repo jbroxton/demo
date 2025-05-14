@@ -43,15 +43,15 @@ export async function POST(request: NextRequest) {
     // Handle different operations
     if (body.operation === 'activate') {
       const result = await activateTabInDb(body.tabId);
-      
+
       if (!result.success) {
         return NextResponse.json(
           { error: result.error },
           { status: 400 }
         );
       }
-      
-      return NextResponse.json({ success: true });
+
+      return NextResponse.json({ tabId: body.tabId });
     } 
     else if (body.operation === 'updateTitle') {
       const result = await updateTabTitleForItemInDb(body.itemId, body.type, body.title);

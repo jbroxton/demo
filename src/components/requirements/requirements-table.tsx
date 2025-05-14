@@ -16,13 +16,15 @@ interface RequirementsTableProps {
   onAddRequirement?: () => void
   showAddRow?: boolean
   onAddRowCancel?: () => void
+  onRowClick?: (requirementId: string, requirementName: string) => void
 }
 
-export function RequirementsTable({ 
-  featureId, 
+export function RequirementsTable({
+  featureId,
   releaseId,
   showAddRow = false,
-  onAddRowCancel
+  onAddRowCancel,
+  onRowClick
 }: RequirementsTableProps) {
   // Use the appropriate query based on provided props
   const requirementsHook = useRequirementsQuery()
@@ -140,9 +142,10 @@ export function RequirementsTable({
                 requirementsData.map((row) => (
                   <TableRow
                     key={row.id}
-                    className="border-b border-[#2a2a2c] transition-colors hover:bg-[#232326]"
+                    className={`border-b border-[#2a2a2c] transition-colors hover:bg-[#232326] ${onRowClick ? 'cursor-pointer' : ''}`}
+                    onClick={() => onRowClick && onRowClick(row.id, row.name)}
                   >
-                    <TableCell className="p-2" key="select">
+                    <TableCell className="p-2" key="select" onClick={(e) => e.stopPropagation()}>
                       <div className="w-4 h-4"></div>
                     </TableCell>
                     <TableCell className="p-2" key="id">
@@ -150,6 +153,11 @@ export function RequirementsTable({
                     </TableCell>
                     <TableCell className="p-2" key="name">
                       {row.name}
+                      {onRowClick && (
+                        <span className="text-xs text-blue-400 ml-2 opacity-0 group-hover:opacity-100">
+                          (click to open editor)
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="p-2" key="description">
                       {row.description || '-'}
@@ -166,7 +174,7 @@ export function RequirementsTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="p-2" colSpan={columns.length - 6} key="actions"></TableCell>
+                    <TableCell className="p-2" colSpan={columns.length - 6} key="actions" onClick={(e) => e.stopPropagation()}></TableCell>
                   </TableRow>
                 ))
               ) : (

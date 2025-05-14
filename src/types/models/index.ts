@@ -9,3 +9,5 @@ export * from './ApprovalStatus';
 export * from './EntityApproval';
 export * from './Roadmap';
 export * from './Attachment';
+export * from './Document';
+export * from './ai-chat';

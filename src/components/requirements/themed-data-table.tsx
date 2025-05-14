@@ -36,6 +36,7 @@ interface ThemedDataTableProps<TData, TValue> {
   isLoading?: boolean
   onRowSelectionChange?: (selectedRows: TData[]) => void
   onAddRow?: () => void
+  onRowClick?: (row: TData) => void
 }
 
 export function ThemedDataTable<TData, TValue>({
@@ -44,6 +45,7 @@ export function ThemedDataTable<TData, TValue>({
   isLoading = false,
   onRowSelectionChange,
   onAddRow,
+  onRowClick,
 }: ThemedDataTableProps<TData, TValue>) {
   const theme = useTableTheme();
   const [rowSelection, setRowSelection] = React.useState({})
@@ -124,6 +126,8 @@ export function ThemedDataTable<TData, TValue>({
                 key={row.id}
                 data-state={row.getIsSelected() && 'selected'}
                 alternate={index % 2 === 1}
+                className={onRowClick ? "cursor-pointer hover:bg-opacity-20" : ""}
+                onClick={() => onRowClick && onRowClick(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <ThemedTableCell key={cell.id}>

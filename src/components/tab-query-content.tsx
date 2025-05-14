@@ -24,10 +24,14 @@ export function TabQueryContent() {
   // If there are no tabs or no active tab, show a placeholder
   if (!tabs.length || !activeTabId) {
     return (
-      <div className="flex items-center justify-center h-full p-6">
+      <div
+        className="flex items-center justify-center h-full p-6"
+        data-component="canvas-content"
+        data-state="empty"
+      >
         <div className="text-center text-[#a0a0a0]">
-          <h3 className="text-lg font-medium">No active tab</h3>
-          <p className="text-sm mt-2">Click on an item in the sidebar to view it</p>
+          <h3 className="text-lg font-medium">No active canvas</h3>
+          <p className="text-sm mt-2">Click on an item in the navigator to open it</p>
         </div>
       </div>
     );
@@ -153,8 +157,16 @@ export function TabQueryContent() {
   }
 
   return (
-    <div key={activeTab.itemId} className="bg-[#1e1e20] h-full p-6">
-      {content}
+    <div
+      key={activeTab.itemId}
+      className="bg-[#0A0A0A] h-full"
+      data-component="canvas-content"
+      data-content-type={activeTab.type}
+      data-tab-id={activeTab.id}
+    >
+      <div className="canvas-editor-content" data-section="canvas-editor-content">
+        {content}
+      </div>
     </div>
   );
 }

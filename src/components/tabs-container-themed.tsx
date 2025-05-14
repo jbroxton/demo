@@ -92,65 +92,68 @@ export function TabsContainerThemed() {
   };
 
   return (
-    <div className={theme.tabsContainer}>
+    <div className={theme.tabsContainer} data-component="tabs-container-themed">
       <Tabs
         value={activeTabId || ''}
         className="w-full"
       >
-        <TabsList className={theme.tabsList}>
+        <TabsList className={`${theme.tabsList} h-14 py-2`} data-section="tabs-list">
           {tabs.map((tab) => (
-            <div 
+            <div
               key={tab.id}
-              className={theme.tabItem}
+              className={`${theme.tabItem} min-w-[140px] max-w-[220px]`}
+              data-tab-id={tab.id}
+              data-tab-type={tab.type}
+              data-tab-state={activeTabId === tab.id ? 'active' : 'inactive'}
             >
               {editingTabId === tab.id ? (
-                <div className="w-full px-4 pr-8 h-12 flex items-center justify-start">
-                  <Input
-                    value={editingValue}
-                    onChange={handleEditChange}
-                    onBlur={() => handleEditSave(tab)}
-                    onKeyDown={(e) => handleKeyDown(e, tab)}
-                    onClick={handleInputClick}
-                    autoFocus
-                    className={theme.tabInput}
-                  />
-                </div>
+                <Input
+                  value={editingValue}
+                  onChange={handleEditChange}
+                  onBlur={() => handleEditSave(tab)}
+                  onKeyDown={(e) => handleKeyDown(e, tab)}
+                  onClick={handleInputClick}
+                  autoFocus
+                  className={`${theme.tabInput} h-7 text-[13px]`}
+                  data-action="edit-tab-name"
+                />
               ) : (
-                <>
-                  <TabsTrigger
-                    value={tab.id}
-                    onClick={() => activateTab(tab.id)}
-                    className={theme.tabTrigger}
-                  >
-                    <div className="flex items-center truncate">
-                      {getTabIcon(tab.type)}
-                      <span className="truncate">{tab.title}</span>
-                    </div>
-                  </TabsTrigger>
-                  
-                  {/* Edit button - positioned absolutely */}
-                  <button
-                    onClick={(e) => handleEditStart(e, tab)}
-                    className={theme.tabEditButton}
-                    aria-label={`Edit ${tab.title} name`}
-                  >
-                    <Pencil className="h-3 w-3 text-[#a0a0a0]" />
-                  </button>
-                </>
+                <TabsTrigger
+                  value={tab.id}
+                  onClick={() => activateTab(tab.id)}
+                  className={theme.tabTrigger}
+                  data-action="activate-tab"
+                >
+                  {getTabIcon(tab.type)}
+                  <span className="truncate">{tab.title}</span>
+                </TabsTrigger>
               )}
-              
-              {/* Close button */}
+
+              {/* Tab Actions */}
+              {editingTabId !== tab.id && (
+                <button
+                  onClick={(e) => handleEditStart(e, tab)}
+                  className={`${theme.tabEditButton} p-1 right-6`}
+                  aria-label={`Edit ${tab.title} name`}
+                  data-action="edit-tab"
+                >
+                  <Pencil className="h-2.5 w-2.5 text-[#a0a0a0]" />
+                </button>
+              )}
+
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
-                className={theme.tabCloseButton}
+                className={`${theme.tabCloseButton} p-1 right-1.5`}
                 aria-label={`Close ${tab.title} tab`}
+                data-action="close-tab"
               >
-                <X className="h-3.5 w-3.5 text-[#a0a0a0]" />
+                <X className="h-2.5 w-2.5 text-[#a0a0a0]" />
               </button>
             </div>
           ))}
-          {/* Empty tab space filler for blank area */}
-          <div className={theme.tabFiller}></div>
+
+          {/* Tabs filler */}
+          <div className={theme.tabFiller} data-section="tabs-filler"></div>
         </TabsList>
       </Tabs>
     </div>

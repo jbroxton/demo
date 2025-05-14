@@ -187,19 +187,19 @@ export function ProductQueryTabContent({ productId, tabId, isNew = false }: Prod
     <div className="flex flex-col h-full bg-[#1e1e20]">
       <div className="px-6 py-4 border-b border-[#232326] grid grid-cols-2">
         <div className="flex items-center">
-          <Package className="h-5 w-5 mr-2 text-muted-foreground" />
+          <Package className="h-7 w-7 mr-3 text-muted-foreground" />
           {isEditing ? (
             <div className="flex items-center w-full max-w-lg">
               <Input
                 value={nameValue}
                 onChange={handleNameChange}
                 autoFocus
-                className="text-xl font-medium text-white bg-[#232326] border-[#2a2a2c]"
+                className="text-3xl font-medium text-white/90 bg-[#232326] border-[#2a2a2c]"
                 placeholder="Enter product name"
               />
             </div>
           ) : (
-            <h1 className="text-xl font-medium text-white">
+            <h1 className="text-3xl font-medium text-white/90">
               {nameValue}
             </h1>
           )}
@@ -288,14 +288,48 @@ export function ProductQueryTabContent({ productId, tabId, isNew = false }: Prod
             <div>
               <p className="text-[#a0a0a0] text-sm mb-1">Interfaces</p>
               <p>
-                {isNew ? 
-                  "No interfaces connected" : 
-                  (product && product.interfaces && product.interfaces.length > 0 
-                    ? `${product.interfaces.length} interfaces connected` 
+                {isNew ?
+                  "No interfaces connected" :
+                  (product && product.interfaces && product.interfaces.length > 0
+                    ? `${product.interfaces.length} interfaces connected`
                     : "No interfaces connected to this product.")
                 }
               </p>
             </div>
+
+            {!isNew && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between">
+                  <p className="text-[#a0a0a0] text-sm">Features</p>
+                  <a
+                    href={`/dashboard/products/feature-canvas?new=true&productId=${productId}`}
+                    className="inline-flex items-center"
+                  >
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      New Feature (Canvas)
+                    </Button>
+                  </a>
+                </div>
+                <div className="mt-2 p-4 bg-[#232326] rounded-md border border-[#2a2a2c]">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
+                      <Pencil className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium">New Canvas Feature</h3>
+                      <p className="text-sm text-[#a0a0a0]">
+                        Create a rich document-based feature with our new canvas editor.
+                        Add formatted text, tables, and other elements within a single document.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

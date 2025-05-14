@@ -111,6 +111,22 @@ export function getCurrentTenant(session: Session | null): Tenant | null {
   if (!session?.user?.currentTenant) {
     return null
   }
-  
+
   return DEMO_TENANTS.find(t => t.id === session.user.currentTenant) || null
+}
+
+/**
+ * Extract tenant ID from Next.js API request
+ * This can be used in API routes to get the current tenant
+ * @param request Next.js API request object
+ * @returns Tenant ID or default 'org1' if not found
+ */
+export function getTenantFromRequest(request: Request): string {
+  // In a real application, this would extract tenant info from:
+  // 1. Request headers
+  // 2. Cookies
+  // 3. Session data (requiring getServerSession)
+
+  // For simplicity in this prototype, we'll return the default tenant
+  return 'org1';
 }

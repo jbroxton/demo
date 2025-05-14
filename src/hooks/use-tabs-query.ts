@@ -16,11 +16,17 @@ export function useTabsQuery() {
   const { data, isLoading, error } = useQuery<{ tabs: Tab[], activeTabId: string | null }>({
     queryKey: [TABS_QUERY_KEY],
     queryFn: async () => {
-      const response = await fetch('/api/tabs-db')
-      if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`)
+      try {
+        const response = await fetch('/api/tabs-db');
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          return Promise.reject(new Error(`Failed to fetch tabs: ${response.status} - ${errorText}`));
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching tabs:', error);
+        return Promise.reject(error instanceof Error ? error : new Error('Unknown error fetching tabs'));
       }
-      return response.json()
     },
   })
 
@@ -70,25 +76,31 @@ export function useTabsQuery() {
   // Activate tab mutation
   const activateTabMutation = useMutation({
     mutationFn: async (tabId: string) => {
-      const response = await fetch('/api/tabs-db', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          operation: 'activate',
-          tabId
-        }),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`)
+      try {
+        const response = await fetch('/api/tabs-db', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            operation: 'activate',
+            tabId
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          return Promise.reject(new Error(`Failed to activate tab: ${response.status} - ${errorText}`));
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error activating tab:', error);
+        return Promise.reject(error instanceof Error ? error : new Error('Unknown error activating tab'));
       }
-      
-      return { tabId }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] });
     },
   })
 
@@ -107,11 +119,15 @@ export function useTabsQuery() {
           title
         }),
       })
-      
+
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`)
       }
-      
+
+      const responseData = await response.json()
+
+      // Even if the API just returns { success: true }, we still need to return the data
+      // the mutation expects, which is the input parameters
       return { itemId, type, title }
     },
     onSuccess: (data) => {

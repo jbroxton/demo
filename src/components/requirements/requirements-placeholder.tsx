@@ -8,13 +8,15 @@ interface RequirementsPlaceholderProps {
   userId?: string;
   showAddRow?: boolean;
   onAddRowCancel?: () => void;
+  onRowClick?: (requirementId: string, requirementName: string) => void;
 }
 
-export function RequirementsPlaceholder({ 
-  featureId, 
+export function RequirementsPlaceholder({
+  featureId,
   userId = 'anonymous',
   showAddRow = false,
-  onAddRowCancel
+  onAddRowCancel,
+  onRowClick
 }: RequirementsPlaceholderProps) {
   return (
     <div className="w-full flex flex-col">
@@ -22,6 +24,7 @@ export function RequirementsPlaceholder({
         featureId={featureId}
         showAddRow={showAddRow}
         onAddRowCancel={onAddRowCancel}
+        onRowClick={onRowClick}
       />
     </div>
   );

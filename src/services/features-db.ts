@@ -133,20 +133,38 @@ export async function updateFeatureNameInDb(id: string, name: string) {
  */
 export async function updateFeatureDescriptionInDb(id: string, description: string) {
   const db = getDb();
-  
+
   try {
+    // Ensure description is a string - handle potential JSON objects that were stringified
+    let descriptionToStore = description;
+
+    // Safety check - if it's already a valid JSON string, don't double stringify it
+    try {
+      // Try to parse it - if it succeeds, it's already a JSON string
+      JSON.parse(description);
+      // It's already a valid JSON string, use as is
+    } catch (e) {
+      // If it's not valid JSON but an object somehow made it here
+      if (typeof description === 'object') {
+        descriptionToStore = JSON.stringify(description);
+      }
+      // Otherwise keep as is - it's a regular string
+    }
+
+    console.log(`Updating feature ${id} with description length: ${descriptionToStore.length}`);
+
     const result = db.prepare('UPDATE features SET description = ? WHERE id = ?')
-      .run(description, id);
-    
+      .run(descriptionToStore, id);
+
     if (result.changes === 0) {
       return { success: false, error: 'Feature not found or description unchanged' };
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating feature ${id} description:`, error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }

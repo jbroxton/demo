@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It documents established patterns, recommended practices, and architectural decisions to ensure consistency across the codebase.
 
+
+**Non breakable rule** ALL DOC DESIGNS AND CODE IMPLEMENTATION MUST NEED COMPLIANCE WITH THIS FILE
+
 ## Commands
 - `npm run dev` - Start development server with turbopack
 - `npm run build` - Build for production
@@ -21,32 +24,109 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `/public` - Static assets
 - `/docs` - Documentation files
 
+
+**Global Resources:**
+- We are transitioning to a global provider model for UI state management
+- Authentication is handled via NextAuth.js (`/src/lib/auth.ts`)
+- Global styling constants are in CSS variables (dark theme, transitions, etc.)
+- Shared icons come from Lucide React - don't import from other icon libraries
+- Component theming uses context providers for consistent styling
+- Toast notifications via Sonner throughout the application
+- Existing dashboard layout is in `/src/components/dashboard-layout-query.tsx`
+
+## Bugs / Code Errors
+**If you encounter a bug**
+    - Diagnose the issue first. Do not start writing code and trying fixes arbritrarily
+    - Always fix the solution with best practices 
+    - Write the logic of what
+    - When designing a feature / coding, use the best practices and established patterns. 
+    - If a previous solution did not work, then remove the code
+
+##Writing Guidlines for docs
+**Rules**: When asked to write/edit a .md file in /docs
+  - Add sections: 
+      - Objective (required)
+      - About (required)
+      - Goals/Non Goals (required)
+      - Functional Requirements/Structured Technical Requirements Documentation (required)
+      - Client
+      - Server
+      - Database
+      - Implementation Design w/code examples
+      - Implementation Steps (eg, Build this, then that...)
+      - Lesson Learned
+  - Add Architecture diagram for implementation design
+  - Use words and phrases from the following Dictionaries:
+      - W3C Web Technology Glossary - For standardized web terminology: https://www.w3.org/standards/webdesign/
+      - Material Design/Apple HIG Terminology - For UI component naming consistency: https://m3.material.io/components
+      - OWASP Glossary - For security requirements terminology: https://owasp.org/www-community/Glossary
+      - IEEE Standard Glossary of Software Engineering - For formal requirements language: IEEE 610.12 standard
+
+  **Example**:
+  /src/components/
+  ├── attachment-button.tsx        # Header button component using shadcn Button
+  ├── attachment-list.tsx          # Main container for displaying attachments
+  ├── attachment-card.tsx          # Individual attachment display using shadcn Card
+  ├── attachment-dialog.tsx        # Dialog using shadcn Dialog (note: renamed from modal to dialog)
+  ├── attachment-form.tsx          # Form using shadcn Form components
+  ├── attachment-preview.tsx       # Preview component with type-specific rendering
+  └── attachment-utils.ts          # Utility functions for attachment handling
+  - When you make lessons learned
+    - Add lessons learned to CLAUDE.md
+    - Clean up lessons learned if any information is incorrect based on your experience.
+
+
+
+
 ## Code Style Guidelines
+- **Style** When designing a feature / coding, use the best practices and established patterns. 
+    - Wirte code using Google TypeScript Style Guide: https://google.github.io/styleguide/tsguide.html#array-literals
 - **Imports**: Group imports by type (React, stores, components, utils)
 - **Import Order**: Follow consistent import order:
-  1. React and Next.js imports
-  2. External libraries
-  3. Internal components and hooks
-  4. Types and interfaces
-  5. Utilities and helpers
-  6. Styles (if any)
-- **Types**: Use TypeScript interfaces for component props, strict typing enabled
-- **Naming**: Use PascalCase for components, camelCase for functions/variables
-- **File Naming**: Use kebab-case for files (e.g., `feature-card.tsx`)
-- **Components**: React functional components with hook state management
-- **Error Handling**: Use try/catch blocks for async operations, log errors with console.error
-- **Styling**: Tailwind CSS with shadcn/ui components, following dark theme
-- **State Management**: React Query for server state, React's useState/useReducer for local state
-- **File Structure**: Group by feature in `/src` directory
-- **Component Structure**: Declare all hooks at top, then handlers, then JSX return
-- **Code Formatting**: Follow project's Prettier and ESLint configuration
-- **Line Length**: Keep lines under 100 characters when possible
-- **Components**: Do not build custom components. ONLY use existing pre-built components. If one does not exist and we need to choose a new one then choose the most popular and lightweight option that solves the need. Existing components and libraries:
-   - shadcn/ui components (from @/components/ui)
-   - Lucide React icons library
-   - React built-in components
-   - Use React's built-in hooks (useState, useEffect, useContext, etc.)
-   - Use React Query for remote data management
+    1. React and Next.js imports
+    2. External libraries
+    3. Internal components and hooks
+    4. Types and interfaces
+    5. Utilities and helpers
+    6. Styles (if any)
+    - **Types**: Use TypeScript interfaces for component props, strict typing enabled
+    - **Naming**: Use PascalCase for components, camelCase for functions/variables
+    - **File Naming**: Use kebab-case for files (e.g., `feature-card.tsx`)
+    - **Components**: React functional components with hook state management
+    - **Error Handling**: Use try/catch blocks for async operations, log errors with console.error
+    - **Styling**: Tailwind CSS with shadcn/ui components, following dark theme
+    - **State Management**: React Query for server state, React's useState/useReducer for local state
+    - **File Structure**: Group by feature in `/src` directory
+    - **Component Structure**: Declare all hooks at top, then handlers, then JSX return
+    - **Code Formatting**: Follow project's Prettier and ESLint configuration
+    - **Line Length**: Keep lines under 100 characters when possible
+    - **Components**: Do not build custom components. ONLY use existing pre-built components. If one does not exist and we need to choose a new one then choose the most popular and lightweight option that  solves the need. Existing components and libraries:
+    - shadcn/ui components (from @/components/ui)
+    - Lucide React icons library
+    - React built-in components
+    - Use React's built-in hooks (useState, useEffect, useContext, etc.)
+    - Use React Query for remote data management
+    - Add a file header comment explaining the file's overall purpose
+    - Document each major section with its responsibility
+    - Use JSDoc comments for all exported functions
+    - Include usage examples for complex functions
+    - Keep related code together (cohesion)
+    - Move from general to specific (most general-purpose utilities first)
+    - Place the most frequently used functions earlier in the file
+    - Keep exported functions at a consistent location (either grouped together or near their related internal functions)
+    . **Naming Conventions**
+   - Files use kebab-case (e.g., `ai-chat.ts`, `use-ai-chat.ts`)
+   - Component files use kebab-case (e.g., `ai-chat-provider.tsx`)
+   - Types and interfaces use PascalCase (e.g., `ChatMessage`)
+   - Functions use camelCase (e.g., `searchContext`, `findSimilar`)
+   - Hooks use camelCase with `use` prefix (e.g., `useAiChat`)
+
+  5. Code Organization Principles
+
+  - Keep related code together (cohesion)
+  - Move from general to specific (most general-purpose utilities first)
+  - Place the most frequently used functions earlier in the file
+  - Keep exported functions at a consistent location (either grouped together or near their related internal functions)
 - **Styling**:
    - Only use Tailwind CSS classes for styling
    - Follow the project's existing design tokens and color scheme
@@ -57,17 +137,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## State Management & Data Fetching
 
 ### Project Configuration
-- **Provider Setup**: The application uses React Query through the provider in `/src/providers/query-provider.tsx`
-- **Configuration**: Default settings are centralized in the provider; don't create separate instances
-- **Import**: Always import React Query hooks from '@tanstack/react-query', not other packages
-- **Client Access**: Access QueryClient using `useQueryClient()` hook when needed
+  - **Provider Setup**: The application uses React Query through the provider in `/src/providers/query-provider.tsx`
+  - **Configuration**: Default settings are centralized in the provider; don't create separate instances
+  - **Import**: Always import React Query hooks from '@tanstack/react-query', not other packages
+  - **Client Access**: Access QueryClient using `useQueryClient()` hook when needed
 
 ### React Query for Server State
-- **Purpose**: Use React Query as the primary tool for managing server state
-- **Benefits**: Provides caching, background updates, optimistic updates, and request deduplication
-- **File Location**: Place all query hooks directly in `/src/hooks/` directory (not in sub-folders)
-- **Naming**: Use kebab-case with `use-` prefix and `-query` suffix (e.g., `use-attachments-query.ts`)
-- **Query Keys**: Follow consistent pattern for query keys:
+  - **Purpose**: Use React Query as the primary tool for managing server state
+  - **Benefits**: Provides caching, background updates, optimistic updates, and request deduplication
+  - **File Location**: Place all query hooks directly in `/src/hooks/` directory (not in sub-folders)
+  - **Naming**: Use kebab-case with `use-` prefix and `-query` suffix (e.g., `use-attachments-query.ts`)
+  - **Query Keys**: Follow consistent pattern for query keys:
   ```typescript
   // Simple query key pattern
   const queryKey = ['entityName', entityId];
@@ -110,10 +190,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   ```
 
 ### Mutation Patterns
-- **Co-location**: Include mutations (create, update, delete) in the same hook file as the queries
-- **Naming**: Use action verbs for mutation methods (e.g., `add`, `update`, `remove`)
-- **Loading States**: Return `isDoingAction` boolean flags for loading states (e.g., `isAddingAttachment`)
-- **Cache Updates**: Always invalidate related queries after successful mutations:
+  - **Co-location**: Include mutations (create, update, delete) in the same hook file as the queries
+  - **Naming**: Use action verbs for mutation methods (e.g., `add`, `update`, `remove`)
+  - **Loading States**: Return `isDoingAction` boolean flags for loading states (e.g., `isAddingAttachment`)
+  - **Cache Updates**: Always invalidate related queries after successful mutations:
   ```typescript
   const mutation = useMutation({
     mutationFn,
@@ -177,11 +257,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Local State Management
 - **Component State**: Use React's built-in hooks for component-level state:
-  - `useState` for simple state
-  - `useReducer` for complex state logic
+    - `useState` for simple state
+    - `useReducer` for complex state logic
 - **Context API**: Use React Context for shared state that doesn't need to be persisted:
-  - Create dedicated providers in `/src/providers/`
-  - Expose state and update functions through custom hooks
+    - Create dedicated providers in `/src/providers/`
+    - Expose state and update functions through custom hooks
 
 ## API Design
 - **File Location**: Place API routes in `/src/app/api/` using the Next.js App Router pattern
@@ -393,6 +473,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Effect Dependencies**: Always include all dependencies in useEffect dependency arrays
 - **Custom Hooks**: Extract reusable logic into custom hooks
 
+The access code is "I read md.claude"
 ## JSX Best Practices
 
 ### Avoiding Deep Nesting

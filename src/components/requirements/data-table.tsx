@@ -32,6 +32,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   isLoading?: boolean
   onRowSelectionChange?: (selectedRows: TData[]) => void
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -39,6 +40,7 @@ export function DataTable<TData, TValue>({
   data,
   isLoading = false,
   onRowSelectionChange,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -128,7 +130,9 @@ export function DataTable<TData, TValue>({
                       ${index % 2 === 0 ? 'bg-[#1e1e20]' : 'bg-[#232326]'}
                       hover:bg-[#232326]
                       data-[state=selected]:bg-[#2a2a2c]
+                      ${onRowClick ? 'cursor-pointer' : ''}
                     `}
+                    onClick={() => onRowClick && onRowClick(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="p-1 transition-colors">

@@ -48,7 +48,7 @@ const goalsData = [
   }
 ];
 
-export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttributes<HTMLDivElement> & { collapsed?: boolean }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   
@@ -138,9 +138,9 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
   }
 
   return (
-    <div className="h-full flex flex-col" {...props}>
-      {/* App header */}
-      <div className="p-4">
+    <div className={`h-full flex flex-col ${collapsed ? 'sidebar-collapsed' : ''}`} {...props} data-component="left-sidebar">
+      {/* Logo header */}
+      <div className="p-4" data-section="logo-header">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -150,165 +150,183 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
               height={24}
               className="w-6 h-6"
             />
-            <Image
-              src="/text-logo.svg"
-              alt="Speqq"
-              width={80}
-              height={24}
-              priority
-              className="h-6"
-            />
+            {!collapsed && (
+              <Image
+                src="/text-logo.svg"
+                alt="Speqq"
+                width={80}
+                height={24}
+                priority
+                className="h-6 transition-opacity duration-200"
+              />
+            )}
           </div>
         </div>
       </div>
-      
-      {/* User info section */}
-      <div className="p-3 border-b border-[#232326] flex justify-between items-center">
-        <div className="text-xs text-[#a0a0a0]">
-          Welcome, {user?.name || 'User'}
-        </div>
-        <button 
+
+      {/* User greeting */}
+      <div className={`p-3 flex ${collapsed ? 'justify-center' : 'justify-between'} items-center border-b border-[#232326]`}
+        data-section="user-greeting">
+        {!collapsed && <span className="text-xs text-[#a0a0a0]">Welcome, {user?.name || 'User'}</span>}
+        <button
           className="p-1.5 rounded-md text-[#a0a0a0] hover:bg-[#232326] hover:text-white"
-          onClick={() => {
-            logout();
-          }}
+          onClick={logout}
+          aria-label="Logout"
+          data-action="logout"
         >
           <LogOut className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Main navigation section */}
-      <div className="p-2">
-        <div className="mb-2">
-          <ul className="flex flex-col gap-1">
-            {goalsData.map((item) => (
-              <li key={item.name} className="group/menu-item relative">
-                <button
-                  className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden hover:bg-[#232326]"
-                  onClick={() => {
-                    // Special handling for Roadmap item
-                    if (item.name === 'Roadmap') {
-                      // Open the roadmap tab - the useRoadmapsQuery hook will handle fetching the data
-                      openTab({
-                        title: 'Roadmaps',
-                        type: 'roadmap',
-                        itemId: 'roadmaps' // Special itemId for the roadmaps tab
-                      });
-                    }
-                    // Other items will be implemented later
-                  }}
-                >
-                  <item.icon className="h-4 w-4 text-muted-foreground" />
-                  <span>{item.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Navigation menu */}
+      <div className="px-2 py-3" data-section="navigation-menu">
+        <ul className="flex flex-col gap-1">
+          {goalsData.map((item) => (
+            <li key={item.name} data-nav-item={item.name.toLowerCase()}>
+              <button
+                className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
+                onClick={() => {
+                  if (item.name === 'Roadmap') {
+                    openTab({
+                      title: 'Roadmaps',
+                      type: 'roadmap',
+                      itemId: 'roadmaps'
+                    });
+                  }
+                }}
+                title={item.name}
+                data-action="navigate"
+                data-nav-target={item.name.toLowerCase()}
+              >
+                <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
+                {!collapsed && <span>{item.name}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
       
       {/* Products header */}
-      <div className="px-4 py-2">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-xs font-medium text-[#a0a0a0]">Products</span>
-          <EntityCreator 
-            entityType="product"
-            iconOnly={true}
-            buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326]"
-          />
-        </div>
+      <div
+        className="flex items-center px-4 py-2 border-t border-b border-[#232326]"
+        data-section="products-header">
+        {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow">Products</span>}
+        <EntityCreator
+          entityType="product"
+          iconOnly={true}
+          buttonClassName={`${collapsed ? 'mx-auto' : ''} h-5 w-5 rounded-sm hover:bg-[#232326]`}
+        />
       </div>
       
-      {/* Products list */}
-      <div className="px-2 py-2 overflow-y-auto flex-grow">
+      {/* Products tree */}
+      <div
+        className="px-2 py-2 overflow-y-auto flex-grow"
+        data-section="products-tree">
         {productsQuery.products && productsQuery.products.length > 0 ? (
-          <ul className="space-y-1">
+          <ul className="space-y-1" data-list="products">
             {productsQuery.products.map(product => {
               // Get interfaces for this product
               const productInterfaces = interfacesQuery.getInterfacesByProductId(product.id);
               const hasInterfaces = productInterfaces && productInterfaces.length > 0;
               const isExpanded = expandedProducts[product.id] || false;
-              
+
               return (
-                <li key={product.id} className="group relative">
-                  <Collapsible
-                    open={isExpanded}
-                    onOpenChange={() => toggleProductExpansion(product.id)}
-                  >
-                    <div className="flex items-center">
-                      <CollapsibleTrigger asChild>
-                        <button className="p-1 hover:bg-[#232326] rounded-sm">
-                          {hasInterfaces ? (
-                            isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-[#a0a0a0]" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-[#a0a0a0]" />
-                            )
-                          ) : (
-                            <div className="w-4" />
-                          )}
-                        </button>
-                      </CollapsibleTrigger>
-                      
-                      <button 
-                        className="flex flex-1 items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-[#232326]"
+                <li
+                  key={product.id}
+                  className="group"
+                  data-entity-type="product"
+                  data-entity-id={product.id}
+                  data-expanded={isExpanded ? "true" : "false"}>
+                  <Collapsible open={isExpanded} onOpenChange={() => toggleProductExpansion(product.id)}>
+                    {/* Product row */}
+                    <div className="flex items-center" data-row="product">
+                      {/* Expand/collapse button - only show when not collapsed */}
+                      {!collapsed && (
+                        <CollapsibleTrigger asChild>
+                          <button
+                            className="p-1 hover:bg-[#232326] rounded-sm"
+                            data-action="toggle"
+                            aria-label={isExpanded ? "Collapse" : "Expand"}>
+                            {hasInterfaces ?
+                              isExpanded ? <ChevronDown className="h-4 w-4 text-[#a0a0a0]" /> :
+                                          <ChevronRight className="h-4 w-4 text-[#a0a0a0]" /> :
+                              <div className="w-4" />
+                            }
+                          </button>
+                        </CollapsibleTrigger>
+                      )}
+
+                      {/* Product button */}
+                      <button
+                        className={`flex flex-1 items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326]`}
                         onClick={() => openTab({
                           title: product.name,
                           type: 'product',
                           itemId: product.id,
                         })}
+                        title={product.name}
+                        data-action="open-tab"
+                        data-entity-name={product.name}
                       >
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        <span>{product.name}</span>
+                        <Package className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
+                        {!collapsed && <span>{product.name}</span>}
                       </button>
-                      
-                      {/* Interface creator for this product */}
-                      <EntityCreator 
-                        entityType="interface"
-                        iconOnly={true}
-                        buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
-                        buttonVariant="ghost"
-                        context={{
-                          parentId: product.id,
-                          parentType: 'product',
-                          parentName: product.name
-                        }}
-                      />
+
+                      {/* Interface creator - only show when not collapsed */}
+                      {!collapsed && (
+                        <EntityCreator
+                          entityType="interface"
+                          iconOnly={true}
+                          buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
+                          buttonVariant="ghost"
+                          context={{
+                            parentId: product.id,
+                            parentType: 'product',
+                            parentName: product.name
+                          }}
+                        />
+                      )}
                     </div>
-                    
-                    {/* Show interfaces if expanded */}
-                    {hasInterfaces && (
+
+                    {/* Interface list */}
+                    {hasInterfaces && !collapsed && (
                       <CollapsibleContent>
-                        <ul className="pl-6 mt-1 space-y-1">
+                        <ul className="pl-6 mt-1 space-y-1" data-list="interfaces">
                           {productInterfaces.map(interface_ => {
-                            // Get features for this interface
                             const interfaceFeatures = featuresQuery.getFeaturesByInterfaceId(interface_.id);
                             const hasFeatures = interfaceFeatures && interfaceFeatures.length > 0;
                             const isInterfaceExpanded = expandedInterfaces[interface_.id] || false;
-                            
+
                             return (
-                              <li key={interface_.id} className="group relative">
-                                <Collapsible
-                                  open={isInterfaceExpanded}
-                                  onOpenChange={() => toggleInterfaceExpansion(interface_.id)}
-                                >
-                                  <div className="flex items-center">
+                              <li
+                                key={interface_.id}
+                                className="group"
+                                data-entity-type="interface"
+                                data-entity-id={interface_.id}
+                                data-parent-id={product.id}
+                                data-expanded={isInterfaceExpanded ? "true" : "false"}>
+                                <Collapsible open={isInterfaceExpanded} onOpenChange={() => toggleInterfaceExpansion(interface_.id)}>
+                                  {/* Interface row */}
+                                  <div className="flex items-center" data-row="interface">
+                                    {/* Expand/collapse button */}
                                     <CollapsibleTrigger asChild>
-                                      <button className="p-1 hover:bg-[#232326] rounded-sm">
-                                        {hasFeatures ? (
-                                          isInterfaceExpanded ? (
-                                            <ChevronDown className="h-4 w-4 text-[#a0a0a0]" />
-                                          ) : (
-                                            <ChevronRight className="h-4 w-4 text-[#a0a0a0]" />
-                                          )
-                                        ) : (
+                                      <button
+                            className="p-1 hover:bg-[#232326] rounded-sm"
+                            data-action="toggle"
+                            aria-label={isExpanded ? "Collapse" : "Expand"}>
+                                        {hasFeatures ?
+                                          isInterfaceExpanded ? <ChevronDown className="h-4 w-4 text-[#a0a0a0]" /> :
+                                                              <ChevronRight className="h-4 w-4 text-[#a0a0a0]" /> :
                                           <div className="w-4" />
-                                        )}
+                                        }
                                       </button>
                                     </CollapsibleTrigger>
-                                    
-                                    <button 
-                                      className="flex flex-1 items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-[#232326]"
+
+                                    {/* Interface button */}
+                                    <button
+                                      className="flex flex-1 items-center gap-2 rounded-md p-2 text-sm hover:bg-[#232326]"
+                                      data-action="open-tab"
+                                      data-entity-name={interface_.name}
                                       onClick={() => openTab({
                                         title: interface_.name,
                                         type: 'interface',
@@ -318,9 +336,9 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
                                       <Layers className="h-4 w-4 text-muted-foreground" />
                                       <span>{interface_.name}</span>
                                     </button>
-                                    
-                                    {/* Feature creator for this interface */}
-                                    <EntityCreator 
+
+                                    {/* Feature creator */}
+                                    <EntityCreator
                                       entityType="feature"
                                       iconOnly={true}
                                       buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
@@ -332,40 +350,38 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
                                       }}
                                     />
                                   </div>
-                                  
-                                  {/* Show features if expanded */}
+
+                                  {/* Feature list */}
                                   {hasFeatures && (
                                     <CollapsibleContent>
                                       <ul className="pl-6 mt-1 space-y-1">
                                         {interfaceFeatures.map(feature => {
-                                          // Get releases for this feature
                                           const featureReleases = releasesQuery.getReleasesByFeatureId(feature.id);
                                           const hasReleases = featureReleases && featureReleases.length > 0;
                                           const isFeatureExpanded = expandedFeatures[feature.id] || false;
-                                          
+
                                           return (
-                                            <li key={feature.id} className="group relative">
-                                              <Collapsible
-                                                open={isFeatureExpanded}
-                                                onOpenChange={() => toggleFeatureExpansion(feature.id)}
-                                              >
+                                            <li key={feature.id} className="group">
+                                              <Collapsible open={isFeatureExpanded} onOpenChange={() => toggleFeatureExpansion(feature.id)}>
+                                                {/* Feature row */}
                                                 <div className="flex items-center">
+                                                  {/* Expand/collapse button */}
                                                   <CollapsibleTrigger asChild>
-                                                    <button className="p-1 hover:bg-[#232326] rounded-sm">
-                                                      {hasReleases ? (
-                                                        isFeatureExpanded ? (
-                                                          <ChevronDown className="h-4 w-4 text-[#a0a0a0]" />
-                                                        ) : (
-                                                          <ChevronRight className="h-4 w-4 text-[#a0a0a0]" />
-                                                        )
-                                                      ) : (
+                                                    <button
+                            className="p-1 hover:bg-[#232326] rounded-sm"
+                            data-action="toggle"
+                            aria-label={isExpanded ? "Collapse" : "Expand"}>
+                                                      {hasReleases ?
+                                                        isFeatureExpanded ? <ChevronDown className="h-4 w-4 text-[#a0a0a0]" /> :
+                                                                          <ChevronRight className="h-4 w-4 text-[#a0a0a0]" /> :
                                                         <div className="w-4" />
-                                                      )}
+                                                      }
                                                     </button>
                                                   </CollapsibleTrigger>
-                                                  
-                                                  <button 
-                                                    className="flex flex-1 items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-[#232326]"
+
+                                                  {/* Feature button */}
+                                                  <button
+                                                    className="flex flex-1 items-center gap-2 rounded-md p-2 text-sm hover:bg-[#232326]"
                                                     onClick={() => openTab({
                                                       title: feature.name,
                                                       type: 'feature',
@@ -375,9 +391,9 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
                                                     <Puzzle className="h-4 w-4 text-muted-foreground" />
                                                     <span>{feature.name}</span>
                                                   </button>
-                                                  
-                                                  {/* Release creator for this feature */}
-                                                  <EntityCreator 
+
+                                                  {/* Release creator */}
+                                                  <EntityCreator
                                                     entityType="release"
                                                     iconOnly={true}
                                                     buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
@@ -389,15 +405,16 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
                                                     }}
                                                   />
                                                 </div>
-                                                
-                                                {/* Show releases if expanded */}
+
+                                                {/* Release list */}
                                                 {hasReleases && (
                                                   <CollapsibleContent>
                                                     <ul className="pl-6 mt-1 space-y-1">
                                                       {featureReleases.map(release => (
-                                                        <li key={release.id} className="group relative flex items-center">
-                                                          <button 
-                                                            className="flex flex-1 items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-[#232326]"
+                                                        <li key={release.id} className="group">
+                                                          {/* Release button */}
+                                                          <button
+                                                            className="flex w-full items-center gap-2 rounded-md p-2 text-sm hover:bg-[#232326]"
                                                             onClick={() => openTab({
                                                               title: release.name,
                                                               type: 'release',
@@ -432,9 +449,11 @@ export function AppSidebarQuery({ ...props }: React.HTMLAttributes<HTMLDivElemen
             })}
           </ul>
         ) : (
-          <div className="text-center text-sm text-[#a0a0a0] py-4">
+          <div
+            className="text-center text-sm text-[#a0a0a0] py-4"
+            data-state="empty">
             No products available.
-            <EntityCreator 
+            <EntityCreator
               entityType="product"
               buttonVariant="link"
               buttonSize="sm"

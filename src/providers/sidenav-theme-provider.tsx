@@ -30,7 +30,7 @@ const theme = {
     bg-[#0A0A0A]
     shadow-md shadow-black/20
     border border-white/[0.03]
-    border-t-[#0C0C0C]
+    border-t-[#0A0A0A]
     border-r-white/[0.05]
     rounded-lg
     m-6
@@ -42,7 +42,7 @@ const theme = {
   `,
   
   sidenavHeader: `
-    bg-[#0C0C0C]
+    bg-[#0A0A0A]
     h-12 px-6
     border-b border-white/[0.03]
     flex items-center
@@ -59,7 +59,6 @@ const theme = {
   
   sidenavUser: `
     h-12 px-6
-    border-b border-white/[0.05]
     flex justify-between items-center
   `,
   
@@ -75,7 +74,7 @@ const theme = {
     w-8 h-8
     rounded-[0.25rem]
     flex items-center justify-center
-    bg-[#0C0C0C]
+    bg-[#0A0A0A]
     border border-white/[0.02]
     text-white/80
     shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.05)]
@@ -115,7 +114,7 @@ const theme = {
     w-6 h-6
     rounded-[0.25rem]
     flex items-center justify-center
-    bg-[#0C0C0C]
+    bg-[#0A0A0A]
     border border-white/[0.02]
     text-white/80
     shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.05)]

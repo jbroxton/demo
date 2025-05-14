@@ -7,6 +7,7 @@ import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useProductsQuery } from '@/hooks/use-products-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
+import '@/styles/editor.css';
 
 export function TabsContainer() {
   const { tabs, activeTabId, activateTab, closeTab, updateTabTitle } = useTabsQuery();
@@ -76,100 +77,83 @@ export function TabsContainer() {
   const getTabIcon = (tabType: string) => {
     switch (tabType) {
       case 'product':
-        return <Package className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
+        return <Package className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
       case 'interface':
-        return <Layers className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
+        return <Layers className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
       case 'feature':
-        return <Puzzle className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
+        return <Puzzle className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
       case 'release':
-        return <Calendar className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
+        return <Calendar className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
       case 'roadmap':
-        return <Map className="h-4 w-4 mr-1.5 text-white/50 flex-shrink-0 my-auto" />;
+        return <Map className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="bg-[#0C0C0C] border-b border-white/[0.02] shadow-md shadow-black/20 relative z-10 rounded-t-lg">
+    <div className="bg-transparent relative z-10 rounded-t-lg pt-1 w-full" data-component="tabs-container">
       <Tabs
         value={activeTabId || ''}
         className="w-full"
       >
-        <TabsList className="flex h-12 w-full rounded-none bg-transparent px-6 items-center">
-          {tabs.map((tab, index) => (
+        <TabsList className="flex h-14 w-full rounded-none bg-transparent px-6 py-2 items-center" data-section="tabs-list">
+          {tabs.map((tab) => (
             <div
               key={tab.id}
-              className={cn(
-                "relative group flex-shrink-0 min-w-[160px] max-w-[240px]",
-                "border-r border-white/[0.05]",
-                "overflow-hidden flex items-center",
-                "shadow-inner shadow-black/5"
-              )}
+              className="relative group flex-shrink-0 min-w-[140px] max-w-[220px] overflow-hidden flex items-center transition-all duration-150 mr-1"
+              data-tab-id={tab.id}
+              data-tab-type={tab.type}
+              data-tab-state={activeTabId === tab.id ? 'active' : 'inactive'}
             >
               {editingTabId === tab.id ? (
-                <div className="w-full px-4 pr-8 flex items-center justify-start">
-                  <Input
-                    value={editingValue}
-                    onChange={handleEditChange}
-                    onBlur={() => handleEditSave(tab)}
-                    onKeyDown={(e) => handleKeyDown(e, tab)}
-                    onClick={handleInputClick}
-                    autoFocus
-                    className="text-[14px] tracking-[-0.006em] leading-[1.4] text-white bg-[#232326] border-[#2a2a2c] h-8"
-                  />
-                </div>
+                <Input
+                  value={editingValue}
+                  onChange={handleEditChange}
+                  onBlur={() => handleEditSave(tab)}
+                  onKeyDown={(e) => handleKeyDown(e, tab)}
+                  onClick={handleInputClick}
+                  autoFocus
+                  className="text-[13px] tracking-[-0.006em] leading-[1.4] text-white bg-[#232326] border-[#2a2a2c] h-7 w-full px-3"
+                  data-action="edit-tab-name"
+                />
               ) : (
-                <>
-                  <TabsTrigger
-                    value={tab.id}
-                    onClick={() => activateTab(tab.id)}
-                    className={cn(
-                      "w-full px-3",
-                      "flex items-center justify-start",
-                      "text-[14px] tracking-[-0.006em] leading-[1.4]",
-                      "hover:bg-[#161618]",
-                      "data-[state=active]:bg-[#161618]",
-                      "data-[state=active]:shadow-inner data-[state=active]:shadow-black/10"
-                    )}
-                  >
-                    <div className="flex items-center justify-start truncate w-full">
-                      {getTabIcon(tab.type)}
-                      <span className="truncate text-white/70 my-auto">{tab.title}</span>
-                    </div>
-                  </TabsTrigger>
-
-                  {/* Edit button for all tab types - positioned absolutely */}
-                  <button
-                    onClick={(e) => handleEditStart(e, tab)}
-                    className={cn(
-                      "absolute right-8 top-1/2 -translate-y-1/2 rounded-sm",
-                      "p-1",
-                      "opacity-0 hover:opacity-100 group-hover:opacity-50 transition-opacity"
-                    )}
-                    aria-label={`Edit ${tab.title} name`}
-                  >
-                    <Pencil className="h-4 w-4 text-[#a0a0a0]" />
-                  </button>
-                </>
+                <TabsTrigger
+                  value={tab.id}
+                  onClick={() => activateTab(tab.id)}
+                  className="w-full px-3 flex items-center justify-start text-[13px] tracking-[-0.006em] leading-[1.4] hover:bg-[rgba(147,51,234,0.1)] hover:text-[#9333EA] data-[state=active]:bg-[rgba(147,51,234,0.15)] data-[state=active]:text-[#9333EA] transition-all duration-150 rounded-[10px] py-1.5"
+                  data-action="activate-tab"
+                >
+                  {getTabIcon(tab.type)}
+                  <span className="truncate ml-1.5">{tab.title}</span>
+                </TabsTrigger>
               )}
 
-              {/* Close button */}
+              {/* Tab Actions */}
+              {editingTabId !== tab.id && (
+                <button
+                  onClick={(e) => handleEditStart(e, tab)}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-[rgba(147,51,234,0.1)] opacity-0 hover:opacity-100 group-hover:opacity-70 transition-opacity duration-150"
+                  aria-label={`Edit ${tab.title} name`}
+                  data-action="edit-tab"
+                >
+                  <Pencil className="h-2.5 w-2.5 text-[#a0a0a0] hover:text-[#9333EA] transition-colors" />
+                </button>
+              )}
+
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
-                className={cn(
-                  "absolute right-2 top-1/2 -translate-y-1/2 rounded-sm",
-                  "p-1 hover:bg-[#161618]",
-                  "opacity-0 group-hover:opacity-100 transition-opacity"
-                )}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-[rgba(147,51,234,0.1)] opacity-0 group-hover:opacity-100 transition-opacity duration-150 focus:outline-none focus:ring-1 focus:ring-[#9333EA]/30"
                 aria-label={`Close ${tab.title} tab`}
+                data-action="close-tab"
               >
-                <X className="h-4 w-4 text-[#a0a0a0]" />
+                <X className="h-2.5 w-2.5 text-[#a0a0a0] group-hover:text-[#9333EA] transition-colors" />
               </button>
             </div>
           ))}
-          {/* Empty tab space filler for blank area */}
-          <div className="flex-1 border-t border-white/[0.05]"></div>
+
+          {/* Tabs filler */}
+          <div className="flex-1" data-section="tabs-filler"></div>
         </TabsList>
       </Tabs>
     </div>

@@ -26,13 +26,15 @@ interface ThemedRequirementsTableProps {
   onAddRequirement?: () => void
   showAddRow?: boolean
   onAddRowCancel?: () => void
+  onRowClick?: (requirementId: string, requirementName: string) => void
 }
 
-export function ThemedRequirementsTable({ 
-  featureId, 
+export function ThemedRequirementsTable({
+  featureId,
   releaseId,
   showAddRow = false,
-  onAddRowCancel
+  onAddRowCancel,
+  onRowClick
 }: ThemedRequirementsTableProps) {
   const theme = useTableTheme();
   
@@ -153,8 +155,10 @@ export function ThemedRequirementsTable({
                 <ThemedTableRow
                   key={row.id}
                   alternate={index % 2 === 1}
+                  className={onRowClick ? "cursor-pointer hover:bg-opacity-20" : ""}
+                  onClick={() => onRowClick && onRowClick(row.id, row.name)}
                 >
-                  <ThemedTableCell key="select">
+                  <ThemedTableCell key="select" onClick={(e) => e.stopPropagation()}>
                     <div className="w-4 h-4"></div>
                   </ThemedTableCell>
                   <ThemedTableCell key="id">
@@ -162,6 +166,11 @@ export function ThemedRequirementsTable({
                   </ThemedTableCell>
                   <ThemedTableCell key="name">
                     {row.name}
+                    {onRowClick && (
+                      <span className="text-xs text-blue-400 ml-2 opacity-0 group-hover:opacity-100">
+                        (click to edit)
+                      </span>
+                    )}
                   </ThemedTableCell>
                   <ThemedTableCell key="description">
                     {row.description || '-'}
@@ -180,7 +189,7 @@ export function ThemedRequirementsTable({
                       )}
                     </div>
                   </ThemedTableCell>
-                  <ThemedTableCell colSpan={columns.length - 6} key="actions"></ThemedTableCell>
+                  <ThemedTableCell colSpan={columns.length - 6} key="actions" onClick={(e) => e.stopPropagation()}></ThemedTableCell>
                 </ThemedTableRow>
               ))
             ) : (

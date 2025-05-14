@@ -6,6 +6,7 @@ import { RequirementsPlaceholder } from './requirements/requirements-placeholder
 import { FileText, Plus } from 'lucide-react';
 import { ThemedButton } from '@/components/ui/themed-button';
 import { useAppTheme } from '@/providers/sidenav-theme-provider';
+import { useRouter } from 'next/navigation';
 
 interface FeatureRequirementsSectionProps {
   featureId: string;
@@ -18,6 +19,7 @@ export function FeatureRequirementsSectionQuery({
 }: FeatureRequirementsSectionProps) {
   const [showAddRow, setShowAddRow] = useState(false);
   const appTheme = useAppTheme();
+  const router = useRouter();
 
   // Hard code userId for now
   const userId = 'anonymous';
@@ -29,11 +31,41 @@ export function FeatureRequirementsSectionQuery({
   const handleAddToggle = () => {
     setShowAddRow(!showAddRow);
   };
+
+  // Handle requirement row click to open the editor
+  const handleRequirementClick = (requirementId: string, requirementName: string) => {
+    router.push(`/dashboard/requirements/editor?id=${requirementId}&featureId=${featureId}`);
+  };
   
+  // Handle creating new requirement in editor
+  const handleNewRequirementInEditor = () => {
+    router.push(`/dashboard/requirements/editor?new=true&featureId=${featureId}`);
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-1">
         <p className="text-white/70 text-sm">Requirements</p>
+        {!isNew && (
+          <div className="flex gap-2">
+            <ThemedButton
+              variant="primary"
+              size="sm"
+              onClick={handleAddToggle}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add Requirement
+            </ThemedButton>
+            <ThemedButton
+              variant="secondary"
+              size="sm"
+              onClick={handleNewRequirementInEditor}
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              New in Editor
+            </ThemedButton>
+          </div>
+        )}
       </div>
       <Card className="dark bg-[#0C0C0C] border-0 shadow-sm shadow-black/10 flex flex-col gap-0 py-0 feature-requirements-container">
         <CardContent className="bg-[#0C0C0C] p-0 flex-grow">
@@ -54,6 +86,7 @@ export function FeatureRequirementsSectionQuery({
               userId={userId}
               showAddRow={showAddRow}
               onAddRowCancel={handleAddToggle}
+              onRowClick={handleRequirementClick}
             />
           </div>
         )}

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+'use client';
+
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil, Puzzle, Save, X, Plus, FileText, Trash2, Paperclip, Calendar, ClipboardCheck } from 'lucide-react';
+import { Pencil, Puzzle, Save, X, Plus, FileText, Trash2, Paperclip, Calendar, ClipboardCheck, ChevronRight, ChevronLeft, ChevronDown, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FeatureDescriptionEditor } from './feature-description-editor';
+import { SimpleEditor } from './simple-editor.jsx';
 import { FeatureRequirementsSectionQuery } from './feature-requirements-section-query';
 import { StagesApprovalTable } from './stages-approval-table';
 import { toast } from 'sonner';
@@ -16,15 +18,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { useReleasesQuery } from '@/hooks/use-releases-query';
 import { useEntityApprovalsQuery } from '@/hooks/use-entity-approvals-query';
 import { useAttachmentsQuery } from '@/hooks/use-attachments-query';
+import { useDocumentQuery } from '@/hooks/use-documents-query';
 import { AttachmentButton } from './attachment-button';
 import { AttachmentDialog } from './attachment-dialog';
 import { AttachmentList } from './attachment-list';
-import { Attachment } from '@/types/models';
+import { Attachment, Document } from '@/types/models';
+import debounce from 'lodash/debounce';
 
 interface FeatureTabContentProps {
   featureId: string;
@@ -33,32 +44,51 @@ interface FeatureTabContentProps {
   selectedInterfaceId?: string;
 }
 
-export function FeatureQueryTabContent({ 
-  featureId, 
+export function FeatureQueryTabContent({
+  featureId,
   tabId,
   isNew = false,
-  selectedInterfaceId 
+  selectedInterfaceId
 }: FeatureTabContentProps) {
   // Tabs query hook
   const { updateTabTitle, closeTab, updateNewTabToSavedItem, openTab } = useTabsQuery();
-  
+
   // State hooks - declare ALL hooks at the top before any conditional logic
   const [isClient, setIsClient] = useState(false);
-  const [isEditing, setIsEditing] = useState(isNew);
+  const [isEditing, setIsEditing] = useState(true); // Always in edit mode
   const [nameValue, setNameValue] = useState('');
   const [descriptionValue, setDescriptionValue] = useState('');
   const [priorityValue, setPriorityValue] = useState<'High' | 'Med' | 'Low'>('Med');
   const [interfaceId, setInterfaceId] = useState(selectedInterfaceId || '');
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [showApprovals, setShowApprovals] = useState(false);
+  const [isMetadataExpanded, setIsMetadataExpanded] = useState(false);
+
+  // Create refs to track initial load and unsaved changes
+  const isInitialLoad = useRef(true);
+  const hasUnsavedChanges = useRef(false);
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
-  const [showAttachments, setShowAttachments] = useState(false);
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
 
   // React Query hooks
   const featuresQuery = useFeaturesQuery();
   const interfacesQuery = useInterfacesQuery();
-  const releasesQuery = useReleasesQuery();
+
+  // Get feature data - define this BEFORE using it in useEffect
+  const feature = !isNew ? featuresQuery.getFeatureById(featureId) : null;
+  const interfaces = interfacesQuery.getInterfaces();
+
+  // Document query for feature content
+  const {
+    document: docData,
+    updateContent,
+    updateTitle: updateDocTitle,
+    isSavingContent,
+    isSavingTitle,
+    error: docError,
+    createDocument,
+    isCreating,
+  } = useDocumentQuery(isNew ? undefined : featureId);
 
   // Attachments query - only enabled when not a new feature
   const {
@@ -69,118 +99,143 @@ export function FeatureQueryTabContent({
     isAddingAttachment,
   } = useAttachmentsQuery(!isNew ? featureId : undefined, 'feature');
 
-  // Create adapter function to match expected signature
-  const addAttachment = async (url: string, title?: string): Promise<Attachment> => {
-    const result = await addAttachmentMutation({ url, title });
-
-    // Ensure attachments list is shown after adding an attachment
-    if (result && !showAttachments) {
-      setShowAttachments(true);
-      // Save preference to localStorage
-      if (typeof window !== 'undefined' && !isNew && featureId) {
-        try {
-          localStorage.setItem(`feature_attachments_${featureId}`, 'true');
-        } catch (e) {
-          console.error('Error saving attachments preference to localStorage:', e);
-        }
-      }
-    }
-
-    return result;
-  };
-  
-  // Approvals query - only enabled when showApprovals is true and not a new feature
-  const { 
-    hasApprovals,
-    initializeApprovalsMutation 
-  } = useEntityApprovalsQuery(
-    !isNew && showApprovals ? featureId : undefined, 
-    'feature'
-  );
-  
-  // Get feature data
-  const feature = !isNew ? featuresQuery.getFeatureById(featureId) : null;
-  const interfaces = interfacesQuery.getInterfaces();
-  const selectedInterface = interfaceId ? interfacesQuery.getInterfaceById(interfaceId) : null;
-  
-  // Get releases for this feature if not new
-  const featureReleases = !isNew ? releasesQuery.getReleasesByFeatureId(featureId) : [];
-  const hasReleases = featureReleases && featureReleases.length > 0;
-  
   // Loading states
-  const isLoading = featuresQuery.isLoading || interfacesQuery.isLoading || releasesQuery.isLoading;
-  const isSaving = 
-    featuresQuery.addFeatureMutation.isPending || 
+  const isLoading = featuresQuery.isLoading || interfacesQuery.isLoading;
+  const isSaving =
+    featuresQuery.addFeatureMutation.isPending ||
     featuresQuery.updateFeatureNameMutation.isPending ||
     featuresQuery.updateFeatureDescriptionMutation.isPending;
-  
+
+  // Create debounced save function for document content
+  const debouncedSaveContent = useCallback(
+    debounce((content: string) => {
+      if (!isNew && featureId && featureId !== 'new') {
+        console.log('Auto-saving document content...');
+        try {
+          // Try to parse the content if it's a JSON string
+          let jsonContent;
+          try {
+            jsonContent = JSON.parse(content);
+          } catch (e) {
+            // If parsing fails, use the raw content
+            jsonContent = content;
+          }
+
+          updateContent(jsonContent)
+            .then(() => {
+              console.log('Auto-saved document:', new Date().toLocaleTimeString());
+              hasUnsavedChanges.current = false;
+            })
+            .catch(error => {
+              console.error('Failed to auto-save content:', error);
+              if (error.message && !error.message.includes('network')) {
+                toast.error('Failed to auto-save content');
+              }
+            });
+        } catch (e) {
+          console.error('Error in debouncedSaveContent:', e);
+        }
+      }
+    }, 2000), // 2 second debounce to avoid performance issues
+    [featureId, isNew, updateContent]
+  );
+
   // Initialize from feature data on component mount
   useEffect(() => {
     setIsClient(true);
 
-    // Initialize values from feature when we have a feature
-    if (feature && !isEditing) { // Only update if not in edit mode
+    // Initialize values from feature and document when we have them
+    if (feature) {
       setNameValue(feature.name || '');
-      setDescriptionValue(feature.description || '');
       setPriorityValue(feature.priority || 'Med');
       setInterfaceId(feature.interfaceId || '');
 
-      // Load approval tracking preference from localStorage
-      if (typeof window !== 'undefined' && !isNew) {
-        const showApprovalsPreference = localStorage.getItem(`feature_approvals_${featureId}`);
-        if (showApprovalsPreference !== null) {
-          setShowApprovals(showApprovalsPreference === 'true');
-        }
-
-        // Load attachments display preference from localStorage
-        const showAttachmentsPreference = localStorage.getItem(`feature_attachments_${featureId}`);
-        if (showAttachmentsPreference !== null) {
-          setShowAttachments(showAttachmentsPreference === 'true');
-        } else {
-          // Only show attachments section if there are attachments
-          const hasAttachments = attachments && attachments.length > 0;
-          setShowAttachments(hasAttachments);
-          localStorage.setItem(`feature_attachments_${featureId}`, hasAttachments.toString());
-        }
+      // Use document content if available, otherwise fall back to feature description
+      if (docData && docData.content) {
+        // If we have document content, use it
+        setDescriptionValue(JSON.stringify(docData.content));
+      } else {
+        // Otherwise fall back to feature description
+        setDescriptionValue(feature.description || '');
       }
     }
-  }, [feature, isEditing, featureId, isNew, attachments]); // Add isEditing and attachments as dependencies
-  
+
+    // Cleanup debounced function
+    return () => {
+      debouncedSaveContent.cancel();
+    };
+  }, [feature, featureId, isNew, docData, debouncedSaveContent]); // All dependencies now defined before useEffect
+
   // Event handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNameValue(e.target.value);
   };
-  
+
   const handlePriorityChange = (value: string) => {
     setPriorityValue(value as 'High' | 'Med' | 'Low');
   };
-  
+
   const handleInterfaceChange = (value: string) => {
     setInterfaceId(value);
   };
-  
+
   const handleSaveFeature = async () => {
     if (!isNew && feature) {
       try {
+        // Save feature name if changed
         if (nameValue.trim() !== feature.name) {
           await featuresQuery.updateFeatureName(featureId, nameValue);
           updateTabTitle(featureId, 'feature', nameValue);
         }
-        
-        if (descriptionValue !== feature.description) {
-          await featuresQuery.updateFeatureDescription(featureId, descriptionValue);
+
+        // Save document content - first trying to parse as JSON
+        try {
+          // Try to parse the content as JSON first
+          let jsonContent;
+          try {
+            jsonContent = JSON.parse(descriptionValue);
+          } catch (e) {
+            // If parsing fails, use it as raw text
+            jsonContent = descriptionValue;
+          }
+
+          // Update document content in DB
+          await updateContent(jsonContent);
+
+          // Also update document title if it's different from feature name
+          if (docData && docData.title !== nameValue.trim()) {
+            await updateDocTitle(nameValue.trim());
+          }
+
+          // If there is no document yet, create one
+          if (!docData && descriptionValue) {
+            await createDocument({
+              title: nameValue.trim(),
+              content: jsonContent,
+              featureId: featureId,
+            });
+          }
+        } catch (docError) {
+          console.error('Failed to save document:', docError);
+          // Fall back to saving description in feature
+          if (descriptionValue !== feature.description) {
+            await featuresQuery.updateFeatureDescription(featureId, descriptionValue);
+          }
         }
-        
+
+        // Show success message but stay in edit mode
         setShowSaveSuccess(true);
         setTimeout(() => setShowSaveSuccess(false), 3000);
-        setIsEditing(false);
+
+        // Reset unsaved changes flag
+        hasUnsavedChanges.current = false;
       } catch (error) {
         console.error('Failed to save feature:', error);
         toast.error('Failed to save feature');
       }
     }
   };
-  
+
   const handleDeleteFeature = async () => {
     if (!isNew && feature) {
       try {
@@ -195,13 +250,13 @@ export function FeatureQueryTabContent({
       setIsDeleteDialogOpen(false);
     }
   };
-  
+
   const handleSaveNewFeature = async () => {
     if (!nameValue.trim() || !interfaceId) {
       console.warn("Save prevented: Name and Interface are required.");
       return;
     }
-    
+
     try {
       const newFeatureData = {
         name: nameValue.trim(),
@@ -214,17 +269,16 @@ export function FeatureQueryTabContent({
       const savedFeature = await featuresQuery.addFeature(newFeatureData);
 
       if (savedFeature && savedFeature.id) {
-        const temporaryTabId = tabId; 
-        
+        const temporaryTabId = tabId;
+
         console.log('[FeatureQueryTabContent] Calling updateNewTabToSavedItem with type:', 'feature');
         updateNewTabToSavedItem(temporaryTabId, savedFeature.id, savedFeature.name, 'feature');
-        
+
         setShowSaveSuccess(true);
         setTimeout(() => setShowSaveSuccess(false), 3000);
 
         interfacesQuery.updateInterfaceWithFeature(interfaceId, savedFeature.id);
-        
-        setIsEditing(false);
+
         console.log('New Feature saved successfully. Tab updated.');
 
       } else {
@@ -236,138 +290,36 @@ export function FeatureQueryTabContent({
       toast.error('Failed to save feature');
     }
   };
-  
-  const handleToggleEditMode = () => {
-    if (isEditing) {
-      // Save changes when exiting edit mode
-      if (!isNew && feature) {
-        handleSaveFeature();
-      }
-    } else {
-      // Enter edit mode - reset form values to current feature values
-      if (feature) {
-        setNameValue(feature.name);
-        setDescriptionValue(feature.description || '');
-        setPriorityValue(feature.priority);
-      }
-      setIsEditing(true);
-    }
-  };
-  
+
   const handleCancelNewFeature = () => {
     if (isNew) {
       closeTab(tabId);
     } else {
-      // Reset to feature values and exit edit mode
+      // Reset to feature values but stay in edit mode
       if (feature) {
         setNameValue(feature.name);
         setDescriptionValue(feature.description || '');
         setPriorityValue(feature.priority);
       }
-      setIsEditing(false);
     }
   };
-  
+
   // Handler for the attachments button
   const handleAttachments = () => {
     setIsAttachmentDialogOpen(true);
   };
 
-  // Handler for toggling attachments section visibility
-  const handleToggleAttachments = () => {
-    const newState = !showAttachments;
-
-    // Save preference to localStorage
-    if (typeof window !== 'undefined' && !isNew && featureId) {
-      try {
-        localStorage.setItem(`feature_attachments_${featureId}`, newState.toString());
-      } catch (e) {
-        console.error('Error saving attachments preference to localStorage:', e);
-      }
-    }
-
-    setShowAttachments(newState);
+  // Handler for the details drawer
+  const toggleDetailsDrawer = () => {
+    setIsDetailsDrawerOpen(!isDetailsDrawerOpen);
   };
-  
-  // Handler for creating a new release
-  const handleCreateRelease = () => {
-    if (!isNew && feature) {
-      // Create a temporary ID with timestamp and feature ID
-      const timestamp = Date.now();
-      const temporaryItemId = `new-release-${timestamp}-${featureId}`;
-      
-      openTab({
-        title: 'New Release',
-        type: 'release',
-        itemId: temporaryItemId
-      });
-    }
-  };
-  
-  // Handler for opening an existing release
-  const handleOpenRelease = (releaseId: string, releaseName: string) => {
-    console.log('Opening release:', releaseId, releaseName);
-    openTab({
-      title: releaseName,
-      type: 'release',
-      itemId: releaseId
-    });
-  };
-  
-  const handleOpenInterface = (interfaceId: string, interfaceName: string) => {
-    console.log('Opening interface:', interfaceId, interfaceName);
-    openTab({
-      title: interfaceName,
-      type: 'interface',
-      itemId: interfaceId
-    });
-  };
-  
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-  
-  // Toggle approval tracking
-  const handleToggleApprovals = () => {
-    const newState = !showApprovals;
 
-    // Save preference to localStorage first, BEFORE updating state
-    if (typeof window !== 'undefined' && !isNew && featureId) {
-      try {
-        localStorage.setItem(`feature_approvals_${featureId}`, newState.toString());
-        console.log(`Saved approval preference for feature ${featureId}: ${newState}`);
-      } catch (e) {
-        console.error('Error saving approval preference to localStorage:', e);
-      }
-    }
-
-    // Update state after storage is handled
-    setShowApprovals(newState);
-
-    // Show appropriate toast message - use IDs to manage toast state
-    if (newState) {
-      // Use a unique ID for the toast to be able to dismiss it
-      const toastId = 'approval-toggle-' + Date.now();
-
-      // First show a loading toast
-      toast.loading('Enabling stages tracking...', { id: toastId });
-
-      // Then dismiss it and show success after a short delay
-      setTimeout(() => {
-        toast.dismiss(toastId);
-        toast.success('Stages tracking enabled');
-      }, 1500);
-    } else {
-      toast.info('Stages tracking disabled');
-    }
+  // Create adapter function for attachments to match expected signature
+  const addAttachment = async (url: string, title?: string): Promise<Attachment> => {
+    const result = await addAttachmentMutation({ url, title });
+    return result;
   };
-  
+
   // Loading state
   if (isLoading && !isNew) {
     return (
@@ -377,7 +329,7 @@ export function FeatureQueryTabContent({
       </div>
     );
   }
-  
+
   // Show "not found" for non-existent features
   if (!isNew && !feature) {
     return (
@@ -386,296 +338,175 @@ export function FeatureQueryTabContent({
       </div>
     );
   }
-  
+
   return (
-    <div className="flex flex-col h-full bg-[#1e1e20]">
-      {/* Header section with feature name and action buttons */}
-      <div className="px-6 py-4 border-b border-[#232326] grid grid-cols-2">
-        {/* Column 1: Feature name */}
+    <div className="flex flex-col h-full bg-[#0A0A0A] relative">
+      {/* Floating Notion-like header with feature name and action buttons - full width */}
+      <div className="px-4 py-6 flex justify-between items-center">
+        {/* Feature name */}
         <div className="flex items-center">
-          <Puzzle className="h-5 w-5 mr-2 text-muted-foreground" />
-          {isEditing ? (
-            <div className="flex items-center w-full max-w-lg">
-              <Input
-                value={nameValue}
-                onChange={handleNameChange}
-                autoFocus
-                className="text-xl font-medium text-white bg-[#232326] border-[#2a2a2c]"
-                placeholder="Enter feature name"
-              />
-            </div>
-          ) : (
-            <h1 className="text-xl font-medium text-white">
-              {nameValue}
-            </h1>
-          )}
-        </div>
-        
-        {/* Column 2: Action buttons */}
-        <div className="flex items-center justify-end space-x-2">
-          <AttachmentButton
-            count={attachments?.length || 0}
-            onClick={handleAttachments}
-            variant="outline"
-            size="sm"
-          />
-          
-          {!isNew && !isEditing && (
-            <>
-              <Button
-                size="sm"
-                variant={showApprovals ? "default" : "outline"}
-                className={showApprovals 
-                  ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                  : "bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                }
-                onClick={handleToggleApprovals}
-                title={showApprovals ? "Disable stages tracking" : "Enable stages tracking"}
-              >
-                <ClipboardCheck className="h-4 w-4 mr-1" />
-                Stages
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                onClick={handleToggleEditMode}
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
-              </Button>
-            </>
-          )}
-          
-          {(isNew || isEditing) && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                onClick={handleCancelNewFeature}
-              >
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </Button>
-              
-              <Button
-                size="sm"
-                onClick={isNew ? handleSaveNewFeature : handleToggleEditMode}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={isSaving || (!nameValue.trim() || (isNew && !interfaceId))}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            </>
-          )}
-        </div>
-        
-        {showSaveSuccess && (
-          <div className="col-span-2 text-sm text-green-500 mt-1 transition-opacity duration-300">
-            Saved successfully!
-          </div>
-        )}
-      </div>
-      
-      {/* Main content area with metadata, description, and optional requirements */}
-      <div className="space-y-4 p-4 pt-0 flex flex-col flex-grow h-full overflow-auto">
-        {/* Row 1: Feature metadata */}
-        <div className="flex items-center space-x-4 flex-shrink-0">
-          <div className="flex items-center">
-            <span className="text-[#a0a0a0] mr-2">Priority:</span>
-            {isEditing ? (
-              <Select
-                value={priorityValue}
-                onValueChange={handlePriorityChange}
-                disabled={isSaving}
-              >
-                <SelectTrigger className="w-24 h-8 bg-[#232326] border-[#2a2a2c]">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#232326] border-[#2a2a2c] text-white">
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Med">Med</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className={`text-xs font-medium px-2 py-1 rounded ${
-                priorityValue === 'High' 
-                  ? 'bg-red-900/20 text-red-300' 
-                  : priorityValue === 'Med' 
-                    ? 'bg-yellow-900/20 text-yellow-300' 
-                    : 'bg-blue-900/20 text-blue-300'
-              }`}>
-                {priorityValue}
-              </span>
-            )}
-          </div>
-          
-          {isEditing && (
-            <div className="flex items-center">
-              <span className="text-[#a0a0a0] mr-2">Interface:</span>
-              <Select
-                value={interfaceId}
-                onValueChange={handleInterfaceChange}
-                disabled={isSaving || (!isNew && !!interfaceId)}
-              >
-                <SelectTrigger className="w-60 h-8 bg-[#232326] border-[#2a2a2c]">
-                  <SelectValue placeholder="Select Interface" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#232326] border-[#2a2a2c] text-white">
-                  {interfaces.map(iface => (
-                    <SelectItem key={iface.id} value={iface.id}>
-                      {iface.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!isNew && !!interfaceId && (
-                <span className="text-xs text-[#a0a0a0] ml-2">(can't change)</span>
-              )}
-            </div>
-          )}
-          
-          {!isEditing && interfaceId && selectedInterface && (
-            <div className="flex items-center">
-              <span className="text-[#a0a0a0] mr-2">Interface:</span>
-              <span 
-                className="px-2 py-1 rounded cursor-pointer hover:bg-[#232326]"
-                onClick={() => handleOpenInterface(interfaceId, selectedInterface.name)}
-              >
-                {selectedInterface.name}
-              </span>
-            </div>
-          )}
-        </div>
-        
-        {/* Row 2: Description */}
-        <div className="flex-shrink-0">
-          <p className="text-[#a0a0a0] text-sm mb-1">Description</p>
-          <FeatureDescriptionEditor
-            initialContent={descriptionValue}
-            onChange={setDescriptionValue}
-            readOnly={!isEditing}
-          />
-        </div>
-
-        {/* Row 3: Attachments (if not a new feature) */}
-        {!isNew && (attachments?.length > 0 || isAttachmentDialogOpen) && (
-          <div className="w-full mt-4">
-            <div className="flex justify-between items-center mb-1">
-              <p
-                className="text-[#a0a0a0] text-sm cursor-pointer flex items-center"
-                onClick={handleToggleAttachments}
-              >
-                <span>Attachments</span>
-                {showAttachments ? (
-                  <span className="text-xs ml-2">▼</span>
-                ) : (
-                  <span className="text-xs ml-2">▶</span>
-                )}
-              </p>
-            </div>
-
-            {(showAttachments && attachments?.length > 0) && (
-              <div className="bg-[#232326] rounded-md p-3">
-                <AttachmentList
-                  attachments={attachments || []}
-                  onRemove={removeAttachment}
-                  onAdd={addAttachment}
-                  isLoading={isLoadingAttachments}
-                  isAddingAttachment={isAddingAttachment} // Pass specific loading state for adding
-                  showAddButton={true}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Row 4: Requirements - always show (moved up to just after description) */}
-        <div className="w-full">
-          <FeatureRequirementsSectionQuery
-            featureId={featureId}
-            isNew={isNew}
-          />
-        </div>
-        
-        {/* Row 4: Approvals (if tracking is enabled and not a new feature) */}
-        {!isNew && showApprovals && (
-          <div className="w-full mt-2">
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[#a0a0a0] text-sm">Stages</p>
-            </div>
-            <StagesApprovalTable
-              entityId={featureId}
-              entityType="feature"
-              onToggle={setShowApprovals}
-              shouldInitialize={true}
+          <Puzzle className="h-7 w-7 mr-3 text-white/50" />
+          <div className="flex items-center w-full max-w-xl">
+            <Input
+              value={nameValue}
+              onChange={handleNameChange}
+              autoFocus
+              className="text-3xl font-medium text-white bg-transparent border-none focus:ring-0 focus-visible:ring-0 shadow-none px-0 placeholder:text-white/40 h-auto py-1"
+              placeholder="Untitled"
             />
           </div>
-        )}
-        
-        {/* Row 5: Releases (if not a new feature) */}
-        {!isNew && (
-          <div className="w-full mt-2">
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[#a0a0a0] text-sm">Releases</p>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                onClick={handleCreateRelease}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Release
-              </Button>
-            </div>
-            
-            {hasReleases ? (
-              <div className="bg-[#232326] rounded-md p-2 space-y-1">
-                {featureReleases.map(release => (
-                  <div 
-                    key={release.id} 
-                    className="p-2 hover:bg-[#2a2a2c] rounded-md cursor-pointer flex justify-between items-center"
-                    onClick={() => handleOpenRelease(release.id, release.name)}
-                  >
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>{release.name}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-xs text-[#a0a0a0] mr-3">{formatDate(release.releaseDate)}</span>
-                      <div className={`w-2 h-2 rounded-full ${
-                        release.priority === 'High' ? 'bg-red-500' : 
-                        release.priority === 'Med' ? 'bg-yellow-500' : 
-                        'bg-green-500'
-                      }`}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No releases connected to this feature.</p>
-            )}
-          </div>
-        )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center space-x-2">
+          <button
+            className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 flex items-center gap-2 h-[2rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+            onClick={handleCancelNewFeature}
+          >
+            <X className="h-4 w-4 shrink-0" />
+            <span>Cancel</span>
+          </button>
+
+          <button
+            className="bg-[#0C0C0C] text-white/80 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.05)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/90 flex items-center gap-2 h-[2rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 disabled:opacity-50 disabled:pointer-events-none"
+            onClick={isNew ? handleSaveNewFeature : handleSaveFeature}
+            disabled={isSaving || (!nameValue.trim() || (isNew && !interfaceId))}
+          >
+            <Save className="h-4 w-4 shrink-0" />
+            <span>{isSaving ? 'Saving...' : 'Save'}</span>
+          </button>
+
+          {!isNew && (
+            <button
+              className="bg-[#0C0C0C] text-[#F87171]/80 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-[#F87171]/90 flex items-center gap-2 h-[2rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-900/40"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 shrink-0" />
+              <span>Delete</span>
+            </button>
+          )}
+        </div>
       </div>
-      
+
+      {showSaveSuccess && (
+        <div className="px-6 py-1 text-sm text-green-500 transition-opacity duration-300 border-b border-[#1a1a1a]">
+          Saved successfully!
+        </div>
+      )}
+
+      {/* Metadata header - closer to title style */}
+      <div className="px-6 py-1 bg-[#0A0A0A] flex items-center">
+        {/* Metadata toggle and title */}
+        <button
+          className="text-white/50 hover:text-white/90 transition-colors mr-2"
+          onClick={() => setIsMetadataExpanded(!isMetadataExpanded)}
+        >
+          {isMetadataExpanded ?
+            <ChevronDown className="h-4 w-4" /> :
+            <ChevronRight className="h-4 w-4" />
+          }
+        </button>
+        <span className="text-white/50 text-xs font-medium tracking-wide">Metadata</span>
+      </div>
+
+      {/* Expandable metadata fields */}
+      {isMetadataExpanded && (
+        <div className="px-6 py-3 bg-[#0A0A0A] border-t border-[#1a1a1a]/10 flex flex-wrap items-center gap-4">
+          {/* Priority */}
+          <div className="flex items-center">
+            <span className="text-white/50 text-xs mr-2">Priority:</span>
+            <Select
+              value={priorityValue}
+              onValueChange={handlePriorityChange}
+              disabled={isSaving}
+            >
+              <SelectTrigger className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 h-[1.75rem] w-24 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0F0F0F] border border-white/[0.03] text-white rounded-md">
+                <SelectItem value="High" className="text-red-400">High</SelectItem>
+                <SelectItem value="Med" className="text-yellow-400">Med</SelectItem>
+                <SelectItem value="Low" className="text-green-400">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Owner */}
+          <div className="flex items-center">
+            <span className="text-white/50 text-xs mr-2">Owner:</span>
+            <Select
+              value={"teamMember1"}
+              disabled={isSaving}
+            >
+              <SelectTrigger className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 h-[1.75rem] w-36 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20">
+                <SelectValue placeholder="Select Owner" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0F0F0F] border border-white/[0.03] text-white rounded-md">
+                <SelectItem value="teamMember1">Justin Wilson</SelectItem>
+                <SelectItem value="teamMember2">Sarah Chen</SelectItem>
+                <SelectItem value="teamMember3">Michael Johnson</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status */}
+          <div className="flex items-center">
+            <span className="text-white/50 text-xs mr-2">Status:</span>
+            <div className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] h-[1.75rem] flex items-center gap-2">
+              <div className="rounded-full h-2 w-2 bg-green-500 shrink-0"></div>
+              <span>Active</span>
+            </div>
+          </div>
+
+          {/* Updated */}
+          <div className="flex items-center">
+            <span className="text-white/50 text-xs mr-2">Updated:</span>
+            <div className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] h-[1.75rem] flex items-center">
+              <span>{new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
+
+          {/* Action buttons - no margin between, just use gap from parent */}
+          <button
+            className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 flex items-center gap-2 h-[1.75rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+            onClick={handleAttachments}
+          >
+            <Paperclip className="h-3.5 w-3.5 shrink-0" />
+            <span>Attachments ({attachments?.length || 0})</span>
+          </button>
+
+          <button
+            className={`py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border transition-all duration-150 flex items-center gap-2 h-[1.75rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 ${
+              isDetailsDrawerOpen
+                ? 'bg-[#232326] text-white border-[#3b82f6]/30 shadow-[inset_0_0.5px_0_0_rgba(59,130,246,0.1)]'
+                : 'bg-[#0C0C0C] text-white/70 border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80'
+            }`}
+            onClick={toggleDetailsDrawer}
+          >
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            <span>Details</span>
+          </button>
+        </div>
+      )}
+
+      {/* Main content area with editor - adjust padding based on drawer state */}
+      <div className="flex-1 flex mt-6">
+        <div className="flex-1 flex flex-col h-full overflow-visible transition-all duration-300">
+          <div className="flex-1 flex flex-col relative">
+            <SimpleEditor
+              initialContent={descriptionValue}
+              onChange={setDescriptionValue}
+              readOnly={false}
+              placeholder="Start writing about this feature..."
+              className="overflow-hidden"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Delete confirmation dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-[#1e1e20] border-[#2a2a2c] text-white max-w-md">
+        <DialogContent className="bg-[#0A0A0A] border-[#1a1a1a] text-white max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Feature</DialogTitle>
             <DialogDescription className="text-[#a0a0a0]">
@@ -686,7 +517,7 @@ export function FeatureQueryTabContent({
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
-              className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c] text-white"
+              className="bg-[#121212] border-[#1a1a1a] hover:bg-[#181818] text-white"
             >
               Cancel
             </Button>
@@ -710,6 +541,37 @@ export function FeatureQueryTabContent({
           isLoading={isAddingAttachment}
         />
       )}
+
+      {/* Details Drawer - Notion style */}
+      <div
+        className={`fixed top-[60px] bottom-0 right-[var(--right-sidebar-width-collapsed)] max-w-[400px] bg-[#0A0A0A] border-l border-[#1a1a1a]/20 overflow-hidden transition-all duration-300 z-10 transform-gpu ${
+          isDetailsDrawerOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        style={{ width: '400px', display: isDetailsDrawerOpen ? 'block' : 'none', opacity: isDetailsDrawerOpen ? 1 : 0 }}
+      >
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b border-[#1a1a1a]/20">
+            <h3 className="text-white text-lg font-medium">Details</h3>
+            <p className="text-[#a0a0a0] text-sm mt-1">
+              Additional information about this feature
+            </p>
+          </div>
+          <div className="p-4 flex-grow overflow-y-auto">
+            {/* The drawer is intentionally empty as requested */}
+            {/* Will be populated with additional metadata and controls later */}
+            <div className="text-[#a0a0a0] text-sm">
+              <p>Details drawer content will be added here.</p>
+              <p className="mt-4">You can continue editing the document while this drawer is open.</p>
+            </div>
+          </div>
+          <button 
+            className="absolute top-4 right-4 text-[#a0a0a0] hover:text-white"
+            onClick={toggleDetailsDrawer}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,44 +1,45 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { AppSidebarQuery } from '@/components/app-sidebar-query';
-import { LogOut, Building, Users, Package } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { TabQueryContent } from '@/components/tab-query-content';
 import { TabsContainer } from '@/components/tabs-container';
 import { useRouter } from 'next/navigation';
+import { RightSidebar } from './rightsidebar/right-sidebar';
+import { useUIState } from '@/providers/ui-state-provider';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function DashboardLayoutQuery() {
+export default function WorkspaceLayout() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, currentTenant, allowedTenants, logout } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { rightSidebarOpen, leftSidebarCollapsed, toggleLeftSidebar } = useUIState();
 
-  // Redirect to login if not authenticated - direct redirect
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/signin');
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // If not authenticated, don't render anything (redirect will happen)
+  // Don't render anything if not authenticated (redirect will happen)
   if (!isAuthenticated || !user) {
     return null;
   }
 
-  // Directly render the dashboard when authenticated
   return (
-    <div className="flex h-screen w-full">
-      {/* Sidebar with independent scrolling and custom scrollbar styling */}
-      <div 
-        className="w-80 h-screen overflow-y-auto flex-shrink-0 border-r border-[#232326] bg-[#161618] custom-scrollbar"
-        style={{
-          /* Webkit browsers (Chrome, Safari, newer versions of Opera) */
-          scrollbarWidth: 'thin',
-          /* Firefox */
-          scrollbarColor: 'rgba(80, 80, 80, 0.3) transparent',
-        }}
+    <div
+      className={`workspace-grid ${leftSidebarCollapsed ? 'navigator-collapsed' : ''} ${rightSidebarOpen ? 'utility-expanded' : ''}`}
+      data-component="workspace"
+    >
+      {/* Navigator - left sidebar */}
+      <div
+        className="navigator-panel custom-scrollbar"
+        style={{ transition: 'width var(--transition-speed) var(--transition-timing)' }}
+        data-section="navigator"
       >
         <style jsx>{`
-          /* Custom scrollbar for Webkit browsers */
+          /* Custom scrollbar */
           .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
           }
@@ -54,20 +55,56 @@ export default function DashboardLayoutQuery() {
             background-color: rgba(100, 100, 100, 0.5);
           }
         `}</style>
-        <AppSidebarQuery />
+
+        <AppSidebarQuery collapsed={leftSidebarCollapsed} />
+
+        {/* Navigator toggle button */}
+        <button
+          className="absolute top-4 right-[-12px] z-40 p-1 rounded-full bg-[#232326] hover:bg-[#2a2a2c] text-white/70 hover:text-white/90 transition-colors duration-200"
+          onClick={toggleLeftSidebar}
+          aria-label={leftSidebarCollapsed ? "Expand navigator" : "Collapse navigator"}
+          data-action="toggle-navigator"
+        >
+          {leftSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
-      
-      {/* Main content area with tabs and content */}
-      <div className="flex flex-col flex-1 h-screen overflow-hidden">
-        {/* Header with tabs */}
-        <div className="flex-shrink-0 border-b border-[#232326] bg-[#0C0C0C]">
+
+      {/* Canvas container - main work area */}
+      <div className="canvas-container" data-section="canvas">
+        {/* Canvas tabs */}
+        <div className="canvas-tabs" data-section="canvas-tabs">
           <TabsContainer />
         </div>
-        
-        {/* Content area with TabQueryContent */}
-        <div className="flex-1 overflow-auto bg-[#1e1e20] custom-scrollbar">
+
+        {/* Canvas editor */}
+        <div
+          className="canvas-editor custom-scrollbar"
+          style={{ transition: 'all var(--transition-speed) var(--transition-timing)' }}
+          data-section="canvas-editor"
+        >
           <TabQueryContent />
         </div>
+      </div>
+
+      {/* Utility panel - right sidebar */}
+      <div
+        className="utility-panel"
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          width: rightSidebarOpen ? '300px' : '48px',
+          height: '100vh',
+          zIndex: 30,
+          transition: 'width var(--transition-speed) var(--transition-timing)',
+          backgroundColor: '#0A0A0A',
+          borderLeft: '1px solid #232326',
+          overflow: 'hidden',
+          boxSizing: 'border-box'
+        }}
+        data-section="utility-panel"
+      >
+        <RightSidebar />
       </div>
     </div>
   );

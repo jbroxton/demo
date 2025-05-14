@@ -99,19 +99,27 @@ export function useFeaturesQuery() {
   const updateFeatureDescriptionMutation = useMutation({
     mutationFn: async ({ featureId, description }: { featureId: string, description: string }) => {
       if (description === undefined) return null
-      
+
+      // Ensure description is a string
+      const descriptionString = typeof description === 'string'
+        ? description
+        : JSON.stringify(description);
+
       const response = await fetch('/api/features-db', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: featureId, description }),
+        body: JSON.stringify({
+          id: featureId,
+          description: descriptionString
+        }),
       })
-      
+
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`)
       }
-      
+
       return { featureId, description }
     },
     onSuccess: (data) => {
@@ -119,9 +127,9 @@ export function useFeaturesQuery() {
 
       // Update cache with the updated feature description
       queryClient.setQueryData<Feature[]>([FEATURES_QUERY_KEY], (oldData = []) => {
-        return oldData.map(feature => 
-          feature.id === data.featureId 
-            ? { ...feature, description: data.description } 
+        return oldData.map(feature =>
+          feature.id === data.featureId
+            ? { ...feature, description: data.description }
             : feature
         )
       })
