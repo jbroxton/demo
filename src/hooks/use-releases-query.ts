@@ -25,7 +25,9 @@ export function useReleasesQuery(options?: UseReleasesQueryOptions) {
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`)
       }
-      return response.json()
+      const result = await response.json()
+      // API returns { success: boolean, data: Release[] }
+      return result.data || []
     },
     // Apply enabled option from the passed options, default to true if not specified
     enabled: options?.enabled !== undefined ? options.enabled : true
@@ -43,7 +45,7 @@ export function useReleasesQuery(options?: UseReleasesQueryOptions) {
 
   // Create release mutation
   const addReleaseMutation = useMutation({
-    mutationFn: async (release: Omit<Release, 'id'>): Promise<Release> => {
+    mutationFn: async (release: Omit<Release, 'id' | 'tenantId'>): Promise<Release> => {
       const response = await fetch('/api/releases-db', {
         method: 'POST',
         headers: {
@@ -56,7 +58,9 @@ export function useReleasesQuery(options?: UseReleasesQueryOptions) {
         throw new Error(`API responded with status: ${response.status}`)
       }
       
-      return response.json()
+      const result = await response.json()
+      // API returns { success: boolean, data: Release }
+      return result.data
     },
     onSuccess: (newRelease) => {
       // Update cache with the new release
@@ -226,7 +230,7 @@ export function useReleasesQuery(options?: UseReleasesQueryOptions) {
   })
 
   // Add a release (matches Zustand API)
-  const addRelease = async (release: Omit<Release, 'id'>) => {
+  const addRelease = async (release: Omit<Release, 'id' | 'tenantId'>) => {
     return addReleaseMutation.mutateAsync(release)
   }
   

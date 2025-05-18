@@ -1,115 +1,97 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { 
-  getApprovalsByEntity, 
-  getApprovalById, 
-  createOrUpdateEntityApproval, 
+import { NextRequest } from 'next/server';
+import {
+  getApprovalById,
+  getApprovalsByEntity,
+  initializeEntityApprovals,
+  createOrUpdateEntityApproval,
   deleteEntityApproval,
-  deleteEntityApprovals,
-  initializeEntityApprovals
+  deleteEntityApprovals
 } from '@/services/entity-approvals-db';
+import { apiResponse } from '@/utils/api-response';
+import { validateRequired } from '@/utils/api-validate';
+import { authenticatedHandler } from '@/utils/api-authenticated-handler';
 
-export async function GET(req: NextRequest) {
-  try {
-    // Extract parameters from query
-    const url = new URL(req.url);
-    const id = url.searchParams.get('id');
-    const entityId = url.searchParams.get('entityId');
-    const entityType = url.searchParams.get('entityType');
-    
-    if (id) {
-      // Get a specific approval by ID
-      const approval = await getApprovalById(id);
-      
-      if (!approval) {
-        return NextResponse.json(
-          { error: 'Approval not found' },
-          { status: 404 }
-        );
-      }
-      
-      return NextResponse.json(approval);
-    } else if (entityId && (entityType === 'feature' || entityType === 'release')) {
-      // Get all approvals for an entity
-      const approvals = await getApprovalsByEntity(entityId, entityType);
-      return NextResponse.json(approvals);
-    } else {
-      return NextResponse.json(
-        { error: 'Invalid request parameters' },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
-    console.error('Error fetching approvals:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch approvals' },
-      { status: 500 }
-    );
-  }
-}
+// GET handler
+export const GET = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  const entityType = searchParams.get('entityType');
+  const entityId = searchParams.get('entityId');
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+  // Get approval by ID
+  if (id) {
+    const approval = await getApprovalById(id, tenantId);
     
-    // Handle initialization request
-    if (body.action === 'initialize' && body.entityId && (body.entityType === 'feature' || body.entityType === 'release')) {
-      const approvals = await initializeEntityApprovals(body.entityId, body.entityType);
-      return NextResponse.json(approvals);
+    if (!approval) {
+      return apiResponse.error('Approval not found', 404);
     }
     
-    // Create/update an approval
-    if (!body.entity_id || !body.entity_type || !body.stage_id || !body.status_id) {
-      return NextResponse.json(
-        { error: 'Missing required approval data' },
-        { status: 400 }
-      );
-    }
-    
-    const approval = await createOrUpdateEntityApproval(body);
-    return NextResponse.json(approval, { status: 201 });
-  } catch (error) {
-    console.error('Error creating/updating approval:', error);
-    return NextResponse.json(
-      { error: 'Failed to create/update approval' },
-      { status: 500 }
-    );
+    return apiResponse.success(approval);
   }
-}
 
-export async function DELETE(req: NextRequest) {
-  try {
-    const url = new URL(req.url);
-    const id = url.searchParams.get('id');
-    const entityId = url.searchParams.get('entityId');
-    const entityType = url.searchParams.get('entityType');
-    
-    if (id) {
-      // Delete a specific approval
-      const success = await deleteEntityApproval(id);
-      
-      if (!success) {
-        return NextResponse.json(
-          { error: 'Approval not found or could not be deleted' },
-          { status: 404 }
-        );
-      }
-      
-      return NextResponse.json({ success: true });
-    } else if (entityId && (entityType === 'feature' || entityType === 'release')) {
-      // Delete all approvals for an entity
-      const success = await deleteEntityApprovals(entityId, entityType);
-      return NextResponse.json({ success });
-    } else {
-      return NextResponse.json(
-        { error: 'Invalid request parameters' },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
-    console.error('Error deleting approval(s):', error);
-    return NextResponse.json(
-      { error: 'Failed to delete approval(s)' },
-      { status: 500 }
-    );
+  // Get approvals by entity
+  if (entityType && entityId) {
+    const approvals = await getApprovalsByEntity(entityId, entityType as 'feature' | 'release', tenantId);
+    return apiResponse.success(approvals);
   }
-}
+
+  return apiResponse.error('Either approval ID or entity type and ID are required', 400);
+});
+
+// POST handler
+export const POST = authenticatedHandler(async (request, { tenantId, body }) => {
+  // Initialize approvals for entity
+  if (body.initialize) {
+    const validationError = validateRequired(body, ['entityType', 'entityId']);
+    if (validationError) {
+      return apiResponse.error(validationError, 400);
+    }
+
+    const approvals = await initializeEntityApprovals(body.entityId, body.entityType, tenantId);
+    return apiResponse.success(approvals, 201);
+  }
+
+  // Create or update approval
+  const validationError = validateRequired(body, ['entityType', 'entityId']);
+  if (validationError) {
+    return apiResponse.error(validationError, 400);
+  }
+
+  const approval = await createOrUpdateEntityApproval(body, tenantId);
+
+  if (!approval) {
+    return apiResponse.error('Failed to create/update approval', 500);
+  }
+
+  return apiResponse.success(approval, 201);
+});
+
+// DELETE handler
+export const DELETE = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  const entityType = searchParams.get('entityType');
+  const entityId = searchParams.get('entityId');
+
+  // Delete single approval by ID
+  if (id) {
+    const result = await deleteEntityApproval(id, tenantId);
+    
+    if (!result) {
+      return apiResponse.error('Failed to delete approval', 500);
+    }
+    
+    return apiResponse.success({ success: true });
+  }
+
+  // Delete all approvals for entity
+  if (entityType && entityId) {
+    const result = await deleteEntityApprovals(entityId, entityType as 'feature' | 'release', tenantId);
+    
+    if (!result) {
+      return apiResponse.error('Failed to delete approvals', 500);
+    }
+    
+    return apiResponse.success({ success: true });
+  }
+
+  return apiResponse.error('Either approval ID or entity type and ID are required', 400);
+});

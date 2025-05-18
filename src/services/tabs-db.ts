@@ -1,76 +1,96 @@
-// Service for managing tabs in the database
-import { getDb } from './db.server';
+/**
+ * @file src/services/tabs-db.ts
+ * @description Database service for managing tabs in Supabase. Handles tab CRUD operations and active state management.
+ * @module tabs-db
+ * @see {@link Tab} - Tab type definition
+ * @see {@link mapTab} - Internal mapper for DB rows to Tab type
+ * @example
+ * // Get all tabs
+ * const result = await getTabsFromDb();
+ * if (result.success) {
+ *   console.log(result.data.tabs, result.data.activeTabId);
+ * }
+ * @returns All functions return { success: boolean, data?: any, error?: string }
+ * @constants
+ * - mapTab: Maps database rows to Tab type with camelCase properties
+ * @imports
+ * - supabase: Database client
+ * - Tab: Type definition from models
+ * @functions
+ * - getTabsFromDb(): Returns all tabs with active tab ID
+ * - createTabInDb(tab): Creates new tab or activates existing
+ * - deleteTabFromDb(tabId): Removes tab and manages active state
+ * - activateTabInDb(tabId): Sets specified tab as active
+ * - updateTabTitleForItemInDb(itemId, type, newTitle): Updates title for matching tabs
+ * - updateTabInDb(tabId, newTabProps): Updates tab properties
+ * - updateNewTabToSavedItemInDb(tempId, itemId, name, type): Converts temp to saved
+ * @exports
+ * - getTabsFromDb(): Fetch all tabs and active tab ID
+ * - createTabInDb(): Create new tab or activate existing
+ * - deleteTabFromDb(): Delete tab and handle active state
+ * - activateTabInDb(): Set tab as active
+ * - updateTabTitleForItemInDb(): Update title for tabs matching item
+ * - updateTabInDb(): Update specific tab properties
+ * - updateNewTabToSavedItemInDb(): Convert temporary tab to saved item
+ */
+
+import { supabase } from './supabase';
 import { Tab } from '@/types/models';
 
-// Generate a simple ID - matching the same method used in the Zustand store
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
-/**
- * Initialize the tabs table with the correct schema
- */
-function initTabsTable(db: any) {
-  // First drop the table if it exists to avoid schema mismatches
-  db.prepare(`
-    DROP TABLE IF EXISTS tabs
-  `).run();
-  
-  // Create the table with the current schema
-  db.prepare(`
-    CREATE TABLE tabs (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      type TEXT NOT NULL,
-      itemId TEXT NOT NULL,
-      isActive INTEGER DEFAULT 0
-    )
-  `).run();
-  
-  console.log("Tabs table initialized with current schema");
-}
+// Map database rows to Tab type
+const mapTab = (row: any): Tab => ({
+  id: row.id,
+  title: row.title,
+  type: row.type,
+  itemId: row.item_id,
+  hasChanges: row.has_changes || false
+});
 
 /**
  * Get all tabs from the database
  */
-export async function getTabsFromDb() {
-  const db = getDb();
-  
+export async function getTabsFromDb(tenantId: string, userId?: string) {
   try {
-    // Check if the tabs table exists
-    const tabsTableExists = db.prepare(`
-      SELECT name FROM sqlite_master 
-      WHERE type='table' AND name='tabs'
-    `).get();
+    console.log('getTabsFromDb - tenantId:', tenantId, 'userId:', userId);
     
-    // Create the table if it doesn't exist
-    if (!tabsTableExists) {
-      initTabsTable(db);
-      return { success: true, data: { tabs: [], activeTabId: null } };
+    // Build query
+    let query = supabase
+      .from('tabs')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    // Add user filter if userId is provided
+    if (userId) {
+      query = query.eq('user_id', userId);
     }
     
-    // Check if the isActive column exists
-    try {
-      // This will throw an error if isActive doesn't exist
-      db.prepare('SELECT isActive FROM tabs LIMIT 1').get();
-    } catch (error) {
-      console.warn("isActive column not found, recreating tabs table with correct schema");
-      initTabsTable(db);
-      return { success: true, data: { tabs: [], activeTabId: null } };
+    // Fetch all tabs ordered by creation time
+    const { data: tabs, error } = await query.order('created_at', { ascending: true });
+    
+    console.log('getTabsFromDb - found tabs:', tabs?.length || 0);
+
+    if (error) {
+      throw error;
     }
-    
-    // Fetch all tabs
-    const tabs = db.prepare('SELECT * FROM tabs').all() as (Tab & { isActive: number })[];
-    
+
     // Convert to the expected format
-    const formattedTabs = tabs.map(tab => ({
-      id: tab.id,
-      title: tab.title,
-      type: tab.type,
-      itemId: tab.itemId
-    }));
+    const formattedTabs = (tabs || []).map(mapTab);
     
-    // Also get the active tab ID
-    const activeTab = tabs.find(tab => tab.isActive === 1);
+    // Also get the active tab ID - make sure we only have one active tab
+    const activeTabs = tabs?.filter(tab => tab.is_active) || [];
+    
+    console.log('getTabsFromDb - tabs with is_active:', tabs?.map(t => ({ id: t.id, title: t.title, is_active: t.is_active })));
+    console.log('getTabsFromDb - active tabs count:', activeTabs.length);
+    
+    if (activeTabs.length > 1) {
+      console.error('WARNING: Multiple active tabs found!', activeTabs.map(t => ({ id: t.id, title: t.title })));
+    }
+    
+    const activeTab = activeTabs[0] || null;
     const activeTabId = activeTab?.id || null;
+    
+    console.log('getTabsFromDb - activeTab:', activeTab);
+    console.log('getTabsFromDb - activeTabId:', activeTabId);
     
     return { 
       success: true, 
@@ -91,71 +111,89 @@ export async function getTabsFromDb() {
 /**
  * Create a new tab
  */
-export async function createTabInDb(tab: Omit<Tab, 'id'>) {
-  const db = getDb();
-  const id = generateId();
-  
+export async function createTabInDb(tab: Omit<Tab, 'id' | 'tenantId'>, tenantId: string, userId: string) {
   try {
-    // Check if the tabs table exists and create it if not
-    const tabsTableExists = db.prepare(`
-      SELECT name FROM sqlite_master 
-      WHERE type='table' AND name='tabs'
-    `).get();
-    
-    if (!tabsTableExists) {
-      initTabsTable(db);
-    } else {
-      // Check if the isActive column exists
-      try {
-        // This will throw an error if isActive doesn't exist
-        db.prepare('SELECT isActive FROM tabs LIMIT 1').get();
-      } catch (error) {
-        console.warn("isActive column not found, recreating tabs table with correct schema");
-        initTabsTable(db);
-      }
-    }
+    console.log('createTabInDb - params:', { tab, tenantId, userId });
     
     // Check if tab with the same itemId and type already exists
-    const existingTab = db.prepare(
-      'SELECT * FROM tabs WHERE itemId = ? AND type = ?'
-    ).get(tab.itemId, tab.type) as (Tab & { isActive: number }) | undefined;
+    const { data: existingTab, error: checkError } = await supabase
+      .from('tabs')
+      .select('*')
+      .eq('item_id', tab.itemId)
+      .eq('type', tab.type)
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .single();
     
-    if (existingTab) {
+    if (existingTab && !checkError) {
+      console.log('Found existing tab:', existingTab.id, existingTab.title);
+      
       // If it exists, mark it as active
-      db.prepare('UPDATE tabs SET isActive = 0').run();
-      db.prepare('UPDATE tabs SET isActive = 1 WHERE id = ?').run(existingTab.id);
+      await supabase
+        .from('tabs')
+        .update({ is_active: false })
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId)
+        .neq('id', existingTab.id);
+      
+      await supabase
+        .from('tabs')
+        .update({ is_active: true })
+        .eq('id', existingTab.id)
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId);
+      
+      console.log('Activated existing tab:', existingTab.id);
       
       return { 
         success: true, 
         data: { 
-          tab: {
-            id: existingTab.id,
-            title: existingTab.title,
-            type: existingTab.type as Tab['type'],
-            itemId: existingTab.itemId
-          },
+          tab: mapTab(existingTab),
           isExisting: true
         }
       };
     }
     
+    console.log('Creating new tab for:', tab.type, tab.title);
+    
     // Mark all tabs as inactive first
-    db.prepare('UPDATE tabs SET isActive = 0').run();
+    const { error: deactivateError } = await supabase
+      .from('tabs')
+      .update({ is_active: false })
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .neq('id', '');
+    
+    if (deactivateError) {
+      console.error('Error deactivating tabs:', deactivateError);
+    }
     
     // Insert the new tab
-    db.prepare(`
-      INSERT INTO tabs (id, title, type, itemId, isActive)
-      VALUES (?, ?, ?, ?, 1)
-    `).run(id, tab.title, tab.type, tab.itemId);
+    const { data: newTab, error } = await supabase
+      .from('tabs')
+      .insert({
+        title: tab.title,
+        type: tab.type,
+        item_id: tab.itemId,
+        is_active: true,
+        tenant_id: tenantId,
+        user_id: userId,
+        has_changes: tab.hasChanges || false
+      })
+      .select()
+      .single();
+    
+    console.log('New tab created:', newTab?.id, newTab?.title, 'is_active:', newTab?.is_active);
+
+    if (error) {
+      throw error;
+    }
     
     // Return the created tab
     return { 
       success: true, 
       data: {
-        tab: {
-          ...tab,
-          id
-        },
+        tab: mapTab(newTab),
         isExisting: false
       }
     };
@@ -171,36 +209,68 @@ export async function createTabInDb(tab: Omit<Tab, 'id'>) {
 /**
  * Close/delete a tab
  */
-export async function deleteTabFromDb(tabId: string) {
-  const db = getDb();
-  
+export async function deleteTabFromDb(tabId: string, tenantId: string, userId: string) {
   try {
     // Check if the tab is active
-    const tabToClose = db.prepare('SELECT isActive FROM tabs WHERE id = ?').get(tabId) as { isActive: number } | undefined;
+    const { data: tabToClose, error: checkError } = await supabase
+      .from('tabs')
+      .select('is_active')
+      .eq('id', tabId)
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .single();
     
-    if (!tabToClose) {
+    if (checkError || !tabToClose) {
       return { success: false, error: 'Tab not found' };
     }
     
     // Delete the tab
-    db.prepare('DELETE FROM tabs WHERE id = ?').run(tabId);
+    const { error: deleteError } = await supabase
+      .from('tabs')
+      .delete()
+      .eq('id', tabId)
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
     
     // If the closed tab was active, activate another tab
-    if (tabToClose.isActive === 1) {
-      // Get the last tab
-      const lastTab = db.prepare('SELECT id FROM tabs ORDER BY rowid DESC LIMIT 1').get() as { id: string } | undefined;
+    if (tabToClose.is_active) {
+      // Get the last tab (ordered by created_at)
+      const { data: remainingTabs, error: tabsError } = await supabase
+        .from('tabs')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1);
       
-      if (lastTab) {
+      if (remainingTabs && remainingTabs.length > 0) {
         // Activate the last tab
-        db.prepare('UPDATE tabs SET isActive = 1 WHERE id = ?').run(lastTab.id);
-        return { success: true, data: { newActiveTabId: lastTab.id } };
+        await supabase
+          .from('tabs')
+          .update({ is_active: true })
+          .eq('id', remainingTabs[0].id)
+          .eq('tenant_id', tenantId)
+          .eq('user_id', userId);
+        
+        return { success: true, data: { newActiveTabId: remainingTabs[0].id } };
       } else {
         // No tabs left
         return { success: true, data: { newActiveTabId: null } };
       }
     } else {
       // The closed tab wasn't active, so the active tab remains the same
-      const activeTab = db.prepare('SELECT id FROM tabs WHERE isActive = 1').get() as { id: string } | undefined;
+      const { data: activeTab, error: activeError } = await supabase
+        .from('tabs')
+        .select('id')
+        .eq('is_active', true)
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId)
+        .single();
+      
       return { success: true, data: { newActiveTabId: activeTab?.id || null } };
     }
   } catch (error) {
@@ -215,23 +285,55 @@ export async function deleteTabFromDb(tabId: string) {
 /**
  * Activate a tab
  */
-export async function activateTabInDb(tabId: string) {
-  const db = getDb();
+export async function activateTabInDb(tabId: string, tenantId: string, userId: string) {
+  console.log('activateTabInDb - tabId:', tabId, 'tenantId:', tenantId, 'userId:', userId);
   
   try {
     // Check if the tab exists
-    const tab = db.prepare('SELECT id FROM tabs WHERE id = ?').get(tabId);
+    const { data: tab, error: checkError } = await supabase
+      .from('tabs')
+      .select('id')
+      .eq('id', tabId)
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .single();
     
-    if (!tab) {
+    console.log('activateTabInDb - tab check result:', tab, 'error:', checkError);
+    
+    if (checkError || !tab) {
+      console.error('activateTabInDb - tab not found');
       return { success: false, error: 'Tab not found' };
     }
     
-    // Mark all tabs as inactive first
-    db.prepare('UPDATE tabs SET isActive = 0').run();
+    // Use RPC function for atomic update if available, otherwise do sequential updates
+    // First deactivate all tabs for this user
+    const { error: deactivateError } = await supabase
+      .from('tabs')
+      .update({ is_active: false })
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId);
     
-    // Activate the specified tab
-    db.prepare('UPDATE tabs SET isActive = 1 WHERE id = ?').run(tabId);
+    if (deactivateError) {
+      console.error('activateTabInDb - deactivate error:', deactivateError);
+      throw deactivateError;
+    }
     
+    // Then activate the specific tab
+    const { data: activatedTab, error: activateError } = await supabase
+      .from('tabs')
+      .update({ is_active: true })
+      .eq('id', tabId)
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (activateError) {
+      console.error('activateTabInDb - activate error:', activateError);
+      throw activateError;
+    }
+    
+    console.log('activateTabInDb - activated tab:', activatedTab);
     return { success: true };
   } catch (error) {
     console.error(`Error activating tab ${tabId}:`, error);
@@ -245,16 +347,18 @@ export async function activateTabInDb(tabId: string) {
 /**
  * Update tab title
  */
-export async function updateTabTitleForItemInDb(itemId: string, type: Tab['type'], newTitle: string) {
-  const db = getDb();
-  
+export async function updateTabTitleForItemInDb(itemId: string, type: Tab['type'], newTitle: string, tenantId: string) {
   try {
     // Update all tabs that match the itemId and type
-    const result = db.prepare('UPDATE tabs SET title = ? WHERE itemId = ? AND type = ?')
-      .run(newTitle, itemId, type);
+    const { error } = await supabase
+      .from('tabs')
+      .update({ title: newTitle })
+      .eq('item_id', itemId)
+      .eq('type', type)
+      .eq('tenant_id', tenantId);
     
-    if (result.changes === 0) {
-      return { success: false, error: 'No matching tabs found' };
+    if (error) {
+      throw error;
     }
     
     return { success: true };
@@ -270,42 +374,40 @@ export async function updateTabTitleForItemInDb(itemId: string, type: Tab['type'
 /**
  * Update a specific tab
  */
-export async function updateTabInDb(tabId: string, newTabProps: Partial<Tab>) {
-  const db = getDb();
-  
+export async function updateTabInDb(tabId: string, newTabProps: Partial<Tab>, tenantId: string) {
   try {
-    // Build the SET clause dynamically based on the provided properties
-    const setClauses = [];
-    const params = [];
+    // Build the update object
+    const updateData: any = {};
     
     if (newTabProps.title !== undefined) {
-      setClauses.push('title = ?');
-      params.push(newTabProps.title);
+      updateData.title = newTabProps.title;
     }
     
     if (newTabProps.type !== undefined) {
-      setClauses.push('type = ?');
-      params.push(newTabProps.type);
+      updateData.type = newTabProps.type;
     }
     
     if (newTabProps.itemId !== undefined) {
-      setClauses.push('itemId = ?');
-      params.push(newTabProps.itemId);
+      updateData.item_id = newTabProps.itemId;
     }
     
-    if (setClauses.length === 0) {
+    if (newTabProps.hasChanges !== undefined) {
+      updateData.has_changes = newTabProps.hasChanges;
+    }
+    
+    if (Object.keys(updateData).length === 0) {
       return { success: false, error: 'No properties to update' };
     }
     
-    // Add the tabId to the params
-    params.push(tabId);
-    
     // Update the tab
-    const result = db.prepare(`UPDATE tabs SET ${setClauses.join(', ')} WHERE id = ?`)
-      .run(...params);
+    const { error } = await supabase
+      .from('tabs')
+      .update(updateData)
+      .eq('id', tabId)
+      .eq('tenant_id', tenantId);
     
-    if (result.changes === 0) {
-      return { success: false, error: 'Tab not found' };
+    if (error) {
+      throw error;
     }
     
     return { success: true };
@@ -321,47 +423,59 @@ export async function updateTabInDb(tabId: string, newTabProps: Partial<Tab>) {
 /**
  * Update a temporary "new" tab to a persistent one
  */
-export async function updateNewTabToSavedItemInDb(temporaryTabId: string, newItemId: string, newItemName: string, type: Tab['type']) {
-  const db = getDb();
-  
+export async function updateNewTabToSavedItemInDb(temporaryTabId: string, newItemId: string, newItemName: string, type: Tab['type'], tenantId: string, userId: string) {
   try {
-    // Start a transaction
-    db.prepare('BEGIN').run();
-    
     // Check if the temporary tab exists
-    const tempTab = db.prepare('SELECT * FROM tabs WHERE id = ?').get(temporaryTabId);
+    const { data: tempTab, error: checkError } = await supabase
+      .from('tabs')
+      .select('*')
+      .eq('id', temporaryTabId)
+      .eq('tenant_id', tenantId)
+      .single();
     
-    if (!tempTab) {
-      db.prepare('ROLLBACK').run();
+    if (checkError || !tempTab) {
       return { success: false, error: 'Temporary tab not found' };
     }
     
     // Delete the temporary tab
-    db.prepare('DELETE FROM tabs WHERE id = ?').run(temporaryTabId);
-    
-    // Create a new tab
-    const newTabId = generateId();
-    
-    db.prepare(`
-      INSERT INTO tabs (id, title, type, itemId, isActive)
-      VALUES (?, ?, ?, ?, 1)
-    `).run(newTabId, newItemName, type, newItemId);
-    
-    // Mark all other tabs as inactive
-    db.prepare('UPDATE tabs SET isActive = 0 WHERE id != ?').run(newTabId);
-    
-    // Commit the transaction
-    db.prepare('COMMIT').run();
-    
-    return { success: true, data: { newTabId } };
-  } catch (error) {
-    // Rollback in case of error
-    try {
-      db.prepare('ROLLBACK').run();
-    } catch (rollbackError) {
-      console.error('Error during rollback:', rollbackError);
+    const { error: deleteError } = await supabase
+      .from('tabs')
+      .delete()
+      .eq('id', temporaryTabId)
+      .eq('tenant_id', tenantId);
+
+    if (deleteError) {
+      throw deleteError;
     }
     
+    // Create a new tab
+    const { data: newTab, error: createError } = await supabase
+      .from('tabs')
+      .insert({
+        title: newItemName,
+        type: type,
+        item_id: newItemId,
+        is_active: true,
+        tenant_id: tenantId,
+        user_id: userId,
+        has_changes: false  // New tabs start with no changes
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      throw createError;
+    }
+    
+    // Mark all other tabs as inactive
+    await supabase
+      .from('tabs')
+      .update({ is_active: false })
+      .eq('tenant_id', tenantId)
+      .neq('id', newTab.id);
+    
+    return { success: true, data: { newTabId: newTab.id } };
+  } catch (error) {
     console.error('Error updating new tab to saved item:', error);
     return { 
       success: false, 

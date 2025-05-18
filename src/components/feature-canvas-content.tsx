@@ -342,6 +342,9 @@ export function FeatureCanvasContent({
         productId: productId,
         showRequirements: true, // Always show requirements
         description: '', // Description is now in the document
+        isSaved: false, // New features start as unsaved
+        savedAt: null,
+        tenantId: 'org1' // Add tenant ID
       };
       
       const savedFeature = await featuresQuery.addFeature(newFeatureData);

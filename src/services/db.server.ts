@@ -1,6 +1,32 @@
 // IMPORTANT: This file should only be imported from server components or API routes
+/**
+ * @file db.server.ts
+ * @description Database initialization and configuration.
+ * Originally SQLite, now migrated to Supabase PostgreSQL.
+ * SQLite code is preserved below for reference during migration.
+ */
+
+import { supabase } from './supabase';
+
+// Re-export the supabase client for backward compatibility
+// This allows existing code to gradually migrate from getDb() to direct supabase usage
+export { supabase };
+
+/**
+ * Get database client (for migration compatibility)
+ * @deprecated Use `import { supabase } from './supabase'` directly instead
+ * @returns Supabase client instance
+ */
+export function getDb() {
+  console.warn('getDb() is deprecated. Use supabase client directly.');
+  return supabase;
+}
+
+/* =================== ORIGINAL SQLITE CODE (COMMENTED OUT) =================== */
+/*
 import Database from 'better-sqlite3';
 import path from 'path';
+import { initializeVectorDatabase } from './ai-db';
 
 let db: Database.Database;
 let migrationsRun = false;
@@ -302,6 +328,15 @@ function initDatabase() {
     );
   `);
 
+  // Initialize AI tables and vector database
+  try {
+    initializeVectorDatabase();
+    console.log('Vector database initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize vector database:', error);
+    // Continue without vector support - don't crash the app
+  }
+
   // Insert demo tenants if they don't exist
   insertDemoTenants();
 
@@ -362,4 +397,5 @@ function insertDemoUsers() {
       userTenantStmt.run(user.id, tenantId);
     });
   });
-} 
+}
+*/

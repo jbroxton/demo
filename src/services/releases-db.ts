@@ -1,22 +1,54 @@
-// Service for managing releases in the database
-import { getDb } from './db.server';
+/**
+ * @file src/services/releases-db.ts
+ * @description Database service for managing releases in Supabase
+ * @see {@link Release} for type definition
+ */
+
+import { supabase } from './supabase';
 import { Release } from '@/types/models';
 
-// Generate a simple ID - matching the same method used in the Zustand store
-const generateId = () => Math.random().toString(36).substring(2, 9);
+// Map database rows to Release type
+const mapRelease = (row: any): Release => {
+  // Map database priority values back to frontend values
+  const priorityMap: Record<string, 'High' | 'Med' | 'Low'> = {
+    'high': 'High',
+    'medium': 'Med',
+    'low': 'Low'
+  };
+  
+  const frontendPriority = priorityMap[row.priority?.toLowerCase()] || 'Med';
+  
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || '',
+    releaseDate: row.release_date,
+    priority: frontendPriority,
+    featureId: row.feature_id,
+    tenantId: row.tenant_id,
+    isSaved: row.is_saved ?? true,
+    savedAt: row.saved_at
+  };
+};
 
 /**
  * Get all releases from the database
  */
-export async function getReleasesFromDb(tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function getReleasesFromDb(tenantId: string) {
   try {
-    // Fetch all releases for the specified tenant
-    const releases = db.prepare('SELECT * FROM releases WHERE tenantId = ?')
-      .all(tenantId) as Release[];
-    
-    return { success: true, data: releases };
+    const { data, error } = await supabase
+      .from('releases')
+      .select('*')
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapRelease) 
+    };
   } catch (error) {
     console.error('Error fetching releases:', error);
     return { 
@@ -29,14 +61,22 @@ export async function getReleasesFromDb(tenantId: string = 'org1') {
 /**
  * Get releases by feature ID
  */
-export async function getReleasesByFeatureId(featureId: string, tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function getReleasesByFeatureId(featureId: string, tenantId: string) {
   try {
-    const releases = db.prepare('SELECT * FROM releases WHERE featureId = ? AND tenantId = ?')
-      .all(featureId, tenantId) as Release[];
-    
-    return { success: true, data: releases };
+    const { data, error } = await supabase
+      .from('releases')
+      .select('*')
+      .eq('feature_id', featureId)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapRelease) 
+    };
   } catch (error) {
     console.error(`Error fetching releases for feature ${featureId}:`, error);
     return { 
@@ -49,18 +89,26 @@ export async function getReleasesByFeatureId(featureId: string, tenantId: string
 /**
  * Get a release by ID
  */
-export async function getReleaseByIdFromDb(id: string, tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function getReleaseByIdFromDb(id: string, tenantId: string) {
   try {
-    const release = db.prepare('SELECT * FROM releases WHERE id = ? AND tenantId = ?')
-      .get(id, tenantId) as Release | undefined;
-    
-    if (!release) {
-      return { success: false, error: 'Release not found' };
+    const { data, error } = await supabase
+      .from('releases')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Release not found' };
+      }
+      throw error;
     }
-    
-    return { success: true, data: release };
+
+    return { 
+      success: true, 
+      data: mapRelease(data) 
+    };
   } catch (error) {
     console.error(`Error fetching release ${id}:`, error);
     return { 
@@ -73,30 +121,37 @@ export async function getReleaseByIdFromDb(id: string, tenantId: string = 'org1'
 /**
  * Create a new release in the database
  */
-export async function createReleaseInDb(release: Omit<Release, 'id'> & { tenantId?: string }) {
-  const db = getDb();
-  const id = generateId();
-  const tenantId = release.tenantId || 'org1'; // Default to org1 if not provided
-  
+export async function createReleaseInDb(release: Omit<Release, 'id' | 'tenantId'>, tenantId: string) {
   try {
-    db.prepare('INSERT INTO releases (id, name, description, releaseDate, priority, featureId, tenantId) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(
-        id, 
-        release.name, 
-        release.description || '', 
-        release.releaseDate,
-        release.priority || 'Med', 
-        release.featureId,
-        tenantId
-      );
+    // Map frontend priority values to database values
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium',
+      'Low': 'low'
+    };
     
+    const { data, error } = await supabase
+      .from('releases')
+      .insert({
+        name: release.name,
+        description: release.description || '',
+        release_date: release.releaseDate,
+        priority: priorityMap[release.priority] || 'medium',
+        feature_id: release.featureId,
+        tenant_id: tenantId,
+        is_saved: false,  // New entities start as unsaved
+        saved_at: null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
     return { 
       success: true, 
-      data: {
-        ...release,
-        id,
-        tenantId
-      }
+      data: mapRelease(data)
     };
   } catch (error) {
     console.error('Error creating release:', error);
@@ -110,17 +165,18 @@ export async function createReleaseInDb(release: Omit<Release, 'id'> & { tenantI
 /**
  * Update release name
  */
-export async function updateReleaseNameInDb(id: string, name: string, tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function updateReleaseNameInDb(id: string, name: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE releases SET name = ? WHERE id = ? AND tenantId = ?')
-      .run(name, id, tenantId);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Release not found or name unchanged' };
+    const { error } = await supabase
+      .from('releases')
+      .update({ name })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating release ${id} name:`, error);
@@ -134,17 +190,18 @@ export async function updateReleaseNameInDb(id: string, name: string, tenantId: 
 /**
  * Update release description
  */
-export async function updateReleaseDescriptionInDb(id: string, description: string, tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function updateReleaseDescriptionInDb(id: string, description: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE releases SET description = ? WHERE id = ? AND tenantId = ?')
-      .run(description, id, tenantId);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Release not found or description unchanged' };
+    const { error } = await supabase
+      .from('releases')
+      .update({ description })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating release ${id} description:`, error);
@@ -158,17 +215,18 @@ export async function updateReleaseDescriptionInDb(id: string, description: stri
 /**
  * Update release date
  */
-export async function updateReleaseDateInDb(id: string, releaseDate: string, tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function updateReleaseDateInDb(id: string, releaseDate: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE releases SET releaseDate = ? WHERE id = ? AND tenantId = ?')
-      .run(releaseDate, id, tenantId);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Release not found or date unchanged' };
+    const { error } = await supabase
+      .from('releases')
+      .update({ release_date: releaseDate })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating release ${id} date:`, error);
@@ -182,17 +240,27 @@ export async function updateReleaseDateInDb(id: string, releaseDate: string, ten
 /**
  * Update release priority
  */
-export async function updateReleasePriorityInDb(id: string, priority: 'High' | 'Med' | 'Low', tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function updateReleasePriorityInDb(id: string, priority: 'High' | 'Med' | 'Low', tenantId: string) {
   try {
-    const result = db.prepare('UPDATE releases SET priority = ? WHERE id = ? AND tenantId = ?')
-      .run(priority, id, tenantId);
+    // Map frontend priority values to database values
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium',
+      'Low': 'low'
+    };
     
-    if (result.changes === 0) {
-      return { success: false, error: 'Release not found or priority unchanged' };
+    const dbPriority = priorityMap[priority] || 'medium';
+    
+    const { error } = await supabase
+      .from('releases')
+      .update({ priority: dbPriority })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating release ${id} priority:`, error);
@@ -204,24 +272,64 @@ export async function updateReleasePriorityInDb(id: string, priority: 'High' | '
 }
 
 /**
- * Delete a release
+ * Mark a release as saved
  */
-export async function deleteReleaseFromDb(id: string, tenantId: string = 'org1') {
-  const db = getDb();
-  
+export async function markReleaseAsSavedInDb(id: string, tenantId: string) {
   try {
-    // First check if release exists in the specified tenant
-    const release = db.prepare('SELECT id FROM releases WHERE id = ? AND tenantId = ?')
-      .get(id, tenantId);
+    const { error } = await supabase
+      .from('releases')
+      .update({ 
+        is_saved: true,
+        saved_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
     
-    if (!release) {
-      return { success: false, error: 'Release not found' };
+    if (error) {
+      throw error;
     }
     
+    return { success: true };
+  } catch (error) {
+    console.error(`Error marking release ${id} as saved:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Delete a release
+ */
+export async function deleteReleaseFromDb(id: string, tenantId: string) {
+  try {
+    // First check if release exists in the specified tenant
+    const { data: existing, error: checkError } = await supabase
+      .from('releases')
+      .select('id')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (checkError) {
+      if (checkError.code === 'PGRST116') {
+        return { success: false, error: 'Release not found' };
+      }
+      throw checkError;
+    }
+
     // Delete the release
-    db.prepare('DELETE FROM releases WHERE id = ? AND tenantId = ?')
-      .run(id, tenantId);
-    
+    const { error } = await supabase
+      .from('releases')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
     return { success: true };
   } catch (error) {
     console.error(`Error deleting release ${id}:`, error);

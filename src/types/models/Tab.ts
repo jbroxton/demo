@@ -6,4 +6,6 @@ export interface Tab {
   title: string;
   type: 'feature' | 'product' | 'interface' | 'release' | 'roadmap' | 'document';
   itemId: string;
+  hasChanges: boolean;  // UI state: are there unsaved edits?
+  // isSaved and savedAt come from the entity itself
 }

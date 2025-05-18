@@ -17,7 +17,12 @@ export function TabsContainer() {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
+  console.log('TabsContainer - tabs:', tabs);
+  console.log('TabsContainer - activeTabId:', activeTabId);
+  console.log('TabsContainer - tabs with active state:', tabs.map(t => ({ id: t.id, title: t.title, active: t.id === activeTabId })));
+
   if (tabs.length === 0) {
+    console.log('TabsContainer - No tabs to display');
     return null;
   }
 
@@ -95,6 +100,12 @@ export function TabsContainer() {
     <div className="bg-transparent relative z-10 rounded-t-lg pt-1 w-full" data-component="tabs-container">
       <Tabs
         value={activeTabId || ''}
+        onValueChange={(value) => {
+          console.log('Tabs onValueChange - value:', value, 'type:', typeof value);
+          console.log('Tabs onValueChange - current activeTabId:', activeTabId);
+          console.log('Tabs onValueChange - all tabs:', tabs.map(t => ({ id: t.id, title: t.title })));
+          activateTab(value);
+        }}
         className="w-full"
       >
         <TabsList className="flex h-14 w-full rounded-none bg-transparent px-6 py-2 items-center" data-section="tabs-list">
@@ -119,13 +130,15 @@ export function TabsContainer() {
                 />
               ) : (
                 <TabsTrigger
-                  value={tab.id}
-                  onClick={() => activateTab(tab.id)}
+                  value={String(tab.id)}
                   className="w-full px-3 flex items-center justify-start text-[13px] tracking-[-0.006em] leading-[1.4] hover:bg-[rgba(147,51,234,0.1)] hover:text-[#9333EA] data-[state=active]:bg-[rgba(147,51,234,0.15)] data-[state=active]:text-[#9333EA] transition-all duration-150 rounded-[10px] py-1.5"
                   data-action="activate-tab"
                 >
                   {getTabIcon(tab.type)}
                   <span className="truncate ml-1.5">{tab.title}</span>
+                  {tab.hasChanges && (
+                    <span className="inline-block w-1.5 h-1.5 bg-[#9333EA] rounded-full ml-1.5" aria-label="Unsaved changes" />
+                  )}
                 </TabsTrigger>
               )}
 

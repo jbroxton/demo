@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Roadmap, Feature } from '@/types/models'
+import { api } from '@/utils/api-client'
 
 // Query key for roadmaps
 const ROADMAPS_QUERY_KEY = 'roadmaps'
@@ -23,15 +24,7 @@ export function useRoadmapsQuery() {
     queryKey: [ROADMAPS_QUERY_KEY],
     queryFn: async () => {
       try {
-        // First ensure the migration has run
-        await fetch('/api/migration-roadmap')
-
-        // Then fetch the roadmaps
-        const response = await fetch('/api/roadmaps-db')
-        if (!response.ok) {
-          throw new Error(`API responded with status: ${response.status}`)
-        }
-        return response.json()
+        return await api.get('/api/roadmaps-db')
       } catch (error) {
         console.error('Error fetching roadmaps:', error)
         throw error
@@ -41,51 +34,26 @@ export function useRoadmapsQuery() {
 
   // Get roadmap by ID
   const getRoadmapById = (roadmapId: string) => {
+    if (!roadmaps || !Array.isArray(roadmaps)) {
+      return undefined
+    }
     return roadmaps.find(roadmap => roadmap.id === roadmapId)
   }
 
   // Direct fetch function for roadmap features
   const fetchRoadmapFeatures = async (roadmapId: string, status?: string): Promise<Feature[]> => {
     try {
-      // First ensure the migration has run to create necessary tables
-      try {
-        const migrationResponse = await fetch('/api/migration-roadmap')
-        if (!migrationResponse.ok) {
-          console.warn('Migration API returned non-success status, but continuing:', migrationResponse.status);
-          // Continue anyway, as the tables might already exist
-        } else {
-          console.log('Migration check completed successfully');
-        }
-      } catch (migrationError) {
-        console.warn('Error checking migration status, continuing anyway:', migrationError);
-        // Continue anyway, as the tables might already exist
+      const params: Record<string, string> = {
+        roadmapId,
+        includeFeatures: 'true'
       }
-
-      // Build the URL
-      let url = `/api/roadmaps-db?roadmapId=${encodeURIComponent(roadmapId)}&includeFeatures=true`
       if (status) {
-        url += `&status=${encodeURIComponent(status)}`
+        params.status = status
       }
 
-      console.log('Fetching roadmap features from:', url);
+      console.log('Fetching roadmap features with params:', params);
 
-      const response = await fetch(url)
-      if (!response.ok) {
-        // Try to get more detailed error information
-        let errorDetail = `API responded with status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorDetail += ` - ${errorData.error}`;
-          }
-        } catch (e) {
-          // Ignore JSON parsing errors for error responses
-        }
-
-        throw new Error(errorDetail);
-      }
-
-      const data = await response.json();
+      const data = await api.get('/api/roadmaps-db', params);
       console.log(`Received ${data.length} features for roadmap ${roadmapId}`);
       return data;
     } catch (error) {
@@ -122,6 +90,7 @@ export function useRoadmapsQuery() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           id: featureId,
           action: 'add',
@@ -151,6 +120,7 @@ export function useRoadmapsQuery() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           id: featureId,
           action: 'remove'
@@ -189,6 +159,7 @@ export function useRoadmapsQuery() {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(apiData),
         });
 
@@ -247,6 +218,7 @@ export function useRoadmapsQuery() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ id, ...apiData }),
       });
 
@@ -289,6 +261,7 @@ export function useRoadmapsQuery() {
     mutationFn: async (roadmapId: string) => {
       const response = await fetch(`/api/roadmaps-db?id=${roadmapId}`, {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (!response.ok) {

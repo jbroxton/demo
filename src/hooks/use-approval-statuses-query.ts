@@ -19,7 +19,7 @@ export function useApprovalStatusesQuery() {
   } = useQuery<ApprovalStatus[]>({
     queryKey: statusesQueryKey,
     queryFn: async () => {
-      const response = await fetch('/api/approval-statuses-db');
+      const response = await fetch('/api/approval-statuses');
       if (!response.ok) {
         throw new Error('Failed to fetch approval statuses');
       }
@@ -27,37 +27,11 @@ export function useApprovalStatusesQuery() {
     }
   });
 
-  // Initialize default statuses
-  const initializeStatusesMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/approval-statuses-db', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action: 'initialize' })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to initialize approval statuses');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(statusesQueryKey, data);
-      toast.success('Approval statuses initialized');
-    },
-    onError: (error) => {
-      console.error('Error initializing approval statuses:', error);
-      toast.error('Failed to initialize approval statuses');
-    }
-  });
 
   // Create a new status
   const createStatusMutation = useMutation({
     mutationFn: async (statusData: Partial<ApprovalStatus>) => {
-      const response = await fetch('/api/approval-statuses-db', {
+      const response = await fetch('/api/approval-statuses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -86,7 +60,7 @@ export function useApprovalStatusesQuery() {
   // Update a status
   const updateStatusMutation = useMutation({
     mutationFn: async (statusData: Partial<ApprovalStatus>) => {
-      const response = await fetch('/api/approval-statuses-db', {
+      const response = await fetch('/api/approval-statuses', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -117,7 +91,7 @@ export function useApprovalStatusesQuery() {
   // Delete a status
   const deleteStatusMutation = useMutation({
     mutationFn: async (statusId: string) => {
-      const response = await fetch(`/api/approval-statuses-db?id=${statusId}`, {
+      const response = await fetch(`/api/approval-statuses?id=${statusId}`, {
         method: 'DELETE'
       });
       
@@ -159,7 +133,6 @@ export function useApprovalStatusesQuery() {
     isError,
     error,
     refetch,
-    initializeStatusesMutation,
     createStatusMutation,
     updateStatusMutation,
     deleteStatusMutation

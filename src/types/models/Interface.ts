@@ -7,4 +7,6 @@ export type Interface = {
   description: string;
   productId: string;
   features?: string[];
+  isSaved: boolean;
+  savedAt?: string | null;
 };

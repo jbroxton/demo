@@ -1,5 +1,5 @@
 // IMPORTANT: This file should only be imported from server components or API routes
-import { getDb } from './db.server';
+import { supabase } from './supabase';
 
 // Define tenant interface
 export interface Tenant {
@@ -17,36 +17,67 @@ export interface DbUser {
   allowedTenants: Tenant[];
 }
 
+// Define the shape of the Supabase join response  
+// When using !inner join, Supabase returns an array but TypeScript types it differently
+interface UserTenantJoin {
+  tenant_id: string;
+  tenants: any; // Due to TypeScript limitations with Supabase typing
+}
+
 /**
  * Get user by email
  * @param email The user's email
  * @returns The user object or null if not found
  */
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
-  const db = getDb();
-  const user = db.prepare('SELECT id, email, name, role FROM users WHERE email = ?').get(email) as {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  } | undefined;
-  
-  if (!user) {
+  try {
+    // Get user from database
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, name, role')
+      .eq('email', email)
+      .single();
+    
+    if (userError || !user) {
+      return null;
+    }
+    
+    // Get user's allowed tenants using a joined query
+    const { data: userTenants, error: tenantsError } = await supabase
+      .from('user_tenants')
+      .select(`
+        tenant_id,
+        tenants!inner (
+          id,
+          name,
+          slug
+        )
+      `)
+      .eq('user_id', user.id);
+    
+    if (tenantsError) {
+      console.error('Error fetching user tenants:', tenantsError);
+      return null;
+    }
+    
+    // Map the nested data structure to our Tenant interface
+    const tenants: Tenant[] = (userTenants || []).map((ut: UserTenantJoin) => ({
+      id: ut.tenants.id,
+      name: ut.tenants.name,
+      slug: ut.tenants.slug
+    }));
+    
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      allowedTenants: tenants || []
+    };
+  } catch (error) {
+    console.error('Error in getUserByEmail:', error);
     return null;
   }
-  
-  // Get user's allowed tenants
-  const allowedTenants = db.prepare(`
-    SELECT t.id, t.name, t.slug
-    FROM tenants t
-    JOIN user_tenants ut ON t.id = ut.tenantId
-    WHERE ut.userId = ?
-  `).all(user.id) as Tenant[];
-  
-  return {
-    ...user,
-    allowedTenants
-  };
 }
 
 /**
@@ -57,36 +88,55 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
  */
 export async function validateCredentials(email: string, password: string): Promise<DbUser | null> {
   console.log(`validateCredentials called with email: ${email}`);
-  const db = getDb();
   
   try {
     // In a real app, you would use proper password hashing
-    const user = db.prepare('SELECT id, email, name, role FROM users WHERE email = ? AND passwordHash = ?')
-      .get(email, password) as {
-        id: string;
-        email: string;
-        name: string;
-        role: string;
-      } | undefined;
+    // For now, matching the current implementation with plain text password
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, name, role')
+      .eq('email', email)
+      .eq('password_hash', password)
+      .single();
     
     console.log(`DB query result for ${email}:`, user ? "User found" : "No user found");
     
-    if (!user) {
+    if (userError || !user) {
       return null;
     }
     
-    // Get user's allowed tenants
-    const allowedTenants = db.prepare(`
-      SELECT t.id, t.name, t.slug
-      FROM tenants t
-      JOIN user_tenants ut ON t.id = ut.tenantId
-      WHERE ut.userId = ?
-    `).all(user.id) as Tenant[];
+    // Get user's allowed tenants using a joined query
+    const { data: userTenants, error: tenantsError } = await supabase
+      .from('user_tenants')
+      .select(`
+        tenant_id,
+        tenants!inner (
+          id,
+          name,
+          slug
+        )
+      `)
+      .eq('user_id', user.id);
+    
+    if (tenantsError) {
+      console.error(`Error fetching tenants for user ${user.id}:`, tenantsError);
+      return null;
+    }
+    
+    // Map the nested data structure to our Tenant interface
+    const allowedTenants: Tenant[] = (userTenants || []).map((ut: UserTenantJoin) => ({
+      id: ut.tenants.id,
+      name: ut.tenants.name,
+      slug: ut.tenants.slug
+    }));
     
     console.log(`Found ${allowedTenants.length} tenants for user ${user.id}`);
     
     const result: DbUser = {
-      ...user,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
       allowedTenants
     };
     
@@ -116,15 +166,31 @@ export async function getUserTenants(userId: string): Promise<Tenant[]> {
     return [];
   }
   
-  const db = getDb();
-  
   try {
-    const tenants = db.prepare(`
-      SELECT t.id, t.name, t.slug
-      FROM tenants t
-      JOIN user_tenants ut ON t.id = ut.tenantId
-      WHERE ut.userId = ?
-    `).all(userId) as Tenant[];
+    // Get user's tenants using a joined query
+    const { data: userTenants, error } = await supabase
+      .from('user_tenants')
+      .select(`
+        tenant_id,
+        tenants!inner (
+          id,
+          name,
+          slug
+        )
+      `)
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error(`Error fetching user tenants for ${userId}:`, error);
+      return [];
+    }
+    
+    // Map the nested data structure to our Tenant interface
+    const tenants: Tenant[] = (userTenants || []).map((ut: UserTenantJoin) => ({
+      id: ut.tenants.id,
+      name: ut.tenants.name,
+      slug: ut.tenants.slug
+    }));
     
     console.log(`Found ${tenants.length} tenants for user ${userId}:`, 
       tenants.map((t: Tenant) => ({ id: t.id, name: t.name })));
@@ -143,14 +209,19 @@ export async function getUserTenants(userId: string): Promise<Tenant[]> {
  * @returns True if user has access, false otherwise
  */
 export async function userHasTenantAccess(userId: string, tenantId: string): Promise<boolean> {
-  const db = getDb();
-  
-  const access = db.prepare(`
-    SELECT 1 FROM user_tenants 
-    WHERE userId = ? AND tenantId = ?
-  `).get(userId, tenantId) as { 1: number } | undefined;
-  
-  return !!access;
+  try {
+    const { data, error } = await supabase
+      .from('user_tenants')
+      .select('user_id')
+      .eq('user_id', userId)
+      .eq('tenant_id', tenantId)
+      .single();
+    
+    return !error && !!data;
+  } catch (error) {
+    console.error('Error checking tenant access:', error);
+    return false;
+  }
 }
 
 /**
@@ -160,8 +231,6 @@ export async function userHasTenantAccess(userId: string, tenantId: string): Pro
  * @returns True if successful, false otherwise
  */
 export async function setUserCurrentTenant(userId: string, tenantId: string): Promise<boolean> {
-  const db = getDb();
-  
   // Check if user has access to this tenant
   const hasAccess = await userHasTenantAccess(userId, tenantId);
   if (!hasAccess) {

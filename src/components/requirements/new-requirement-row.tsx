@@ -7,6 +7,7 @@ import { CheckIcon, XIcon } from 'lucide-react'
 import { TableRow, TableCell } from '@/components/ui/table'
 import { Requirement } from '@/types/models'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useCurrentTenantId } from '@/utils/get-tenant-id'
 
 interface NewRequirementRowProps {
   featureId: string
@@ -21,6 +22,7 @@ export function NewRequirementRow({
   onCancel,
   columnCount 
 }: NewRequirementRowProps) {
+  const currentTenantId = useCurrentTenantId()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [owner, setOwner] = useState('')
@@ -32,12 +34,20 @@ export function NewRequirementRow({
     
     setIsSubmitting(true)
     try {
+      if (!currentTenantId) {
+        console.error('No tenant ID available')
+        return
+      }
+      
       await onSave({
         name: name.trim(),
         description,
         owner,
         priority,
-        featureId
+        featureId,
+        tenantId: currentTenantId,
+        isSaved: false,
+        savedAt: null
       })
       // Reset the form
       setName('')

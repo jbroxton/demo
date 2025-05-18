@@ -17,42 +17,74 @@ export function useTabsQuery() {
     queryKey: [TABS_QUERY_KEY],
     queryFn: async () => {
       try {
+        console.log('Fetching tabs...');
         const response = await fetch('/api/tabs-db');
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unknown error');
           return Promise.reject(new Error(`Failed to fetch tabs: ${response.status} - ${errorText}`));
         }
-        return await response.json();
+        const result = await response.json();
+        console.log('Tabs fetched raw response:', result);
+        console.log('Tabs data:', result.data);
+        // The API returns { data: { tabs: [], activeTabId: null } }
+        // But we expect { tabs: [], activeTabId: null }
+        return result.data || result;
       } catch (error) {
         console.error('Error fetching tabs:', error);
         return Promise.reject(error instanceof Error ? error : new Error('Unknown error fetching tabs'));
       }
     },
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   })
 
   const tabs = data?.tabs || []
   const activeTabId = data?.activeTabId || null
+  
+  console.log('use-tabs-query - data from query:', data)
+  console.log('use-tabs-query - current activeTabId:', activeTabId)
+  console.log('use-tabs-query - current tabs:', tabs.map(t => ({ id: t.id, title: t.title, type: t.type })))
+  console.log('use-tabs-query - tabs length:', tabs.length)
 
   // Create and open tab mutation
   const openTabMutation = useMutation({
     mutationFn: async (tab: Omit<Tab, 'id'>): Promise<{ tab: Tab, isExisting: boolean }> => {
-      const response = await fetch('/api/tabs-db', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tab),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`)
+      console.log('Opening tab with data:', tab);
+      try {
+        const response = await fetch('/api/tabs-db', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(tab),
+        })
+        
+        if (!response.ok) {
+          const errorDetails = await response.text()
+          console.error('Tab creation failed:', response.status, errorDetails)
+          throw new Error(`Tab creation failed: ${response.status} - ${errorDetails}`)
+        }
+        
+        const result = await response.json()
+        console.log('Tab created successfully:', result)
+        // The API returns { data: { tab, isExisting } }
+        return result.data || result
+      } catch (error) {
+        console.error('Error in tab creation:', error)
+        throw error
       }
-      
-      return response.json()
     },
     onSuccess: (data) => {
+      console.log('Tab mutation success:', data)
+      console.log('New tab created with ID:', data.tab?.id)
+      console.log('Is existing tab?:', data.isExisting)
+      console.log('Invalidating tabs query...')
       queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
+      console.log('Tabs query invalidated, should refetch now')
     },
+    onError: (error) => {
+      console.error('Tab mutation error:', error)
+    }
   })
 
   // Close tab mutation
@@ -63,7 +95,9 @@ export function useTabsQuery() {
       })
       
       if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`)
+        const errorDetails = await response.text()
+        console.error('Tab close failed:', response.status, errorDetails)
+        throw new Error(`Tab close failed: ${response.status} - ${errorDetails}`)
       }
       
       return response.json()
@@ -76,6 +110,12 @@ export function useTabsQuery() {
   // Activate tab mutation
   const activateTabMutation = useMutation({
     mutationFn: async (tabId: string) => {
+      console.log('activateTabMutation called with tabId:', tabId, 'type:', typeof tabId)
+      
+      // Ensure tabId is a string
+      const stringTabId = String(tabId);
+      console.log('activateTabMutation stringTabId:', stringTabId)
+      
       try {
         const response = await fetch('/api/tabs-db', {
           method: 'POST',
@@ -84,22 +124,52 @@ export function useTabsQuery() {
           },
           body: JSON.stringify({
             operation: 'activate',
-            tabId
+            tabId: stringTabId
           }),
         });
 
+        console.log('activateTabMutation response status:', response.status)
+
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unknown error');
+          console.error('activateTabMutation error:', errorText);
           return Promise.reject(new Error(`Failed to activate tab: ${response.status} - ${errorText}`));
         }
 
-        return await response.json();
+        const result = await response.json();
+        console.log('activateTabMutation result:', result);
+        return result;
       } catch (error) {
         console.error('Error activating tab:', error);
         return Promise.reject(error instanceof Error ? error : new Error('Unknown error activating tab'));
       }
     },
-    onSuccess: (data) => {
+    onMutate: async (tabId: string) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: [TABS_QUERY_KEY] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      // Optimistically update the active tab
+      if (previousData) {
+        queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+          ...previousData,
+          activeTabId: tabId
+        });
+      }
+      
+      // Return context to use in onError
+      return { previousData };
+    },
+    onError: (err, tabId, context) => {
+      // If the mutation fails, use the context to roll back
+      if (context?.previousData) {
+        queryClient.setQueryData([TABS_QUERY_KEY], context.previousData);
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we're in sync
       queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] });
     },
   })
@@ -201,15 +271,21 @@ export function useTabsQuery() {
 
   // Compatibility methods that match the Zustand API
   const openTab = async (tab: Omit<Tab, 'id'>) => {
+    console.log('openTab called with:', tab);
     return openTabMutation.mutateAsync(tab)
   }
   
   const closeTab = async (tabId: string) => {
-    return closeTabMutation.mutateAsync(tabId)
+    const stringTabId = String(tabId);
+    return closeTabMutation.mutateAsync(stringTabId)
   }
   
   const activateTab = async (tabId: string) => {
-    return activateTabMutation.mutateAsync(tabId)
+    console.log('use-tabs-query: activateTab called with tabId:', tabId, 'type:', typeof tabId)
+    const stringTabId = String(tabId);
+    const result = await activateTabMutation.mutateAsync(stringTabId)
+    console.log('use-tabs-query: activateTab result:', result)
+    return result
   }
   
   const getActiveTab = () => {
@@ -221,7 +297,8 @@ export function useTabsQuery() {
   }
   
   const updateTab = async (tabId: string, newTabProps: Partial<Tab>) => {
-    return updateTabMutation.mutateAsync({ tabId, newTabProps })
+    const stringTabId = String(tabId);
+    return updateTabMutation.mutateAsync({ tabId: stringTabId, newTabProps })
   }
   
   const updateNewTabToSavedItem = async (temporaryTabId: string, newItemId: string, newItemName: string, type: Tab['type']) => {

@@ -31,6 +31,7 @@ export function AIChatComponent() {
       tenantId: currentTenant || 'default',
       userId: user?.id,
     },
+    credentials: 'include', // Include cookies for authentication
     initialMessages: [
       {
         id: 'welcome',
@@ -55,6 +56,7 @@ export function AIChatComponent() {
           'Content-Type': 'application/json',
           'x-tenant-id': currentTenant || 'default'
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           action: 'index',
           tenantId: currentTenant || 'default'

@@ -1,10 +1,9 @@
-import { getDb } from './db.server';
+import { supabase } from './supabase';
 import { Document } from '@/types/models';
-import crypto from 'crypto';
 
 // Get all documents or filter by featureId or releaseId
-export function getDocumentsFromDb(
-  tenantId: string,
+export async function getDocumentsFromDb(
+  tenantId: string = 'org1',
   featureId?: string,
   releaseId?: string
 ) {
@@ -20,104 +19,66 @@ export function getDocumentsFromDb(
       };
     }
 
-    const db = getDb();
-    if (!db) {
-      console.error('Failed to get database connection in getDocumentsFromDb');
-      return {
-        success: false,
-        error: 'Database connection error'
-      };
-    }
-
-    // Verify table exists
-    try {
-      const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='documents'").get();
-      if (!tableCheck) {
-        console.error('Documents table does not exist');
-        return {
-          success: false,
-          error: 'Documents table does not exist'
-        };
-      }
-    } catch (tableError) {
-      console.error('Error checking for documents table:', tableError);
-      return {
-        success: false,
-        error: 'Failed to verify schema'
-      };
-    }
-
-    // Base query
-    let query = `
-      SELECT * FROM documents
-      WHERE tenant_id = ?
-    `;
-
-    const params: any[] = [tenantId];
+    // Build query
+    let query = supabase
+      .from('documents')
+      .select('*')
+      .eq('tenant_id', tenantId);
 
     // Add filters if provided
     if (featureId) {
-      query += ` AND featureId = ?`;
-      params.push(featureId);
+      query = query.eq('feature_id', featureId);
     }
 
     if (releaseId) {
-      query += ` AND releaseId = ?`;
-      params.push(releaseId);
+      query = query.eq('release_id', releaseId);
     }
 
     // Order by most recently updated
-    query += ` ORDER BY updated_at DESC`;
+    query = query.order('updated_at', { ascending: false });
 
-    console.log(`Executing query: ${query.replace(/\s+/g, ' ')} with params: ${JSON.stringify(params)}`);
+    console.log(`Executing query for tenant: ${tenantId}`);
 
-    try {
-      const documents = db.prepare(query).all(...params);
-      console.log(`Query returned ${documents.length} documents`);
+    const { data, error } = await query;
 
-      if (!Array.isArray(documents)) {
-        console.error('Unexpected result: documents is not an array');
-        return {
-          success: false,
-          error: 'Unexpected database result format'
-        };
-      }
-
-      // Safely map documents with error handling
-      try {
-        const mappedDocuments = documents.map((doc) => {
-          try {
-            return mapDocumentFromDb(doc);
-          } catch (mapError) {
-            console.error(`Error mapping document ${doc?.id || 'unknown'}:`, mapError);
-            // Return a partial document rather than failing completely
-            return {
-              id: doc?.id || 'error',
-              title: doc?.title || 'Error loading document',
-              content: { type: 'doc', content: [] },
-              tenantId: doc?.tenant_id || tenantId,
-              createdAt: doc?.created_at || new Date().toISOString(),
-              updatedAt: doc?.updated_at || new Date().toISOString()
-            } as Document;
-          }
-        });
-
-        return {
-          success: true,
-          data: mappedDocuments
-        };
-      } catch (mapError) {
-        console.error('Error mapping documents:', mapError);
-        return {
-          success: false,
-          error: 'Failed to process document data'
-        };
-      }
-    } catch (queryError) {
-      console.error('Error executing query:', queryError);
+    if (error) {
+      console.error('Error executing query:', error);
       return {
         success: false,
-        error: `Database query error: ${queryError instanceof Error ? queryError.message : 'Unknown error'}`
+        error: `Database query error: ${error.message}`
+      };
+    }
+
+    console.log(`Query returned ${data?.length || 0} documents`);
+
+    // Safely map documents with error handling
+    try {
+      const mappedDocuments = (data || []).map((doc) => {
+        try {
+          return mapDocumentFromDb(doc);
+        } catch (mapError) {
+          console.error(`Error mapping document ${doc?.id || 'unknown'}:`, mapError);
+          // Return a partial document rather than failing completely
+          return {
+            id: doc?.id || 'error',
+            title: doc?.title || 'Error loading document',
+            content: { type: 'doc', content: [] },
+            tenantId: doc?.tenant_id || tenantId,
+            createdAt: doc?.created_at || new Date().toISOString(),
+            updatedAt: doc?.updated_at || new Date().toISOString()
+          } as Document;
+        }
+      });
+
+      return {
+        success: true,
+        data: mappedDocuments
+      };
+    } catch (mapError) {
+      console.error('Error mapping documents:', mapError);
+      return {
+        success: false,
+        error: 'Failed to process document data'
       };
     }
   } catch (error) {
@@ -130,15 +91,17 @@ export function getDocumentsFromDb(
 }
 
 // Get a single document by ID
-export function getDocumentFromDb(id: string, tenantId: string) {
+export async function getDocumentFromDb(id: string, tenantId: string = 'org1') {
   try {
-    const db = getDb();
-    const document = db.prepare(`
-      SELECT * FROM documents 
-      WHERE id = ? AND tenant_id = ?
-    `).get(id, tenantId);
+    const { data: document, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
     
-    if (!document) {
+    if (error) {
+      console.error('Error getting document:', error);
       return {
         success: false,
         error: 'Document not found'
@@ -159,9 +122,9 @@ export function getDocumentFromDb(id: string, tenantId: string) {
 }
 
 // Create a new document
-export function createDocumentInDb(
+export async function createDocumentInDb(
   document: Omit<Document, 'id' | 'createdAt' | 'updatedAt'>,
-  tenantId: string
+  tenantId: string = 'org1'
 ) {
   try {
     if (!document.title) {
@@ -173,36 +136,6 @@ export function createDocumentInDb(
     }
 
     console.log(`Creating document "${document.title}" in tenant ${tenantId}`);
-
-    const db = getDb();
-    if (!db) {
-      console.error('Failed to get database connection');
-      return {
-        success: false,
-        error: 'Database connection error'
-      };
-    }
-
-    // Verify the documents table exists
-    try {
-      const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='documents'").get();
-      if (!tableCheck) {
-        console.error('Documents table does not exist');
-        return {
-          success: false,
-          error: 'Documents table does not exist in database'
-        };
-      }
-    } catch (tableError) {
-      console.error('Error checking for documents table:', tableError);
-      return {
-        success: false,
-        error: 'Failed to verify schema'
-      };
-    }
-
-    const now = new Date().toISOString();
-    const id = crypto.randomUUID();
 
     // Format content as needed
     let contentToStore;
@@ -218,59 +151,32 @@ export function createDocumentInDb(
       };
     }
 
-    console.log(`Inserting document with ID: ${id}`);
+    const { data, error } = await supabase
+      .from('documents')
+      .insert({
+        title: document.title,
+        content: contentToStore,
+        feature_id: document.featureId || null,
+        release_id: document.releaseId || null,
+        tenant_id: tenantId
+      })
+      .select()
+      .single();
 
-    try {
-      db.prepare(`
-        INSERT INTO documents (
-          id,
-          title,
-          content,
-          featureId,
-          releaseId,
-          created_at,
-          updated_at,
-          tenant_id
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id,
-        document.title,
-        contentToStore,
-        document.featureId || null,
-        document.releaseId || null,
-        now,
-        now,
-        tenantId
-      );
-
-      console.log(`Document inserted successfully with ID: ${id}`);
-
-      return {
-        success: true,
-        data: {
-          id,
-          title: document.title,
-          content: document.content,
-          featureId: document.featureId,
-          releaseId: document.releaseId,
-          createdAt: now,
-          updatedAt: now,
-          tenantId
-        }
-      };
-    } catch (insertError) {
-      console.error('Error inserting document:', insertError);
-      // Get more specific error message from the SQLite error
-      const errorMessage = insertError instanceof Error
-        ? insertError.message
-        : 'Unknown database error';
-
+    if (error) {
+      console.error('Error inserting document:', error);
       return {
         success: false,
-        error: `Database error: ${errorMessage}`
+        error: `Database error: ${error.message}`
       };
     }
+
+    console.log(`Document inserted successfully with ID: ${data.id}`);
+
+    return {
+      success: true,
+      data: mapDocumentFromDb(data)
+    };
   } catch (error) {
     console.error('Error creating document:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -282,70 +188,70 @@ export function createDocumentInDb(
 }
 
 // Update a document
-export function updateDocumentInDb(
+export async function updateDocumentInDb(
   id: string,
   updates: Partial<Omit<Document, 'id' | 'createdAt' | 'updatedAt'>>,
-  tenantId: string
+  tenantId: string = 'org1'
 ) {
   try {
-    const db = getDb();
-    const now = new Date().toISOString();
-    
     // First, check if document exists and belongs to tenant
-    const existing = db.prepare(`
-      SELECT id FROM documents WHERE id = ? AND tenant_id = ?
-    `).get(id, tenantId);
+    const { data: existing, error: checkError } = await supabase
+      .from('documents')
+      .select('id')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
     
-    if (!existing) {
+    if (checkError || !existing) {
       return {
         success: false,
         error: 'Document not found or access denied'
       };
     }
     
-    // Build dynamic update query based on provided fields
-    const updateFields: string[] = ['updated_at = ?'];
-    const updateValues: any[] = [now];
+    // Build update object
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
     
     if (updates.title !== undefined) {
-      updateFields.push('title = ?');
-      updateValues.push(updates.title);
+      updateData.title = updates.title;
     }
     
     if (updates.content !== undefined) {
-      updateFields.push('content = ?');
-      updateValues.push(
-        typeof updates.content === 'string' 
-          ? updates.content 
-          : JSON.stringify(updates.content)
-      );
+      updateData.content = typeof updates.content === 'string' 
+        ? updates.content 
+        : JSON.stringify(updates.content);
     }
     
     if (updates.featureId !== undefined) {
-      updateFields.push('featureId = ?');
-      updateValues.push(updates.featureId || null);
+      updateData.feature_id = updates.featureId || null;
     }
     
     if (updates.releaseId !== undefined) {
-      updateFields.push('releaseId = ?');
-      updateValues.push(updates.releaseId || null);
+      updateData.release_id = updates.releaseId || null;
     }
     
-    // Add ID and tenantId to the values array for the WHERE clause
-    updateValues.push(id, tenantId);
+    const { data, error } = await supabase
+      .from('documents')
+      .update(updateData)
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
     
-    const query = `
-      UPDATE documents
-      SET ${updateFields.join(', ')}
-      WHERE id = ? AND tenant_id = ?
-    `;
+    if (error) {
+      console.error('Error updating document:', error);
+      return {
+        success: false,
+        error: 'Failed to update document'
+      };
+    }
     
-    db.prepare(query).run(...updateValues);
-    
-    // Fetch the updated document
-    const result = getDocumentFromDb(id, tenantId);
-    
-    return result;
+    return {
+      success: true,
+      data: mapDocumentFromDb(data)
+    };
   } catch (error) {
     console.error('Error updating document:', error);
     return {
@@ -356,26 +262,36 @@ export function updateDocumentInDb(
 }
 
 // Delete a document
-export function deleteDocumentFromDb(id: string, tenantId: string) {
+export async function deleteDocumentFromDb(id: string, tenantId: string = 'org1') {
   try {
-    const db = getDb();
-    
     // First, check if document exists and belongs to tenant
-    const existing = db.prepare(`
-      SELECT id FROM documents WHERE id = ? AND tenant_id = ?
-    `).get(id, tenantId);
+    const { data: existing, error: checkError } = await supabase
+      .from('documents')
+      .select('id')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
     
-    if (!existing) {
+    if (checkError || !existing) {
       return {
         success: false,
         error: 'Document not found or access denied'
       };
     }
     
-    db.prepare(`
-      DELETE FROM documents
-      WHERE id = ? AND tenant_id = ?
-    `).run(id, tenantId);
+    const { error } = await supabase
+      .from('documents')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      console.error('Error deleting document:', error);
+      return {
+        success: false,
+        error: 'Failed to delete document'
+      };
+    }
     
     return {
       success: true
@@ -424,8 +340,8 @@ function mapDocumentFromDb(row: any): Document {
     id: row.id,
     title: row.title || 'Untitled Document',
     content: parsedContent,
-    featureId: row.featureId,
-    releaseId: row.releaseId,
+    featureId: row.feature_id,
+    releaseId: row.release_id,
     createdAt: row.created_at || new Date().toISOString(),
     updatedAt: row.updated_at || new Date().toISOString(),
     tenantId: row.tenant_id

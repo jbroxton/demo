@@ -51,7 +51,7 @@ export function FeatureQueryTabContent({
   selectedInterfaceId
 }: FeatureTabContentProps) {
   // Tabs query hook
-  const { updateTabTitle, closeTab, updateNewTabToSavedItem, openTab } = useTabsQuery();
+  const { updateTabTitle, closeTab, updateNewTabToSavedItem, openTab, updateTab } = useTabsQuery();
 
   // State hooks - declare ALL hooks at the top before any conditional logic
   const [isClient, setIsClient] = useState(false);
@@ -267,7 +267,10 @@ export function FeatureQueryTabContent({
         description: descriptionValue,
         priority: priorityValue,
         interfaceId: interfaceId,
-        showRequirements: true
+        showRequirements: true,
+        isSaved: false,
+        savedAt: null,
+        tenantId: 'org1'
       };
 
       const savedFeature = await featuresQuery.addFeature(newFeatureData);

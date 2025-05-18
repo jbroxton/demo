@@ -20,7 +20,9 @@ export function useRequirementsQuery() {
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`)
       }
-      return response.json()
+      const result = await response.json()
+      // API returns { success: boolean, data: Requirement[] }
+      return result.data || []
     },
   })
 
@@ -33,7 +35,8 @@ export function useRequirementsQuery() {
         if (!response.ok) {
           throw new Error(`API responded with status: ${response.status}`)
         }
-        return response.json()
+        const result = await response.json()
+        return result.data || []
       },
     })
   }
@@ -47,7 +50,8 @@ export function useRequirementsQuery() {
         if (!response.ok) {
           throw new Error(`API responded with status: ${response.status}`)
         }
-        return response.json()
+        const result = await response.json()
+        return result.data || []
       },
     })
   }
@@ -67,7 +71,8 @@ export function useRequirementsQuery() {
         throw new Error(`API responded with status: ${response.status}`)
       }
       
-      return response.json()
+      const result = await response.json()
+      return result.data || result
     },
     onSuccess: (newRequirement) => {
       // Update cache with the new requirement
@@ -108,7 +113,8 @@ export function useRequirementsQuery() {
         throw new Error(`API responded with status: ${response.status}`)
       }
       
-      return response.json()
+      const result = await response.json()
+      return result.data || result
     },
     onSuccess: (_, variables) => {
       // Invalidate queries to refresh data

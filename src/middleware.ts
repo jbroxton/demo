@@ -10,6 +10,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/debug-auth") || // Debug endpoint
     pathname === "/signin" ||
     pathname === "/error" ||
     pathname === "/" || // Explicitly allow home page

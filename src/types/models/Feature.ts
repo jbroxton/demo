@@ -21,4 +21,8 @@ export type Feature = {
   releaseId?: string;
   releaseName?: string;
   tenantId?: string;
+  
+  // Save state tracking
+  isSaved: boolean;
+  savedAt?: string | null;
 };

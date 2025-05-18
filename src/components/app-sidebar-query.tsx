@@ -14,7 +14,8 @@ import {
   Rocket,
   Map,
   LogOut,
-  Puzzle
+  Puzzle,
+  Plus
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
@@ -183,24 +184,42 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
         <ul className="flex flex-col gap-1">
           {goalsData.map((item) => (
             <li key={item.name} data-nav-item={item.name.toLowerCase()}>
-              <button
-                className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
-                onClick={() => {
-                  if (item.name === 'Roadmap') {
-                    openTab({
-                      title: 'Roadmaps',
-                      type: 'roadmap',
-                      itemId: 'roadmaps'
-                    });
-                  }
-                }}
-                title={item.name}
-                data-action="navigate"
-                data-nav-target={item.name.toLowerCase()}
-              >
-                <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
-                {!collapsed && <span>{item.name}</span>}
-              </button>
+              {item.name === 'Roadmap' ? (
+                <button
+                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
+                  onClick={async () => {
+                    alert('Roadmap button clicked!');
+                    console.log('Roadmap button clicked directly');
+                    try {
+                      await openTab({
+                        title: 'Roadmaps',
+                        type: 'roadmap',
+                        itemId: '00000000-0000-0000-0000-000000000001',
+                        hasChanges: false
+                      });
+                      console.log('Tab opened successfully');
+                    } catch (error) {
+                      console.error('Error opening tab:', error);
+                    }
+                  }}
+                  title={item.name}
+                  data-action="navigate"
+                  data-nav-target={item.name.toLowerCase()}
+                >
+                  <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
+                  {!collapsed && <span>{item.name}</span>}
+                </button>
+              ) : (
+                <button
+                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
+                  title={item.name}
+                  data-action="navigate"
+                  data-nav-target={item.name.toLowerCase()}
+                >
+                  <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
+                  {!collapsed && <span>{item.name}</span>}
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -211,11 +230,20 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
         className="flex items-center px-4 py-2 border-t border-b border-[#232326]"
         data-section="products-header">
         {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow">Products</span>}
-        <EntityCreator
-          entityType="product"
-          iconOnly={true}
-          buttonClassName={`${collapsed ? 'mx-auto' : ''} h-5 w-5 rounded-sm hover:bg-[#232326]`}
-        />
+        <button
+          className={`${collapsed ? 'mx-auto' : ''} h-5 w-5 rounded-sm hover:bg-[#232326] flex items-center justify-center`}
+          onClick={() => {
+            console.log('Direct product button clicked');
+            openTab({
+              title: 'New Product',
+              type: 'product',
+              itemId: crypto.randomUUID(),
+              hasChanges: false
+            });
+          }}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
       </div>
       
       {/* Products tree */}
@@ -263,6 +291,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                           title: product.name,
                           type: 'product',
                           itemId: product.id,
+                          hasChanges: false
                         })}
                         title={product.name}
                         data-action="open-tab"
@@ -331,6 +360,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                         title: interface_.name,
                                         type: 'interface',
                                         itemId: interface_.id,
+                                        hasChanges: false
                                       })}
                                     >
                                       <Layers className="h-4 w-4 text-muted-foreground" />
@@ -386,6 +416,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                       title: feature.name,
                                                       type: 'feature',
                                                       itemId: feature.id,
+                                                      hasChanges: false
                                                     })}
                                                   >
                                                     <Puzzle className="h-4 w-4 text-muted-foreground" />
@@ -419,6 +450,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                               title: release.name,
                                                               type: 'release',
                                                               itemId: release.id,
+                                                              hasChanges: false
                                                             })}
                                                           >
                                                             <Calendar className="h-4 w-4 text-muted-foreground" />

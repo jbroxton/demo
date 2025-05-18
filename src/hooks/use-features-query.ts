@@ -16,11 +16,18 @@ export function useFeaturesQuery() {
   const { data: features = [], isLoading, error } = useQuery<Feature[]>({
     queryKey: [FEATURES_QUERY_KEY],
     queryFn: async () => {
-      const response = await fetch('/api/features-db')
+      const response = await fetch('/api/features-db', {
+        credentials: 'include'
+      })
       if (!response.ok) {
+        console.error(`Features API error: ${response.status} ${response.statusText}`)
+        const errorData = await response.text()
+        console.error('Features API error response:', errorData)
         throw new Error(`API responded with status: ${response.status}`)
       }
-      return response.json()
+      const result = await response.json()
+      // API returns { success: boolean, data: Feature[] }
+      return result.data || []
     },
   })
 
@@ -42,6 +49,7 @@ export function useFeaturesQuery() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(feature),
       })
       
@@ -49,7 +57,9 @@ export function useFeaturesQuery() {
         throw new Error(`API responded with status: ${response.status}`)
       }
       
-      return response.json()
+      const result = await response.json()
+      // API returns { success: boolean, data: Feature }
+      return result.data
     },
     onSuccess: (newFeature) => {
       // Update cache with the new feature

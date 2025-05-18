@@ -1,11 +1,5 @@
-import { getDb } from './db.server';
+import { supabase } from './supabase';
 import { EntityApproval } from '@/types/models';
-import { nanoid } from 'nanoid';
-import { createApprovalStagesTable } from './approval-stages-db';
-import { createApprovalStatusesTable } from './approval-statuses-db';
-
-// Get db instance
-const db = getDb();
 
 // Roadmap status constants
 export const ROADMAP_STATUS = {
@@ -18,90 +12,30 @@ export const ROADMAP_STATUS = {
 };
 
 /**
- * Create entity approvals table if it doesn't exist
- */
-export async function createEntityApprovalsTable() {
-  // Ensure dependent tables exist
-  await createApprovalStagesTable();
-  await createApprovalStatusesTable();
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS entity_approvals (
-      id TEXT PRIMARY KEY,
-      entity_id TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
-      stage_id TEXT NOT NULL,
-      status_id TEXT NOT NULL,
-      approver TEXT,
-      comments TEXT,
-      roadmap_status TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY (stage_id) REFERENCES approval_stages(id),
-      FOREIGN KEY (status_id) REFERENCES approval_statuses(id)
-    )
-  `);
-
-  // Create index for faster lookups
-  await db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_entity_approvals_entity
-    ON entity_approvals(entity_id, entity_type)
-  `);
-
-  // Check if roadmap_status column exists, add it if not
-  try {
-    const columnCheck = db.prepare(`
-      SELECT roadmap_status FROM entity_approvals LIMIT 1
-    `);
-
-    try {
-      columnCheck.get();
-    } catch (error) {
-      // If an error occurs, the column doesn't exist - add it
-      console.log('Adding roadmap_status column to entity_approvals table');
-      await db.exec(`
-        ALTER TABLE entity_approvals ADD COLUMN roadmap_status TEXT
-      `);
-    }
-  } catch (error) {
-    console.error('Error checking for roadmap_status column:', error);
-  }
-}
-
-/**
  * Get approvals by entity
  */
 export async function getApprovalsByEntity(
   entityId: string,
-  entityType: 'feature' | 'release'
+  entityType: 'feature' | 'release',
+  tenantId: string = 'org1'
 ): Promise<EntityApproval[]> {
   try {
-    await createEntityApprovalsTable();
+    console.log(`Fetching approvals for ${entityType} with ID: ${entityId} for tenant: ${tenantId}`);
 
-    console.log(`Fetching approvals for ${entityType} with ID: ${entityId}`);
+    const { data, error } = await supabase
+      .from('entity_approvals')
+      .select('*')
+      .eq('entity_id', entityId)
+      .eq('entity_type', entityType);
 
-    // Use prepare pattern which is more reliable
-    const query = db.prepare(`
-      SELECT
-        id,
-        entity_id,
-        entity_type,
-        stage_id,
-        status_id,
-        approver,
-        comments,
-        roadmap_status,
-        created_at,
-        updated_at
-      FROM entity_approvals
-      WHERE entity_id = ? AND entity_type = ?
-    `);
+    if (error) {
+      console.error(`Error retrieving approvals for ${entityType} with ID: ${entityId}`, error);
+      return [];
+    }
 
-    const approvals = query.all(entityId, entityType) as EntityApproval[];
+    console.log(`Retrieved ${data?.length || 0} approvals`);
 
-    console.log(`Retrieved ${approvals?.length || 0} approvals`);
-
-    return approvals || [];
+    return data || [];
   } catch (error) {
     console.error(`Error retrieving approvals for ${entityType} with ID: ${entityId}`, error);
     return [];
@@ -111,26 +45,26 @@ export async function getApprovalsByEntity(
 /**
  * Get approval by ID
  */
-export async function getApprovalById(id: string): Promise<EntityApproval | null> {
-  await createEntityApprovalsTable();
+export async function getApprovalById(id: string, tenantId: string = 'org1'): Promise<EntityApproval | null> {
+  try {
+    console.log(`Fetching approval with ID: ${id} for tenant: ${tenantId}`);
+    
+    const { data, error } = await supabase
+      .from('entity_approvals')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  const approval = db.prepare(`
-    SELECT
-      id,
-      entity_id,
-      entity_type,
-      stage_id,
-      status_id,
-      approver,
-      comments,
-      roadmap_status,
-      created_at,
-      updated_at
-    FROM entity_approvals
-    WHERE id = ?
-  `).get(id) as EntityApproval | undefined;
+    if (error) {
+      console.error(`Error retrieving approval with ID: ${id}`, error);
+      return null;
+    }
 
-  return approval || null;
+    return data;
+  } catch (error) {
+    console.error(`Error retrieving approval with ID: ${id}`, error);
+    return null;
+  }
 }
 
 /**
@@ -138,89 +72,103 @@ export async function getApprovalById(id: string): Promise<EntityApproval | null
  * If an approval already exists for the entity/stage combination, it will be updated
  */
 export async function createOrUpdateEntityApproval(
-  approvalData: Partial<EntityApproval>
-): Promise<EntityApproval> {
-  await createEntityApprovalsTable();
+  approvalData: Partial<EntityApproval>,
+  tenantId: string = 'org1'
+): Promise<EntityApproval | null> {
+  try {
+    if (!approvalData.entity_id || !approvalData.entity_type || !approvalData.stage_id || !approvalData.status_id) {
+      throw new Error('Missing required approval data');
+    }
 
-  if (!approvalData.entity_id || !approvalData.entity_type || !approvalData.stage_id || !approvalData.status_id) {
-    throw new Error('Missing required approval data');
-  }
+    // Check if approval already exists for this entity/stage
+    const { data: existingApproval, error: checkError } = await supabase
+      .from('entity_approvals')
+      .select('id')
+      .eq('entity_id', approvalData.entity_id)
+      .eq('entity_type', approvalData.entity_type)
+      .eq('stage_id', approvalData.stage_id)
+      .single();
 
-  const now = new Date().toISOString();
+    if (existingApproval && !checkError) {
+      // Update existing approval
+      const updateData: any = {
+        status_id: approvalData.status_id,
+        approver: approvalData.approver || null,
+        comments: approvalData.comments || null,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (approvalData.roadmap_status !== undefined) {
+        updateData.roadmap_status = approvalData.roadmap_status;
+      }
+      
+      const { data, error } = await supabase
+        .from('entity_approvals')
+        .update(updateData)
+        .eq('id', existingApproval.id)
+        .select()
+        .single();
 
-  // Check if approval already exists for this entity/stage
-  const existingApproval = db.prepare(`
-    SELECT id FROM entity_approvals
-    WHERE entity_id = ? AND entity_type = ? AND stage_id = ?
-  `).get(approvalData.entity_id, approvalData.entity_type, approvalData.stage_id) as EntityApproval | undefined;
+      if (error) {
+        console.error('Error updating approval:', error);
+        return null;
+      }
 
-  if (existingApproval) {
-    // Update existing approval
-    await db.prepare(`
-      UPDATE entity_approvals
-      SET
-        status_id = ?,
-        approver = ?,
-        comments = ?,
-        roadmap_status = ?,
-        updated_at = ?
-      WHERE id = ?
-    `).run(
-      approvalData.status_id,
-      approvalData.approver || null,
-      approvalData.comments || null,
-      approvalData.roadmap_status || null,
-      now,
-      existingApproval.id
-    );
+      return data;
+    } else {
+      // Create new approval
+      const insertData: any = {
+        entity_id: approvalData.entity_id,
+        entity_type: approvalData.entity_type,
+        stage_id: approvalData.stage_id,
+        status_id: approvalData.status_id,
+        approver: approvalData.approver || null,
+        comments: approvalData.comments || null
+      };
+      
+      if (approvalData.roadmap_status !== undefined) {
+        insertData.roadmap_status = approvalData.roadmap_status;
+      }
+      
+      const { data, error } = await supabase
+        .from('entity_approvals')
+        .insert(insertData)
+        .select()
+        .single();
 
-    return getApprovalById(existingApproval.id) as Promise<EntityApproval>;
-  } else {
-    // Create new approval
-    const id = approvalData.id || nanoid();
+      if (error) {
+        console.error('Error creating approval:', error);
+        return null;
+      }
 
-    await db.prepare(`
-      INSERT INTO entity_approvals (
-        id,
-        entity_id,
-        entity_type,
-        stage_id,
-        status_id,
-        approver,
-        comments,
-        roadmap_status,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      approvalData.entity_id,
-      approvalData.entity_type,
-      approvalData.stage_id,
-      approvalData.status_id,
-      approvalData.approver || null,
-      approvalData.comments || null,
-      approvalData.roadmap_status || null,
-      now,
-      now
-    );
-
-    return getApprovalById(id) as Promise<EntityApproval>;
+      return data;
+    }
+  } catch (error) {
+    console.error('Error in createOrUpdateEntityApproval:', error);
+    return null;
   }
 }
 
 /**
  * Delete entity approval
  */
-export async function deleteEntityApproval(id: string): Promise<boolean> {
-  await createEntityApprovalsTable();
-  
-  const result = db.prepare(`
-    DELETE FROM entity_approvals 
-    WHERE id = ?
-  `).run(id);
-  
-  return result.changes > 0;
+export async function deleteEntityApproval(id: string, tenantId: string = 'org1'): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('entity_approvals')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting approval:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting approval:', error);
+    return false;
+  }
 }
 
 /**
@@ -228,16 +176,26 @@ export async function deleteEntityApproval(id: string): Promise<boolean> {
  */
 export async function deleteEntityApprovals(
   entityId: string, 
-  entityType: 'feature' | 'release'
+  entityType: 'feature' | 'release',
+  tenantId: string = 'org1'
 ): Promise<boolean> {
-  await createEntityApprovalsTable();
-  
-  const result = db.prepare(`
-    DELETE FROM entity_approvals 
-    WHERE entity_id = ? AND entity_type = ?
-  `).run(entityId, entityType);
-  
-  return result.changes > 0;
+  try {
+    const { error } = await supabase
+      .from('entity_approvals')
+      .delete()
+      .eq('entity_id', entityId)
+      .eq('entity_type', entityType);
+
+    if (error) {
+      console.error('Error deleting entity approvals:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting entity approvals:', error);
+    return false;
+  }
 }
 
 /**
@@ -246,47 +204,60 @@ export async function deleteEntityApprovals(
  */
 export async function initializeEntityApprovals(
   entityId: string,
-  entityType: 'feature' | 'release'
+  entityType: 'feature' | 'release',
+  tenantId: string = 'org1'
 ): Promise<EntityApproval[]> {
-  await createEntityApprovalsTable();
-
-  // Get all stages
-  const stages = db.prepare(`
-    SELECT id FROM approval_stages ORDER BY type, order_num
-  `).all() as {id: string}[];
-
-  // Get "Not Started" status
-  const notStartedStatus = db.prepare(`
-    SELECT id FROM approval_statuses WHERE name = 'Not Started' LIMIT 1
-  `).get() as {id: string};
-
-  if (!notStartedStatus) {
-    throw new Error('Default "Not Started" status not found');
-  }
-
-  // Default roadmap status based on entity type - use undefined instead of null
-  const defaultRoadmapStatus = entityType === 'feature' ? ROADMAP_STATUS.BACKLOG : undefined;
-
-  // Create approvals in a transaction
-  db.exec('BEGIN TRANSACTION');
   try {
-    for (const stage of stages) {
-      await createOrUpdateEntityApproval({
+    // Get all stages
+    const { data: stages, error: stagesError } = await supabase
+      .from('approval_stages')
+      .select('id')
+      .order('type')
+      .order('order_num');
+
+    if (stagesError || !stages) {
+      console.error('Error fetching approval stages:', stagesError);
+      return [];
+    }
+
+    // Get "Not Started" status
+    const { data: notStartedStatus, error: statusError } = await supabase
+      .from('approval_statuses')
+      .select('id')
+      .eq('name', 'Not Started')
+      .single();
+
+    if (statusError || !notStartedStatus) {
+      throw new Error('Default "Not Started" status not found');
+    }
+
+    // Default roadmap status based on entity type
+    const defaultRoadmapStatus = entityType === 'feature' ? ROADMAP_STATUS.BACKLOG : null;
+
+    // Create approvals for each stage
+    const promises = stages.map(stage => {
+      const approvalData: Partial<EntityApproval> = {
         entity_id: entityId,
         entity_type: entityType,
         stage_id: stage.id,
-        status_id: notStartedStatus.id,
-        roadmap_status: defaultRoadmapStatus
-      });
+        status_id: notStartedStatus.id
+      };
+      
+      if (defaultRoadmapStatus) {
+        approvalData.roadmap_status = defaultRoadmapStatus;
+      }
+      
+      return createOrUpdateEntityApproval(approvalData, tenantId);
     }
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    console.error('Error initializing entity approvals:', error);
-    throw error;
-  }
+    );
 
-  return getApprovalsByEntity(entityId, entityType);
+    await Promise.all(promises);
+
+    return getApprovalsByEntity(entityId, entityType, tenantId);
+  } catch (error) {
+    console.error('Error initializing entity approvals:', error);
+    return [];
+  }
 }
 
 /**
@@ -294,22 +265,25 @@ export async function initializeEntityApprovals(
  * This sets a default roadmap status for all features that don't have one yet
  */
 export async function initializeAllFeatureRoadmapStatuses(
-  defaultStatus: string = ROADMAP_STATUS.BACKLOG
+  defaultStatus: string = ROADMAP_STATUS.BACKLOG,
+  tenantId: string = 'org1'
 ): Promise<boolean> {
   try {
-    await createEntityApprovalsTable();
-
-    console.log(`Initializing roadmap status for all features to: ${defaultStatus}`);
+    console.log(`Initializing roadmap status for all features to: ${defaultStatus} for tenant: ${tenantId}`);
 
     // Update all feature approvals that don't have a roadmap status yet
-    const result = db.prepare(`
-      UPDATE entity_approvals
-      SET roadmap_status = ?
-      WHERE entity_type = 'feature' AND (roadmap_status IS NULL OR roadmap_status = '')
-    `).run(defaultStatus);
+    const { error } = await supabase
+      .from('entity_approvals')
+      .update({ roadmap_status: defaultStatus })
+      .eq('entity_type', 'feature')
+      .or('roadmap_status.is.null,roadmap_status.eq.');
 
-    console.log(`Updated ${result.changes} feature approvals with default roadmap status`);
-    return result.changes > 0;
+    if (error) {
+      console.error('Error initializing feature roadmap statuses:', error);
+      return false;
+    }
+
+    return true;
   } catch (error) {
     console.error('Error initializing feature roadmap statuses:', error);
     return false;
@@ -321,24 +295,28 @@ export async function initializeAllFeatureRoadmapStatuses(
  */
 export async function updateApprovalWithRoadmapStatus(
   approvalId: string,
-  roadmapStatus: string
+  roadmapStatus: string,
+  tenantId: string = 'org1'
 ): Promise<EntityApproval | null> {
   try {
-    await createEntityApprovalsTable();
+    console.log(`Updating approval ${approvalId} with roadmap status: ${roadmapStatus} for tenant: ${tenantId}`);
 
-    console.log(`Updating approval ${approvalId} with roadmap status: ${roadmapStatus}`);
+    const { data, error } = await supabase
+      .from('entity_approvals')
+      .update({
+        roadmap_status: roadmapStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', approvalId)
+      .select()
+      .single();
 
-    const now = new Date().toISOString();
+    if (error) {
+      console.error(`Error updating roadmap status for approval ${approvalId}:`, error);
+      return null;
+    }
 
-    // Update the approval
-    await db.prepare(`
-      UPDATE entity_approvals
-      SET roadmap_status = ?, updated_at = ?
-      WHERE id = ?
-    `).run(roadmapStatus, now, approvalId);
-
-    // Return the updated approval
-    return getApprovalById(approvalId);
+    return data;
   } catch (error) {
     console.error(`Error updating roadmap status for approval ${approvalId}:`, error);
     return null;
@@ -351,24 +329,28 @@ export async function updateApprovalWithRoadmapStatus(
 export async function bulkUpdateApprovalsWithRoadmapStatus(
   entityId: string,
   entityType: 'feature' | 'release',
-  roadmapStatus: string
+  roadmapStatus: string,
+  tenantId: string = 'org1'
 ): Promise<EntityApproval[]> {
   try {
-    await createEntityApprovalsTable();
+    console.log(`Updating all approvals for ${entityType} ${entityId} with roadmap status: ${roadmapStatus} for tenant: ${tenantId}`);
 
-    console.log(`Updating all approvals for ${entityType} ${entityId} with roadmap status: ${roadmapStatus}`);
+    const { error } = await supabase
+      .from('entity_approvals')
+      .update({
+        roadmap_status: roadmapStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('entity_id', entityId)
+      .eq('entity_type', entityType);
 
-    const now = new Date().toISOString();
-
-    // Update all approvals for this entity
-    await db.prepare(`
-      UPDATE entity_approvals
-      SET roadmap_status = ?, updated_at = ?
-      WHERE entity_id = ? AND entity_type = ?
-    `).run(roadmapStatus, now, entityId, entityType);
+    if (error) {
+      console.error(`Error bulk updating roadmap status for ${entityType} ${entityId}:`, error);
+      return [];
+    }
 
     // Return the updated approvals
-    return getApprovalsByEntity(entityId, entityType);
+    return getApprovalsByEntity(entityId, entityType, tenantId);
   } catch (error) {
     console.error(`Error bulk updating roadmap status for ${entityType} ${entityId}:`, error);
     return [];
@@ -379,24 +361,28 @@ export async function bulkUpdateApprovalsWithRoadmapStatus(
  * Delete roadmap status from an approval
  */
 export async function deleteApprovalWithRoadmapStatus(
-  approvalId: string
+  approvalId: string,
+  tenantId: string = 'org1'
 ): Promise<EntityApproval | null> {
   try {
-    await createEntityApprovalsTable();
+    console.log(`Removing roadmap status from approval ${approvalId} for tenant: ${tenantId}`);
 
-    console.log(`Removing roadmap status from approval ${approvalId}`);
+    const { data, error } = await supabase
+      .from('entity_approvals')
+      .update({
+        roadmap_status: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', approvalId)
+      .select()
+      .single();
 
-    const now = new Date().toISOString();
+    if (error) {
+      console.error(`Error removing roadmap status for approval ${approvalId}:`, error);
+      return null;
+    }
 
-    // Update the approval to remove roadmap status
-    await db.prepare(`
-      UPDATE entity_approvals
-      SET roadmap_status = NULL, updated_at = ?
-      WHERE id = ?
-    `).run(now, approvalId);
-
-    // Return the updated approval
-    return getApprovalById(approvalId);
+    return data;
   } catch (error) {
     console.error(`Error removing roadmap status for approval ${approvalId}:`, error);
     return null;

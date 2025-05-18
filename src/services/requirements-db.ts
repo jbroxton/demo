@@ -1,21 +1,52 @@
 // Database service for requirements
-import { getDb } from './db.server';
+import { supabase } from './supabase';
 import { Requirement } from '@/types/models';
 
-// Generate a simple ID - matching the same method used in Zustand store
-const generateId = () => Math.random().toString(36).substring(2, 9);
+// Map database rows to Requirement type
+const mapRequirement = (row: any): Requirement => {
+  // Map database priority values back to frontend values
+  const priorityMap: Record<string, 'High' | 'Med' | 'Low'> = {
+    'high': 'High',
+    'medium': 'Med',
+    'low': 'Low'
+  };
+  
+  const frontendPriority = priorityMap[row.priority?.toLowerCase()] || 'Med';
+  
+  return {
+    id: row.id,
+    name: row.name,
+    featureId: row.feature_id,
+    releaseId: row.release_id,
+    owner: row.owner,
+    description: row.description,
+    priority: frontendPriority,
+    cuj: row.cuj,
+    acceptanceCriteria: row.acceptance_criteria,
+    tenantId: row.tenant_id,
+    isSaved: row.is_saved ?? true,
+    savedAt: row.saved_at
+  };
+};
 
 /**
  * Get all requirements from the database
  */
-export async function getRequirementsFromDb() {
-  const db = getDb();
-  
+export async function getRequirementsFromDb(tenantId: string) {
   try {
-    // Fetch all requirements
-    const requirements = db.prepare('SELECT * FROM requirements').all() as Requirement[];
-    
-    return { success: true, data: requirements };
+    const { data, error } = await supabase
+      .from('requirements')
+      .select('*')
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapRequirement) 
+    };
   } catch (error) {
     console.error('Error fetching requirements:', error);
     return { 
@@ -28,17 +59,26 @@ export async function getRequirementsFromDb() {
 /**
  * Get a requirement by ID
  */
-export async function getRequirementByIdFromDb(id: string) {
-  const db = getDb();
-  
+export async function getRequirementByIdFromDb(id: string, tenantId: string) {
   try {
-    const requirement = db.prepare('SELECT * FROM requirements WHERE id = ?').get(id) as Requirement | undefined;
-    
-    if (!requirement) {
-      return { success: false, error: 'Requirement not found' };
+    const { data, error } = await supabase
+      .from('requirements')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Requirement not found' };
+      }
+      throw error;
     }
-    
-    return { success: true, data: requirement };
+
+    return { 
+      success: true, 
+      data: mapRequirement(data) 
+    };
   } catch (error) {
     console.error(`Error fetching requirement ${id}:`, error);
     return { 
@@ -51,13 +91,22 @@ export async function getRequirementByIdFromDb(id: string) {
 /**
  * Get requirements by feature ID
  */
-export async function getRequirementsByFeatureId(featureId: string) {
-  const db = getDb();
-  
+export async function getRequirementsByFeatureId(featureId: string, tenantId: string) {
   try {
-    const requirements = db.prepare('SELECT * FROM requirements WHERE featureId = ?').all(featureId) as Requirement[];
-    
-    return { success: true, data: requirements };
+    const { data, error } = await supabase
+      .from('requirements')
+      .select('*')
+      .eq('feature_id', featureId)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapRequirement) 
+    };
   } catch (error) {
     console.error(`Error fetching requirements for feature ${featureId}:`, error);
     return { 
@@ -70,13 +119,22 @@ export async function getRequirementsByFeatureId(featureId: string) {
 /**
  * Get requirements by release ID
  */
-export async function getRequirementsByReleaseId(releaseId: string) {
-  const db = getDb();
-  
+export async function getRequirementsByReleaseId(releaseId: string, tenantId: string) {
   try {
-    const requirements = db.prepare('SELECT * FROM requirements WHERE releaseId = ?').all(releaseId) as Requirement[];
-    
-    return { success: true, data: requirements };
+    const { data, error } = await supabase
+      .from('requirements')
+      .select('*')
+      .eq('release_id', releaseId)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapRequirement) 
+    };
   } catch (error) {
     console.error(`Error fetching requirements for release ${releaseId}:`, error);
     return { 
@@ -89,53 +147,69 @@ export async function getRequirementsByReleaseId(releaseId: string) {
 /**
  * Create a new requirement
  */
-export async function createRequirementInDb(requirement: Omit<Requirement, 'id'>) {
-  const db = getDb();
-  const id = generateId();
-  const tenantId = 'org1'; // Default to the first organization
-  
+export async function createRequirementInDb(requirement: Omit<Requirement, 'id' | 'tenantId'>, tenantId: string) {
   try {
     // Validate feature exists
-    const feature = db.prepare('SELECT id FROM features WHERE id = ?').get(requirement.featureId);
-    if (!feature) {
+    const { data: feature, error: featureError } = await supabase
+      .from('features')
+      .select('id')
+      .eq('id', requirement.featureId)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (featureError || !feature) {
       return { success: false, error: 'Feature not found' };
     }
     
     // Validate release exists if provided
     if (requirement.releaseId) {
-      const release = db.prepare('SELECT id FROM releases WHERE id = ?').get(requirement.releaseId);
-      if (!release) {
+      const { data: release, error: releaseError } = await supabase
+        .from('releases')
+        .select('id')
+        .eq('id', requirement.releaseId)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (releaseError || !release) {
         return { success: false, error: 'Release not found' };
       }
     }
     
-    // Insert the requirement
-    db.prepare(`
-      INSERT INTO requirements (
-        id, name, featureId, releaseId, owner, description, 
-        priority, cuj, acceptanceCriteria, tenantId
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      requirement.name,
-      requirement.featureId,
-      requirement.releaseId || null,
-      requirement.owner || null,
-      requirement.description || null,
-      requirement.priority || null,
-      requirement.cuj || null,
-      requirement.acceptanceCriteria || null,
-      tenantId
-    );
+    // Map frontend priority values to database values
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium',
+      'Low': 'low'
+    };
     
-    // Return the created requirement
+    const dbPriority = requirement.priority ? (priorityMap[requirement.priority] || requirement.priority.toLowerCase()) : null;
+    
+    // Insert the requirement
+    const { data, error } = await supabase
+      .from('requirements')
+      .insert({
+        name: requirement.name,
+        feature_id: requirement.featureId,
+        release_id: requirement.releaseId || null,
+        owner: requirement.owner || null,
+        description: requirement.description || null,
+        priority: dbPriority,
+        cuj: requirement.cuj || null,
+        acceptance_criteria: requirement.acceptanceCriteria || null,
+        tenant_id: tenantId,
+        is_saved: false,  // New entities start as unsaved
+        saved_at: null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
     return { 
       success: true, 
-      data: {
-        ...requirement,
-        id,
-        tenantId
-      }
+      data: mapRequirement(data)
     };
   } catch (error) {
     console.error('Error creating requirement:', error);
@@ -149,16 +223,18 @@ export async function createRequirementInDb(requirement: Omit<Requirement, 'id'>
 /**
  * Update requirement name
  */
-export async function updateRequirementNameInDb(id: string, name: string) {
-  const db = getDb();
-  
+export async function updateRequirementNameInDb(id: string, name: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE requirements SET name = ? WHERE id = ?').run(name, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or name unchanged' };
+    const { error } = await supabase
+      .from('requirements')
+      .update({ name })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} name:`, error);
@@ -172,17 +248,18 @@ export async function updateRequirementNameInDb(id: string, name: string) {
 /**
  * Update requirement description
  */
-export async function updateRequirementDescriptionInDb(id: string, description: string) {
-  const db = getDb();
-  
+export async function updateRequirementDescriptionInDb(id: string, description: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE requirements SET description = ? WHERE id = ?')
-      .run(description, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or description unchanged' };
+    const { error } = await supabase
+      .from('requirements')
+      .update({ description })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} description:`, error);
@@ -196,17 +273,18 @@ export async function updateRequirementDescriptionInDb(id: string, description: 
 /**
  * Update requirement owner
  */
-export async function updateRequirementOwnerInDb(id: string, owner: string) {
-  const db = getDb();
-  
+export async function updateRequirementOwnerInDb(id: string, owner: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE requirements SET owner = ? WHERE id = ?')
-      .run(owner, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or owner unchanged' };
+    const { error } = await supabase
+      .from('requirements')
+      .update({ owner })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} owner:`, error);
@@ -220,17 +298,27 @@ export async function updateRequirementOwnerInDb(id: string, owner: string) {
 /**
  * Update requirement priority
  */
-export async function updateRequirementPriorityInDb(id: string, priority: string) {
-  const db = getDb();
-  
+export async function updateRequirementPriorityInDb(id: string, priority: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE requirements SET priority = ? WHERE id = ?')
-      .run(priority, id);
+    // Map frontend priority values to database values
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium',
+      'Low': 'low'
+    };
     
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or priority unchanged' };
+    const dbPriority = priorityMap[priority] || priority.toLowerCase();
+    
+    const { error } = await supabase
+      .from('requirements')
+      .update({ priority: dbPriority })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} priority:`, error);
@@ -244,25 +332,32 @@ export async function updateRequirementPriorityInDb(id: string, priority: string
 /**
  * Update requirement release
  */
-export async function updateRequirementReleaseInDb(id: string, releaseId: string | null) {
-  const db = getDb();
-  
+export async function updateRequirementReleaseInDb(id: string, releaseId: string | null, tenantId: string) {
   try {
     // Validate release exists if provided
     if (releaseId) {
-      const release = db.prepare('SELECT id FROM releases WHERE id = ?').get(releaseId);
-      if (!release) {
+      const { data: release, error: releaseError } = await supabase
+        .from('releases')
+        .select('id')
+        .eq('id', releaseId)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (releaseError || !release) {
         return { success: false, error: 'Release not found' };
       }
     }
     
-    const result = db.prepare('UPDATE requirements SET releaseId = ? WHERE id = ?')
-      .run(releaseId, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or release unchanged' };
+    const { error } = await supabase
+      .from('requirements')
+      .update({ release_id: releaseId })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} release:`, error);
@@ -276,17 +371,18 @@ export async function updateRequirementReleaseInDb(id: string, releaseId: string
 /**
  * Update requirement CUJ (Critical User Journey)
  */
-export async function updateRequirementCujInDb(id: string, cuj: string) {
-  const db = getDb();
-  
+export async function updateRequirementCujInDb(id: string, cuj: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE requirements SET cuj = ? WHERE id = ?')
-      .run(cuj, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or CUJ unchanged' };
+    const { error } = await supabase
+      .from('requirements')
+      .update({ cuj })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} CUJ:`, error);
@@ -300,17 +396,18 @@ export async function updateRequirementCujInDb(id: string, cuj: string) {
 /**
  * Update requirement acceptance criteria
  */
-export async function updateRequirementAcceptanceCriteriaInDb(id: string, acceptanceCriteria: string) {
-  const db = getDb();
-  
+export async function updateRequirementAcceptanceCriteriaInDb(id: string, acceptanceCriteria: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE requirements SET acceptanceCriteria = ? WHERE id = ?')
-      .run(acceptanceCriteria, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Requirement not found or acceptance criteria unchanged' };
+    const { error } = await supabase
+      .from('requirements')
+      .update({ acceptance_criteria: acceptanceCriteria })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating requirement ${id} acceptance criteria:`, error);
@@ -322,22 +419,64 @@ export async function updateRequirementAcceptanceCriteriaInDb(id: string, accept
 }
 
 /**
- * Delete a requirement
+ * Mark a requirement as saved
  */
-export async function deleteRequirementFromDb(id: string) {
-  const db = getDb();
-  
+export async function markRequirementAsSavedInDb(id: string, tenantId: string) {
   try {
-    // First check if requirement exists
-    const requirement = db.prepare('SELECT id FROM requirements WHERE id = ?').get(id);
+    const { error } = await supabase
+      .from('requirements')
+      .update({ 
+        is_saved: true,
+        saved_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
     
-    if (!requirement) {
-      return { success: false, error: 'Requirement not found' };
+    if (error) {
+      throw error;
     }
     
+    return { success: true };
+  } catch (error) {
+    console.error(`Error marking requirement ${id} as saved:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Delete a requirement
+ */
+export async function deleteRequirementFromDb(id: string, tenantId: string) {
+  try {
+    // First check if requirement exists
+    const { data: existingRequirement, error: checkError } = await supabase
+      .from('requirements')
+      .select('id')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (checkError) {
+      if (checkError.code === 'PGRST116') {
+        return { success: false, error: 'Requirement not found' };
+      }
+      throw checkError;
+    }
+
     // Delete the requirement
-    db.prepare('DELETE FROM requirements WHERE id = ?').run(id);
-    
+    const { error } = await supabase
+      .from('requirements')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
     return { success: true };
   } catch (error) {
     console.error(`Error deleting requirement ${id}:`, error);

@@ -8,4 +8,7 @@ export type Release = {
   releaseDate: string; // ISO date string
   priority: 'High' | 'Med' | 'Low';
   featureId: string;
+  tenantId: string;
+  isSaved: boolean;
+  savedAt?: string | null;
 };

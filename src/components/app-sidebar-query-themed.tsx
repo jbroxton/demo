@@ -192,7 +192,8 @@ export function AppSidebarQueryThemed({ ...props }: React.HTMLAttributes<HTMLDiv
                     openTab({
                       title: 'Roadmaps',
                       type: 'roadmap',
-                      itemId: 'roadmaps'
+                      itemId: 'roadmaps',
+                      hasChanges: false
                     });
                   }
                 }}
@@ -253,6 +254,7 @@ export function AppSidebarQueryThemed({ ...props }: React.HTMLAttributes<HTMLDiv
                             title: product.name,
                             type: 'product',
                             itemId: product.id,
+                            hasChanges: false
                           })}
                         >
                           <div className={theme.sidenavItemIcon}>
@@ -312,6 +314,7 @@ export function AppSidebarQueryThemed({ ...props }: React.HTMLAttributes<HTMLDiv
                                           title: interface_.name,
                                           type: 'interface',
                                           itemId: interface_.id,
+                                          hasChanges: false
                                         })}
                                       >
                                         <div className={theme.sidenavItemIcon}>
@@ -371,6 +374,7 @@ export function AppSidebarQueryThemed({ ...props }: React.HTMLAttributes<HTMLDiv
                                                         title: feature.name,
                                                         type: 'feature',
                                                         itemId: feature.id,
+                                                        hasChanges: false
                                                       })}
                                                     >
                                                       <div className={theme.sidenavItemIcon}>
@@ -405,6 +409,7 @@ export function AppSidebarQueryThemed({ ...props }: React.HTMLAttributes<HTMLDiv
                                                               title: release.name,
                                                               type: 'release',
                                                               itemId: release.id,
+                                                              hasChanges: false
                                                             })}
                                                           >
                                                             <div className={theme.sidenavItemIcon}>

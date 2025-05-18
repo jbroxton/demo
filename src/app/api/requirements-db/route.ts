@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { 
-  getRequirementsFromDb, 
-  getRequirementByIdFromDb,
+  getRequirementsFromDb,
+  getRequirementByIdFromDb, 
   getRequirementsByFeatureId,
   getRequirementsByReleaseId,
   createRequirementInDb, 
@@ -12,259 +12,183 @@ import {
   updateRequirementReleaseInDb,
   updateRequirementCujInDb,
   updateRequirementAcceptanceCriteriaInDb,
-  deleteRequirementFromDb
+  deleteRequirementFromDb,
+  markRequirementAsSavedInDb
 } from '@/services/requirements-db';
+import { apiResponse } from '@/utils/api-response';
+import { validateRequired } from '@/utils/api-validate';
+import { authenticatedHandler } from '@/utils/api-authenticated-handler';
 
-// GET handler for fetching requirements
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
-    const featureId = searchParams.get('featureId');
-    const releaseId = searchParams.get('releaseId');
-    
-    // If an ID is provided, get a specific requirement
-    if (id) {
-      const result = await getRequirementByIdFromDb(id);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 404 }
-        );
-      }
-      
-      return NextResponse.json(result.data);
-    }
-    
-    // If featureId is provided, get requirements for that feature
-    if (featureId) {
-      const result = await getRequirementsByFeatureId(featureId);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 500 }
-        );
-      }
-      
-      return NextResponse.json(result.data);
-    }
-    
-    // If releaseId is provided, get requirements for that release
-    if (releaseId) {
-      const result = await getRequirementsByReleaseId(releaseId);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 500 }
-        );
-      }
-      
-      return NextResponse.json(result.data);
-    }
-    
-    // Otherwise, get all requirements
-    const result = await getRequirementsFromDb();
+// GET handler
+export const GET = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  const featureId = searchParams.get('featureId');
+  const releaseId = searchParams.get('releaseId');
+  
+  // Get requirement by ID
+  if (id) {
+    const result = await getRequirementByIdFromDb(id, tenantId);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Requirement not found', 404);
     }
     
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error('Error handling GET request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return apiResponse.success(result.data);
   }
-}
+  
+  // Get requirements by feature ID
+  if (featureId) {
+    const result = await getRequirementsByFeatureId(featureId, tenantId);
+    
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to fetch requirements', 500);
+    }
+    
+    return apiResponse.success(result.data);
+  }
+  
+  // Get requirements by release ID
+  if (releaseId) {
+    const result = await getRequirementsByReleaseId(releaseId, tenantId);
+    
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to fetch requirements', 500);
+    }
+    
+    return apiResponse.success(result.data);
+  }
+  
+  // Get all requirements
+  const result = await getRequirementsFromDb(tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to fetch requirements', 500);
+  }
+  
+  return apiResponse.success(result.data);
+});
 
-// POST handler for creating requirements
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+// POST handler
+export const POST = authenticatedHandler(async (request, { tenantId, body }) => {
+  const validationError = validateRequired(body, ['name', 'featureId']);
+  if (validationError) {
+    return apiResponse.error(validationError, 400);
+  }
+  
+  const result = await createRequirementInDb({
+    name: body.name,
+    description: body.description || '',
+    featureId: body.featureId,
+    priority: body.priority || 'Med',
+    releaseId: body.releaseId,
+    owner: body.owner,
+    cuj: body.cuj,
+    acceptanceCriteria: body.acceptanceCriteria,
+    isSaved: false,  // New requirements start as unsaved
+    savedAt: null
+  }, tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to create requirement', 500);
+  }
+  
+  return apiResponse.success(result.data, 201);
+});
+
+// PATCH handler
+export const PATCH = authenticatedHandler(async (request, { tenantId, body }) => {
+  const validationError = validateRequired(body, ['id']);
+  if (validationError) {
+    return apiResponse.error(validationError, 400);
+  }
+  
+  // Handle marking as saved
+  if (body.markAsSaved === true) {
+    const result = await markRequirementAsSavedInDb(body.id, tenantId);
     
-    if (!body.name) {
-      return NextResponse.json(
-        { error: 'Requirement name is required' },
-        { status: 400 }
-      );
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to mark requirement as saved', 500);
     }
     
-    if (!body.featureId) {
-      return NextResponse.json(
-        { error: 'Feature ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    const result = await createRequirementInDb({
-      name: body.name,
-      featureId: body.featureId,
-      releaseId: body.releaseId || null,
-      owner: body.owner || null,
-      description: body.description || null,
-      priority: body.priority || null,
-      cuj: body.cuj || null,
-      acceptanceCriteria: body.acceptanceCriteria || null
+    return apiResponse.success({ 
+      success: true, 
+      id: body.id,
+      savedAt: new Date().toISOString()
     });
-    
+  }
+  
+  // Update title if provided
+  if (body.title !== undefined) {
+    const result = await updateRequirementNameInDb(body.id, body.title, tenantId);
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Failed to update requirement title', 500);
     }
-    
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error('Error handling POST request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
-
-// PATCH handler for updating requirements
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    
-    if (!body.id) {
-      return NextResponse.json(
-        { error: 'Requirement ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Update name if provided
-    if (body.name !== undefined) {
-      const nameResult = await updateRequirementNameInDb(body.id, body.name);
-      
-      if (!nameResult.success) {
-        return NextResponse.json(
-          { error: nameResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update description if provided
-    if (body.description !== undefined) {
-      const descResult = await updateRequirementDescriptionInDb(body.id, body.description);
-      
-      if (!descResult.success) {
-        return NextResponse.json(
-          { error: descResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update owner if provided
-    if (body.owner !== undefined) {
-      const ownerResult = await updateRequirementOwnerInDb(body.id, body.owner);
-      
-      if (!ownerResult.success) {
-        return NextResponse.json(
-          { error: ownerResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update priority if provided
-    if (body.priority !== undefined) {
-      const priorityResult = await updateRequirementPriorityInDb(body.id, body.priority);
-      
-      if (!priorityResult.success) {
-        return NextResponse.json(
-          { error: priorityResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update release if provided
-    if (body.releaseId !== undefined) {
-      const releaseResult = await updateRequirementReleaseInDb(body.id, body.releaseId);
-      
-      if (!releaseResult.success) {
-        return NextResponse.json(
-          { error: releaseResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update CUJ if provided
-    if (body.cuj !== undefined) {
-      const cujResult = await updateRequirementCujInDb(body.id, body.cuj);
-      
-      if (!cujResult.success) {
-        return NextResponse.json(
-          { error: cujResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update acceptance criteria if provided
-    if (body.acceptanceCriteria !== undefined) {
-      const acResult = await updateRequirementAcceptanceCriteriaInDb(body.id, body.acceptanceCriteria);
-      
-      if (!acResult.success) {
-        return NextResponse.json(
-          { error: acResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    return NextResponse.json({ success: true, id: body.id });
-  } catch (error) {
-    console.error('Error handling PATCH request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE handler for deleting requirements
-export async function DELETE(request: NextRequest) {
-  try {
-    const id = request.nextUrl.searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Requirement ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    const result = await deleteRequirementFromDb(id);
-    
+  
+  // Update description if provided
+  if (body.description !== undefined) {
+    const result = await updateRequirementDescriptionInDb(body.id, body.description, tenantId);
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Failed to update requirement description', 500);
     }
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error handling DELETE request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
+  
+  // Update owner if provided
+  if (body.owner !== undefined) {
+    const result = await updateRequirementOwnerInDb(body.id, body.owner, tenantId);
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to update requirement owner', 500);
+    }
+  }
+  
+  // Update priority if provided
+  if (body.priority !== undefined) {
+    const result = await updateRequirementPriorityInDb(body.id, body.priority, tenantId);
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to update requirement priority', 500);
+    }
+  }
+  
+  // Update release if provided
+  if (body.releaseId !== undefined) {
+    const result = await updateRequirementReleaseInDb(body.id, body.releaseId, tenantId);
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to update requirement release', 500);
+    }
+  }
+  
+  // Update CUJ if provided
+  if (body.cuj !== undefined) {
+    const result = await updateRequirementCujInDb(body.id, body.cuj, tenantId);
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to update requirement CUJ', 500);
+    }
+  }
+  
+  // Update acceptance criteria if provided
+  if (body.acceptanceCriteria !== undefined) {
+    const result = await updateRequirementAcceptanceCriteriaInDb(body.id, body.acceptanceCriteria, tenantId);
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to update requirement acceptance criteria', 500);
+    }
+  }
+  
+  return apiResponse.success({ success: true, id: body.id });
+});
+
+// DELETE handler
+export const DELETE = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  
+  if (!id) {
+    return apiResponse.error('Requirement ID is required', 400);
+  }
+  
+  const result = await deleteRequirementFromDb(id, tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to delete requirement', 500);
+  }
+  
+  return apiResponse.success({ success: true });
+});

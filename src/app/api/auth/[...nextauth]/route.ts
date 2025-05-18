@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getCookieSettings } from "../session-config";
+import { getCookieSettings } from "@/utils/auth-config";
 
 // Create the auth handler with dynamic configuration
 const handler = NextAuth({

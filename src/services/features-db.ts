@@ -1,21 +1,47 @@
 // Service for managing features in the database
-import { getDb } from './db.server';
+import { supabase } from './supabase';
 import { Feature } from '@/types/models';
 
-// Generate a simple ID - matching the same method used in the Zustand store
-const generateId = () => Math.random().toString(36).substring(2, 9);
+// Map database rows to Feature type
+const mapFeature = (row: any): Feature => {
+  // Map database priority values to frontend values
+  const priorityMap: Record<string, 'High' | 'Med' | 'Low'> = {
+    'high': 'High',
+    'medium': 'Med',
+    'low': 'Low'
+  };
+  
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || '',
+    priority: priorityMap[row.priority] || 'Med',
+    interfaceId: row.interface_id,
+    tenantId: row.tenant_id,
+    releases: [], // Virtual relationship
+    isSaved: row.is_saved ?? true,
+    savedAt: row.saved_at
+  };
+};
 
 /**
  * Get all features from the database
  */
-export async function getFeaturesFromDb() {
-  const db = getDb();
-  
+export async function getFeaturesFromDb(tenantId: string) {
   try {
-    // Fetch all features
-    const features = db.prepare('SELECT * FROM features').all() as Feature[];
-    
-    return { success: true, data: features };
+    const { data, error } = await supabase
+      .from('features')
+      .select('*')
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapFeature) 
+    };
   } catch (error) {
     console.error('Error fetching features:', error);
     return { 
@@ -28,14 +54,22 @@ export async function getFeaturesFromDb() {
 /**
  * Get features by interface ID
  */
-export async function getFeaturesByInterfaceId(interfaceId: string) {
-  const db = getDb();
-  
+export async function getFeaturesByInterfaceId(interfaceId: string, tenantId: string) {
   try {
-    const features = db.prepare('SELECT * FROM features WHERE interfaceId = ?')
-      .all(interfaceId) as Feature[];
-    
-    return { success: true, data: features };
+    const { data, error } = await supabase
+      .from('features')
+      .select('*')
+      .eq('interface_id', interfaceId)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: (data || []).map(mapFeature) 
+    };
   } catch (error) {
     console.error(`Error fetching features for interface ${interfaceId}:`, error);
     return { 
@@ -48,17 +82,26 @@ export async function getFeaturesByInterfaceId(interfaceId: string) {
 /**
  * Get a feature by ID
  */
-export async function getFeatureByIdFromDb(id: string) {
-  const db = getDb();
-  
+export async function getFeatureByIdFromDb(id: string, tenantId: string) {
   try {
-    const feature = db.prepare('SELECT * FROM features WHERE id = ?').get(id) as Feature | undefined;
-    
-    if (!feature) {
-      return { success: false, error: 'Feature not found' };
+    const { data, error } = await supabase
+      .from('features')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Feature not found' };
+      }
+      throw error;
     }
-    
-    return { success: true, data: feature };
+
+    return { 
+      success: true, 
+      data: mapFeature(data) 
+    };
   } catch (error) {
     console.error(`Error fetching feature ${id}:`, error);
     return { 
@@ -71,30 +114,48 @@ export async function getFeatureByIdFromDb(id: string) {
 /**
  * Create a new feature in the database
  */
-export async function createFeatureInDb(feature: Omit<Feature, 'id' | 'releases'>) {
-  const db = getDb();
-  const id = generateId();
-  const tenantId = 'org1'; // Default to the first organization
-  
+export async function createFeatureInDb(feature: Omit<Feature, 'id' | 'releases' | 'tenantId'>, tenantId: string) {
   try {
-    db.prepare('INSERT INTO features (id, name, description, priority, interfaceId, tenantId) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(
-        id, 
-        feature.name, 
-        feature.description || '', 
-        feature.priority || 'Med', 
-        feature.interfaceId,
-        tenantId
-      );
+    // Validate interface exists and belongs to the same tenant
+    const { data: interfaceData, error: interfaceError } = await supabase
+      .from('interfaces')
+      .select('id')
+      .eq('id', feature.interfaceId)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (interfaceError || !interfaceData) {
+      return { success: false, error: 'Interface not found or access denied' };
+    }
+
+    // Map frontend priority values to database values
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium',
+      'Low': 'low'
+    };
     
+    const { data, error } = await supabase
+      .from('features')
+      .insert({
+        name: feature.name,
+        description: feature.description || '',
+        priority: priorityMap[feature.priority] || 'medium',
+        interface_id: feature.interfaceId,
+        tenant_id: tenantId,
+        is_saved: false,  // New entities start as unsaved
+        saved_at: null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
     return { 
       success: true, 
-      data: {
-        ...feature,
-        id,
-        tenantId,
-        releases: [] as string[]
-      }
+      data: mapFeature(data)
     };
   } catch (error) {
     console.error('Error creating feature:', error);
@@ -108,16 +169,18 @@ export async function createFeatureInDb(feature: Omit<Feature, 'id' | 'releases'
 /**
  * Update feature name
  */
-export async function updateFeatureNameInDb(id: string, name: string) {
-  const db = getDb();
-  
+export async function updateFeatureNameInDb(id: string, name: string, tenantId: string) {
   try {
-    const result = db.prepare('UPDATE features SET name = ? WHERE id = ?').run(name, id);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Feature not found or name unchanged' };
+    const { error } = await supabase
+      .from('features')
+      .update({ name })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating feature ${id} name:`, error);
@@ -131,9 +194,7 @@ export async function updateFeatureNameInDb(id: string, name: string) {
 /**
  * Update feature description
  */
-export async function updateFeatureDescriptionInDb(id: string, description: string) {
-  const db = getDb();
-
+export async function updateFeatureDescriptionInDb(id: string, description: string, tenantId: string) {
   try {
     // Ensure description is a string - handle potential JSON objects that were stringified
     let descriptionToStore = description;
@@ -153,11 +214,14 @@ export async function updateFeatureDescriptionInDb(id: string, description: stri
 
     console.log(`Updating feature ${id} with description length: ${descriptionToStore.length}`);
 
-    const result = db.prepare('UPDATE features SET description = ? WHERE id = ?')
-      .run(descriptionToStore, id);
+    const { error } = await supabase
+      .from('features')
+      .update({ description: descriptionToStore })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
 
-    if (result.changes === 0) {
-      return { success: false, error: 'Feature not found or description unchanged' };
+    if (error) {
+      throw error;
     }
 
     return { success: true };
@@ -173,17 +237,25 @@ export async function updateFeatureDescriptionInDb(id: string, description: stri
 /**
  * Update feature priority
  */
-export async function updateFeaturePriorityInDb(id: string, priority: 'High' | 'Med' | 'Low') {
-  const db = getDb();
-  
+export async function updateFeaturePriorityInDb(id: string, priority: 'High' | 'Med' | 'Low', tenantId: string) {
   try {
-    const result = db.prepare('UPDATE features SET priority = ? WHERE id = ?')
-      .run(priority, id);
+    // Map frontend priority values to database values
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium',
+      'Low': 'low'
+    };
     
-    if (result.changes === 0) {
-      return { success: false, error: 'Feature not found or priority unchanged' };
+    const { error } = await supabase
+      .from('features')
+      .update({ priority: priorityMap[priority] || 'medium' })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error(`Error updating feature ${id} priority:`, error);
@@ -197,20 +269,34 @@ export async function updateFeaturePriorityInDb(id: string, priority: 'High' | '
 /**
  * Delete a feature
  */
-export async function deleteFeatureFromDb(id: string) {
-  const db = getDb();
-  
+export async function deleteFeatureFromDb(id: string, tenantId: string) {
   try {
     // First check if feature exists
-    const feature = db.prepare('SELECT id FROM features WHERE id = ?').get(id);
-    
-    if (!feature) {
-      return { success: false, error: 'Feature not found' };
+    const { data: existingFeature, error: checkError } = await supabase
+      .from('features')
+      .select('id')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (checkError) {
+      if (checkError.code === 'PGRST116') {
+        return { success: false, error: 'Feature not found' };
+      }
+      throw checkError;
     }
-    
+
     // Delete the feature
-    db.prepare('DELETE FROM features WHERE id = ?').run(id);
-    
+    const { error } = await supabase
+      .from('features')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      throw error;
+    }
+
     return { success: true };
   } catch (error) {
     console.error(`Error deleting feature ${id}:`, error);
@@ -228,4 +314,30 @@ export async function updateFeatureWithReleaseInDb(featureId: string, releaseId:
   // This is a virtual relationship maintained in memory for React Query
   // We don't need to store it explicitly in the database since releases have a featureId foreign key
   return { success: true };
+}
+
+/**
+ * Mark a feature as saved with timestamp
+ */
+export async function markFeatureAsSavedInDb(id: string, tenantId: string) {
+  try {
+    const { error } = await supabase
+      .from('features')
+      .update({ 
+        is_saved: true,
+        saved_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error) {
+    console.error(`Error marking feature ${id} as saved:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 }

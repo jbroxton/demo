@@ -19,6 +19,7 @@ import {
 import { useReleasesQuery } from '@/hooks/use-releases-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useEntityApprovalsQuery } from '@/hooks/use-entity-approvals-query';
+import { useCurrentTenantId } from '@/utils/get-tenant-id';
 
 interface ReleaseQueryTabContentProps {
   releaseId: string;
@@ -33,6 +34,9 @@ export function ReleaseQueryTabContent({
   isNew = false,
   selectedFeatureId
 }: ReleaseQueryTabContentProps) {
+  // Get current tenant ID
+  const currentTenantId = useCurrentTenantId();
+  
   // Tabs query hook
   const { updateTabTitle, closeTab, tabs, updateNewTabToSavedItem } = useTabsQuery();
   
@@ -188,12 +192,19 @@ export function ReleaseQueryTabContent({
         }
         
         const isoDate = new Date(releaseDate).toISOString();
+        if (!currentTenantId) {
+          toast.error('Authentication error: No tenant ID found');
+          return;
+        }
+        
         const savedRelease = await releasesQuery.addRelease({
           name: nameValue.trim(),
           description: descriptionValue.trim(),
           featureId: featureId,
           releaseDate: isoDate,
-          priority: priority
+          priority: priority,
+          isSaved: false,
+          savedAt: null
         });
         
         if (savedRelease && savedRelease.id) {

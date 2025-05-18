@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DocumentEditorToolbar } from './document-editor-toolbar';
+import { useCurrentTenantId } from '@/utils/get-tenant-id';
 import { AttachmentButton } from './attachment-button';
 import { AttachmentDialog } from './attachment-dialog';
 import { AttachmentList } from './attachment-list';
@@ -70,6 +71,9 @@ export function RequirementCanvasContent({
 }: RequirementCanvasContentProps) {
   // Router
   const router = useRouter();
+  
+  // Get current tenant ID
+  const currentTenantId = useCurrentTenantId();
   
   // Tabs query hook
   const { updateTabTitle, updateNewTabToSavedItem } = useTabsQuery();
@@ -363,6 +367,11 @@ export function RequirementCanvasContent({
     
     try {
       // 1. Create the requirement first
+      if (!currentTenantId) {
+        toast.error('Authentication error: No tenant ID found');
+        return;
+      }
+      
       const newRequirementData = {
         name: nameValue.trim(),
         priority: priorityValue,
@@ -370,6 +379,9 @@ export function RequirementCanvasContent({
         cuj: cujValue || undefined,
         featureId: featureId,
         description: '', // Description is now in the document
+        tenantId: currentTenantId,
+        isSaved: false,
+        savedAt: null
       };
       
       const savedRequirement = await requirementsQuery.addRequirement(newRequirementData);

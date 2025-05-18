@@ -26,7 +26,8 @@ export function RoadmapQueryTabContent({ tabId }: RoadmapTabContentProps) {
     openTab({
       title: roadmapName,
       type: 'roadmap',
-      itemId: roadmapId
+      itemId: roadmapId,
+      hasChanges: false
     });
   };
 
@@ -70,7 +71,8 @@ export function RoadmapQueryTabContent({ tabId }: RoadmapTabContentProps) {
           openTab({
             title: 'New Roadmap',
             type: 'roadmap',
-            itemId: temporaryItemId
+            itemId: temporaryItemId,
+            hasChanges: false
           });
         }}>
           <PlusCircle className="h-4 w-4 mr-2" /> New Roadmap
@@ -125,7 +127,8 @@ export function RoadmapQueryTabContent({ tabId }: RoadmapTabContentProps) {
               openTab({
                 title: 'New Roadmap',
                 type: 'roadmap',
-                itemId: temporaryItemId
+                itemId: temporaryItemId,
+                hasChanges: false
               });
             }}>
               <PlusCircle className="h-4 w-4 mr-2" /> Create Roadmap

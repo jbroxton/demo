@@ -11,6 +11,7 @@ import {
 import { useTableTheme } from '@/providers/table-theme-provider'
 import { Button } from '@/components/ui/button'
 import { Check, X } from 'lucide-react'
+import { useCurrentTenantId } from '@/utils/get-tenant-id'
 
 interface ThemedNewRequirementRowProps {
   featureId: string
@@ -28,6 +29,7 @@ export function ThemedNewRequirementRow({
   columnCount
 }: ThemedNewRequirementRowProps) {
   const theme = useTableTheme();
+  const currentTenantId = useCurrentTenantId();
   const [isSaving, setIsSaving] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -42,13 +44,21 @@ export function ThemedNewRequirementRow({
 
     setIsSaving(true)
     try {
+      if (!currentTenantId) {
+        console.error('No tenant ID available')
+        return
+      }
+      
       const newRequirement: Omit<Requirement, 'id'> = {
         name: name.trim(),
         description,
         owner: owner || undefined,
         priority,
         featureId,
-        releaseId: releaseId || undefined
+        releaseId: releaseId || undefined,
+        tenantId: currentTenantId,
+        isSaved: false,
+        savedAt: null
       }
 
       const success = await onSave(newRequirement)

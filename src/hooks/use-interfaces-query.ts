@@ -20,7 +20,9 @@ export function useInterfacesQuery() {
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`)
       }
-      return response.json()
+      const result = await response.json();
+      // API returns { success: boolean, data: Interface[] }
+      return result.data || [];
     },
   })
 
@@ -39,7 +41,9 @@ export function useInterfacesQuery() {
         throw new Error(`API responded with status: ${response.status}`)
       }
       
-      return response.json()
+      const result = await response.json();
+      // API returns { success: boolean, data: Interface }
+      return result.data;
     },
     onSuccess: (newInterface) => {
       // Update cache with the new interface

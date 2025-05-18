@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { 
   getFeaturesFromDb, 
   getFeatureByIdFromDb,
@@ -8,204 +8,147 @@ import {
   updateFeatureDescriptionInDb,
   updateFeaturePriorityInDb,
   updateFeatureWithReleaseInDb,
-  deleteFeatureFromDb
+  deleteFeatureFromDb,
+  markFeatureAsSavedInDb
 } from '@/services/features-db';
+import { apiResponse } from '@/utils/api-response';
+import { validateRequired } from '@/utils/api-validate';
+import { authenticatedHandler } from '@/utils/api-authenticated-handler';
 
-// GET handler for fetching features
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
-    const interfaceId = searchParams.get('interfaceId');
-    
-    // If an ID is provided, get a specific feature
-    if (id) {
-      const result = await getFeatureByIdFromDb(id);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 404 }
-        );
-      }
-      
-      return NextResponse.json(result.data);
-    }
-    
-    // If interfaceId is provided, get features for that interface
-    if (interfaceId) {
-      const result = await getFeaturesByInterfaceId(interfaceId);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 500 }
-        );
-      }
-      
-      return NextResponse.json(result.data);
-    }
-    
-    // Otherwise, get all features
-    const result = await getFeaturesFromDb();
+// GET handler
+export const GET = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  const interfaceId = searchParams.get('interfaceId');
+  
+  // Get feature by ID
+  if (id) {
+    const result = await getFeatureByIdFromDb(id, tenantId);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Feature not found', 404);
     }
     
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error('Error handling GET request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return apiResponse.success(result.data);
   }
-}
+  
+  // Get features by interface ID
+  if (interfaceId) {
+    const result = await getFeaturesByInterfaceId(interfaceId, tenantId);
+    
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to fetch features', 500);
+    }
+    
+    return apiResponse.success(result.data);
+  }
+  
+  // Get all features
+  const result = await getFeaturesFromDb(tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to fetch features', 500);
+  }
+  
+  return apiResponse.success(result.data);
+});
 
-// POST handler for creating features
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+// POST handler
+export const POST = authenticatedHandler(async (request, { tenantId, body }) => {
+  const validationError = validateRequired(body, ['name', 'interfaceId']);
+  if (validationError) {
+    return apiResponse.error(validationError, 400);
+  }
+  
+  const result = await createFeatureInDb({
+    name: body.name,
+    description: body.description || '',
+    priority: body.priority || 'Med',
+    interfaceId: body.interfaceId,
+    isSaved: false,  // New features start as unsaved
+    savedAt: null
+  }, tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to create feature', 500);
+  }
+  
+  return apiResponse.success(result.data, 201);
+});
+
+// PATCH handler
+export const PATCH = authenticatedHandler(async (request, { tenantId, body }) => {
+  const validationError = validateRequired(body, ['id']);
+  if (validationError) {
+    return apiResponse.error(validationError, 400);
+  }
+  
+  // Handle marking as saved
+  if (body.markAsSaved === true) {
+    const result = await markFeatureAsSavedInDb(body.id, tenantId);
     
-    if (!body.name) {
-      return NextResponse.json(
-        { error: 'Feature name is required' },
-        { status: 400 }
-      );
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to mark feature as saved', 500);
     }
     
-    if (!body.interfaceId) {
-      return NextResponse.json(
-        { error: 'Interface ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    const result = await createFeatureInDb({
-      name: body.name,
-      description: body.description || '',
-      priority: body.priority || 'Med',
-      interfaceId: body.interfaceId
+    return apiResponse.success({ 
+      success: true, 
+      id: body.id,
+      savedAt: new Date().toISOString()
     });
+  }
+  
+  // Update name if provided
+  if (body.name !== undefined) {
+    const result = await updateFeatureNameInDb(body.id, body.name, tenantId);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Failed to update feature name', 500);
     }
-    
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error('Error handling POST request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
-
-// PATCH handler for updating features
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    
-    if (!body.id) {
-      return NextResponse.json(
-        { error: 'Feature ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Update name if provided
-    if (body.name !== undefined) {
-      const nameResult = await updateFeatureNameInDb(body.id, body.name);
-      
-      if (!nameResult.success) {
-        return NextResponse.json(
-          { error: nameResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update description if provided
-    if (body.description !== undefined) {
-      const descResult = await updateFeatureDescriptionInDb(body.id, body.description);
-      
-      if (!descResult.success) {
-        return NextResponse.json(
-          { error: descResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update priority if provided
-    if (body.priority !== undefined) {
-      const priorityResult = await updateFeaturePriorityInDb(body.id, body.priority);
-      
-      if (!priorityResult.success) {
-        return NextResponse.json(
-          { error: priorityResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update with release if provided
-    if (body.releaseId !== undefined) {
-      const releaseResult = await updateFeatureWithReleaseInDb(body.id, body.releaseId);
-      
-      if (!releaseResult.success) {
-        return NextResponse.json(
-          { error: "Failed to update feature with release" },
-          { status: 500 }
-        );
-      }
-    }
-    
-    return NextResponse.json({ success: true, id: body.id });
-  } catch (error) {
-    console.error('Error handling PATCH request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE handler for deleting features
-export async function DELETE(request: NextRequest) {
-  try {
-    const id = request.nextUrl.searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Feature ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    const result = await deleteFeatureFromDb(id);
+  
+  // Update description if provided
+  if (body.description !== undefined) {
+    const result = await updateFeatureDescriptionInDb(body.id, body.description, tenantId);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Failed to update feature description', 500);
     }
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error handling DELETE request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
+  
+  // Update priority if provided
+  if (body.priority !== undefined) {
+    const result = await updateFeaturePriorityInDb(body.id, body.priority, tenantId);
+    
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to update feature priority', 500);
+    }
+  }
+  
+  // Update with release if provided
+  if (body.releaseId !== undefined) {
+    const result = await updateFeatureWithReleaseInDb(body.id, body.releaseId);
+    
+    if (!result.success) {
+      return apiResponse.error('Failed to update feature with release', 500);
+    }
+  }
+  
+  return apiResponse.success({ success: true, id: body.id });
+});
+
+// DELETE handler
+export const DELETE = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  
+  if (!id) {
+    return apiResponse.error('Feature ID is required', 400);
+  }
+  
+  const result = await deleteFeatureFromDb(id, tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to delete feature', 500);
+  }
+  
+  return apiResponse.success({ success: true });
+});

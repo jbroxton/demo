@@ -18,37 +18,83 @@ import { useProductsQuery } from '@/hooks/use-products-query';
 interface ProductQueryTabContentProps {
   productId: string;
   tabId: string;
-  isNew?: boolean;
 }
 
-export function ProductQueryTabContent({ productId, tabId, isNew = false }: ProductQueryTabContentProps) {
+export function ProductQueryTabContent({ productId, tabId }: ProductQueryTabContentProps) {
   const productsQuery = useProductsQuery();
   const { updateTabTitle, closeTab, tabs, updateNewTabToSavedItem } = useTabsQuery();
   
-  const [isEditing, setIsEditing] = useState(isNew);
-  const [nameValue, setNameValue] = useState(isNew ? 'New Product' : '');
+  console.log('ProductQueryTabContent mounted - props:', { productId, tabId });
+  console.log('ProductQueryTabContent - productsQuery state:', {
+    isLoading: productsQuery.isLoading,
+    error: productsQuery.error,
+    products: productsQuery.products,
+    productsCount: Array.isArray(productsQuery.products) ? productsQuery.products.length : 0
+  });
+  
+  // Get the current product
+  const product = productsQuery.getProductById(productId);
+  
+  // Check if this is a new product based on isSaved field
+  const isNew = product && !product.isSaved;
+  
+  console.log('ProductQueryTabContent - product lookup:', {
+    productId,
+    product,
+    products: productsQuery.getProducts(),
+    isNew,
+    isSaved: product?.isSaved
+  });
+  
+  const [isEditing, setIsEditing] = useState(isNew || false);
+  const [nameValue, setNameValue] = useState('');
   const [descriptionValue, setDescriptionValue] = useState('');
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Get the current product (if not new)
-  const product = isNew ? null : productsQuery.getProductById(productId);
+  console.log('ProductQueryTabContent - state:', { isEditing, nameValue, descriptionValue });
   
   // Handle product loading and state initialization
   useEffect(() => {
-    if (isNew) {
-      setNameValue('New Product');
-      setDescriptionValue('');
-      setIsEditing(true);
-    } else if (product) {
+    if (product) {
       setNameValue(product.name);
       setDescriptionValue(product.description || '');
-      setIsEditing(false);
+      // Edit mode should be on for new products (isSaved = false)
+      setIsEditing(!product.isSaved);
     }
-  }, [productId, isNew, product]);
+  }, [product]);
+  
+  // Attempt to refresh the product if not found
+  useEffect(() => {
+    if (!productsQuery.isLoading && !product && productId) {
+      console.log('Product not found, attempting refresh...');
+      // First try to invalidate and refetch the entire products list
+      const timer = setTimeout(async () => {
+        await productsQuery.invalidateQueries();
+        await productsQuery.refetch();
+        
+        // If still not found, try to fetch specifically this product
+        const checkProduct = productsQuery.getProductById(productId);
+        if (!checkProduct) {
+          console.log('Product still not found after refresh, possible tenant mismatch');
+          // Force a fetch of this specific product
+          try {
+            const response = await fetch(`/api/products-db?id=${productId}`);
+            if (response.ok) {
+              const result = await response.json();
+              console.log('Direct fetch result:', result);
+            }
+          } catch (error) {
+            console.error('Error fetching specific product:', error);
+          }
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [productsQuery.isLoading, product, productId]);
   
   // Loading state
-  if (productsQuery.isLoading && !isNew) {
+  if (productsQuery.isLoading) {
     return (
       <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mr-3"></div>
@@ -58,7 +104,7 @@ export function ProductQueryTabContent({ productId, tabId, isNew = false }: Prod
   }
   
   // Error state
-  if (productsQuery.error && !isNew) {
+  if (productsQuery.error) {
     return (
       <div className="flex items-center justify-center h-full bg-[#1e1e20] text-red-400">
         Error loading product: {String(productsQuery.error)}
@@ -67,7 +113,7 @@ export function ProductQueryTabContent({ productId, tabId, isNew = false }: Prod
   }
   
   // Product not found
-  if (!isNew && !product && !productsQuery.isLoading) {
+  if (!product && !productsQuery.isLoading) {
     return (
       <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
         Product not found
@@ -84,26 +130,30 @@ export function ProductQueryTabContent({ productId, tabId, isNew = false }: Prod
   };
   
   const handleSaveProduct = async () => {
-    if (!nameValue.trim()) {
+    if (!nameValue.trim() || !product) {
       return;
     }
     
     try {
+      // For new products, we need to update the product and mark it as saved
       if (isNew) {
-        // Create new product
-        const savedProduct = await productsQuery.addProduct({
-          name: nameValue.trim(),
-          description: descriptionValue.trim()
-        });
-        
-        // Find the current tab (temporary tab)
-        const currentTab = tabs.find(tab => tab.id === tabId);
-        if (currentTab && savedProduct && savedProduct.id) {
-          updateNewTabToSavedItem(currentTab.id, savedProduct.id, savedProduct.name, 'product');
-          showSuccessMessage();
+        // Update product properties
+        if (nameValue.trim() !== product.name) {
+          await productsQuery.updateProductName(productId, nameValue);
+          updateTabTitle(productId, 'product', nameValue);
         }
-      } else if (product) {
-        // Update existing product
+        
+        if (descriptionValue.trim() !== product.description) {
+          await productsQuery.updateProductDescription(productId, descriptionValue);
+        }
+        
+        // Mark product as saved (isSaved = true)
+        await productsQuery.markProductAsSaved(productId);
+        
+        showSuccessMessage();
+        setIsEditing(false);
+      } else {
+        // Update existing product (already saved)
         if (nameValue.trim() !== product.name) {
           await productsQuery.updateProductName(productId, nameValue);
           updateTabTitle(productId, 'product', nameValue);
@@ -143,9 +193,16 @@ export function ProductQueryTabContent({ productId, tabId, isNew = false }: Prod
     }
   };
   
-  const handleCancelNewProduct = () => {
-    if (isNew) {
-      closeTab(tabId);
+  const handleCancelNewProduct = async () => {
+    if (isNew && product) {
+      // For new unsaved products, we should delete the product from the database
+      try {
+        await productsQuery.deleteProduct(productId);
+        closeTab(tabId);
+      } catch (error) {
+        console.error('Failed to delete canceled product:', error);
+        toast.error('Failed to cancel product creation');
+      }
     } else {
       // Reset to product values and exit edit mode
       if (product) {

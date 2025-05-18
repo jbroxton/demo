@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Tenant, DEMO_TENANTS } from '@/utils/tenant-utils'
+import { Tenant } from '@/services/auth.server'
 import { toast } from 'sonner'
 
 // User type definition for better typing
@@ -13,7 +13,8 @@ interface User {
   email: string
   role: string
   allowedTenants: string[]
-  currentTenant: string | null
+  currentTenant: string
+  tenantId: string
   tenantData?: any[]
   [key: string]: any // Allow for additional properties
 }
@@ -31,7 +32,7 @@ export interface AuthContextType {
   error: { type: AuthError; message: string } | null
   
   // Tenant management
-  currentTenant: string | null
+  currentTenant: string
   allowedTenants: Tenant[]
   switchTenant: (tenantId: string) => Promise<boolean>
   
@@ -53,7 +54,7 @@ const defaultAuthState: Omit<AuthContextType, 'clearError' | 'login' | 'logout' 
   isLoading: true,
   isInitialized: false,
   error: null,
-  currentTenant: null,
+  currentTenant: '',
   allowedTenants: []
 }
 
@@ -98,6 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Process tenant data
         const userAllowedTenants = session.user.allowedTenants || [];
         
+        console.log('Session user:', session.user);
+        console.log('User allowed tenants:', userAllowedTenants);
+    
+        
         if (userAllowedTenants.length === 0) {
           setError({
             type: 'tenant',
@@ -105,10 +110,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
         
-        // Filter DEMO_TENANTS based on user's allowed tenants
-        const allowedTenantObjects = DEMO_TENANTS.filter(tenant => 
-          userAllowedTenants.includes(tenant.id)
-        );
+        // Use actual tenant data from session only
+        let allowedTenantObjects: Tenant[] = [];
+        
+        // Only use tenant data if it exists in the session
+        if (session.user.tenantData && Array.isArray(session.user.tenantData)) {
+          allowedTenantObjects = session.user.tenantData;
+          console.log('Using tenant data from session:', allowedTenantObjects);
+        } else {
+          console.log('No tenant data found in session');
+        }
         
         setTenants(allowedTenantObjects);
         
@@ -271,7 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
   
   // Determine current tenant information
-  const currentTenant = user?.currentTenant || null;
+  const currentTenant = user?.currentTenant || user?.tenantId || '';
   
   // Debug auth state with more structured logging
   useEffect(() => {

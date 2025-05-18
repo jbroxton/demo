@@ -10,4 +10,6 @@ export interface Roadmap {
   tenantId: string
   created_at: string
   updated_at: string
+  isSaved: boolean
+  savedAt?: string | null
 }

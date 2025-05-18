@@ -75,7 +75,9 @@ export function ExampleInterfaceTab({
         const savedInterface = await interfacesQuery.addInterface({
           name: nameValue.trim(),
           description: descriptionValue.trim(),
-          productId: productId
+          productId: productId,
+          isSaved: false,
+          savedAt: null
         });
         
         if (savedInterface && savedInterface.id) {
@@ -137,7 +139,8 @@ export function ExampleInterfaceTab({
       openTab({
         title: 'New Feature',
         type: 'feature',
-        itemId: temporaryItemId
+        itemId: temporaryItemId,
+        hasChanges: false
       });
     }
   };
@@ -147,7 +150,8 @@ export function ExampleInterfaceTab({
     openTab({
       title: featureName,
       type: 'feature',
-      itemId: featureId
+      itemId: featureId,
+      hasChanges: false
     });
   };
   

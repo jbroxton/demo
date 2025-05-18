@@ -165,7 +165,10 @@ export function FeatureQueryTabContentThemed({
         description: descriptionValue,
         priority: priorityValue,
         interfaceId: interfaceId,
-        showRequirements: true
+        showRequirements: true,
+        isSaved: false,
+        savedAt: null,
+        tenantId: 'org1'
       };
 
       const savedFeature = await featuresQuery.addFeature(newFeatureData);
@@ -240,7 +243,8 @@ export function FeatureQueryTabContentThemed({
       openTab({
         title: 'New Release',
         type: 'release',
-        itemId: temporaryItemId
+        itemId: temporaryItemId,
+        hasChanges: false
       });
     }
   };
@@ -251,7 +255,8 @@ export function FeatureQueryTabContentThemed({
     openTab({
       title: releaseName,
       type: 'release',
-      itemId: releaseId
+      itemId: releaseId,
+      hasChanges: false
     });
   };
   
@@ -260,7 +265,8 @@ export function FeatureQueryTabContentThemed({
     openTab({
       title: interfaceName,
       type: 'interface',
-      itemId: interfaceId
+      itemId: interfaceId,
+      hasChanges: false
     });
   };
   

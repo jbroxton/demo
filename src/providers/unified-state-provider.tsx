@@ -125,34 +125,45 @@ const DbBackedStateProvider = ({ children }: { children: ReactNode }) => {
     enabled: isReleaseDataNeeded 
   });
   
-  // Create a safe wrapper for empty arrays
-  const safeArray = <T extends unknown>(arr: T[] | undefined): T[] => arr || [];
   
-  // Simplify to avoid any type issues
+  // Type-safe approach for the value object
   const value = {
     products: {
       ...productsQuery,
-      products: safeArray(productsQuery.products),
-      getProducts: () => safeArray(productsQuery.products),
-      getProductById: (id: string) => safeArray(productsQuery.products).find(p => p.id === id),
+      // products is already typed as Product[] and defaults to []
+      products: productsQuery.products || [],
+      getProducts: () => productsQuery.products || [],
+      getProductById: (id: string) => {
+        const products = productsQuery.products || [];
+        return products.find(p => p.id === id) || null;
+      },
     },
     interfaces: {
       ...interfacesQuery,
-      interfaces: safeArray(interfacesQuery.interfaces),
-      getInterfaces: () => safeArray(interfacesQuery.interfaces),
-      getInterfaceById: (id: string) => safeArray(interfacesQuery.interfaces).find(i => i.id === id),
+      interfaces: interfacesQuery.interfaces || [],
+      getInterfaces: () => interfacesQuery.interfaces || [],
+      getInterfaceById: (id: string) => {
+        const interfaces = interfacesQuery.interfaces || [];
+        return interfaces.find(i => i.id === id) || null;
+      },
     },
     features: {
       ...featuresQuery,
-      features: safeArray(featuresQuery.features),
-      getFeatures: () => safeArray(featuresQuery.features),
-      getFeatureById: (id: string) => safeArray(featuresQuery.features).find(f => f.id === id),
+      features: featuresQuery.features || [],
+      getFeatures: () => featuresQuery.features || [],
+      getFeatureById: (id: string) => {
+        const features = featuresQuery.features || [];
+        return features.find(f => f.id === id) || null;
+      },
     },
     releases: {
       ...releasesQuery,
-      releases: safeArray(releasesQuery.releases),
-      getReleases: () => safeArray(releasesQuery.releases),
-      getReleaseById: (id: string) => safeArray(releasesQuery.releases).find(r => r.id === id),
+      releases: releasesQuery.releases || [],
+      getReleases: () => releasesQuery.releases || [],
+      getReleaseById: (id: string) => {
+        const releases = releasesQuery.releases || [];
+        return releases.find(r => r.id === id) || null;
+      },
     },
     isUsingDbBackedStorage: true,
   };

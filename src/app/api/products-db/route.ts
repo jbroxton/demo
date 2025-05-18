@@ -1,161 +1,135 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { 
   getProductsFromDb, 
   getProductByIdFromDb, 
   createProductInDb, 
   updateProductNameInDb,
   updateProductDescriptionInDb,
-  deleteProductFromDb
+  deleteProductFromDb,
+  markProductAsSavedInDb
 } from '@/services/products-db';
+import { apiResponse } from '@/utils/api-response';
+import { validateRequired } from '@/utils/api-validate';
+import { authenticatedHandler } from '@/utils/api-authenticated-handler';
 
-// GET handler for fetching products
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
+// GET handler
+export const GET = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  
+  console.log('GET /api/products-db - id:', id, 'tenantId:', tenantId);
+  
+  // Get product by ID
+  if (id) {
+    console.log('GET /api/products-db - fetching single product by ID');
+    const result = await getProductByIdFromDb(id, tenantId);
     
-    // If an ID is provided, get a specific product
-    if (id) {
-      const result = await getProductByIdFromDb(id);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 404 }
-        );
-      }
-      
-      return NextResponse.json(result.data);
-    }
-    
-    // Otherwise, get all products
-    const result = await getProductsFromDb();
+    console.log('GET /api/products-db - single product result:', result);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Product not found', 404);
     }
     
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error('Error handling GET request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return apiResponse.success(result.data);
   }
-}
+  
+  // Get all products
+  console.log('GET /api/products-db - fetching all products');
+  const result = await getProductsFromDb(tenantId);
+  
+  console.log('GET /api/products-db - all products result:', result);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to fetch products', 500);
+  }
+  
+  return apiResponse.success(result.data);
+});
 
-// POST handler for creating products
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+// POST handler
+export const POST = authenticatedHandler(async (request, { tenantId, userId, body }) => {
+  console.log('POST /api/products-db - Starting request');
+  console.log('POST /api/products-db - userId:', userId);
+  console.log('POST /api/products-db - tenantId:', tenantId);
+  console.log('POST /api/products-db - body:', JSON.stringify(body, null, 2));
+  
+  const validationError = validateRequired(body, ['name']);
+  if (validationError) {
+    console.error('POST /api/products-db - validation error:', validationError);
+    return apiResponse.error(validationError, 400);
+  }
+  
+  const result = await createProductInDb({
+    name: body.name,
+    description: body.description || '',
+    isSaved: body.isSaved || false,
+    savedAt: body.savedAt || null
+  }, tenantId);
+  
+  console.log('POST /api/products-db - result:', result);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to create product', 500);
+  }
+  
+  return apiResponse.success(result.data, 201);
+});
+
+// PATCH handler
+export const PATCH = authenticatedHandler(async (request, { tenantId, body }) => {
+  const validationError = validateRequired(body, ['id']);
+  if (validationError) {
+    return apiResponse.error(validationError, 400);
+  }
+  
+  // Handle marking as saved
+  if (body.markAsSaved === true) {
+    const result = await markProductAsSavedInDb(body.id, tenantId);
     
-    if (!body.name) {
-      return NextResponse.json(
-        { error: 'Product name is required' },
-        { status: 400 }
-      );
+    if (!result.success) {
+      return apiResponse.error(result.error || 'Failed to mark product as saved', 500);
     }
     
-    const result = await createProductInDb({
-      name: body.name,
-      description: body.description || '',
-      interfaces: body.interfaces || []
+    return apiResponse.success({ 
+      success: true, 
+      id: body.id,
+      savedAt: new Date().toISOString()
     });
+  }
+  
+  // Update name if provided
+  if (body.name !== undefined) {
+    const result = await updateProductNameInDb(body.id, body.name, tenantId);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Failed to update product name', 500);
     }
-    
-    return NextResponse.json(result.data);
-  } catch (error) {
-    console.error('Error handling POST request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
-
-// PATCH handler for updating products
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    
-    if (!body.id) {
-      return NextResponse.json(
-        { error: 'Product ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Update name if provided
-    if (body.name !== undefined) {
-      const nameResult = await updateProductNameInDb(body.id, body.name);
-      
-      if (!nameResult.success) {
-        return NextResponse.json(
-          { error: nameResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Update description if provided
-    if (body.description !== undefined) {
-      const descResult = await updateProductDescriptionInDb(body.id, body.description);
-      
-      if (!descResult.success) {
-        return NextResponse.json(
-          { error: descResult.error },
-          { status: 500 }
-        );
-      }
-    }
-    
-    return NextResponse.json({ success: true, id: body.id });
-  } catch (error) {
-    console.error('Error handling PATCH request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE handler for deleting products
-export async function DELETE(request: NextRequest) {
-  try {
-    const id = request.nextUrl.searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Product ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    const result = await deleteProductFromDb(id);
+  
+  // Update description if provided
+  if (body.description !== undefined) {
+    const result = await updateProductDescriptionInDb(body.id, body.description, tenantId);
     
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return apiResponse.error(result.error || 'Failed to update product description', 500);
     }
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error handling DELETE request:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
+  
+  return apiResponse.success({ success: true, id: body.id });
+});
+
+// DELETE handler
+export const DELETE = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  const id = searchParams.get('id');
+  
+  if (!id) {
+    return apiResponse.error('Product ID is required', 400);
+  }
+  
+  const result = await deleteProductFromDb(id, tenantId);
+  
+  if (!result.success) {
+    return apiResponse.error(result.error || 'Failed to delete product', 500);
+  }
+  
+  return apiResponse.success({ success: true });
+});

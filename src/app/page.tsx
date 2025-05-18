@@ -26,7 +26,7 @@ export default function Home() {
           Modern Database-Driven Product Management
         </h1>
         <p className="text-xl text-muted-foreground mb-10">
-          Multi-tenant, high-performance product management platform with SQLite database
+          Multi-tenant, high-performance product management platform powered by Supabase
         </p>
         
         <div className="flex gap-4">
@@ -75,9 +75,9 @@ export default function Home() {
           <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
             <Database className="h-6 w-6 text-primary" />
           </div>
-          <h3 className="font-bold text-lg mb-2">SQLite Database</h3>
+          <h3 className="font-bold text-lg mb-2">Supabase Database</h3>
           <p className="text-muted-foreground">
-            High-performance data persistence with zero configuration
+            Scalable PostgreSQL backend with real-time capabilities
           </p>
         </div>
       </div>

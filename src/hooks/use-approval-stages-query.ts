@@ -19,7 +19,7 @@ export function useApprovalStagesQuery() {
   } = useQuery<ApprovalStage[]>({
     queryKey: stagesQueryKey,
     queryFn: async () => {
-      const response = await fetch('/api/approval-stages-db');
+      const response = await fetch('/api/approval-stages');
       if (!response.ok) {
         throw new Error('Failed to fetch approval stages');
       }
@@ -27,37 +27,11 @@ export function useApprovalStagesQuery() {
     }
   });
 
-  // Initialize default stages
-  const initializeStagesMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/approval-stages-db', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action: 'initialize' })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to initialize approval stages');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(stagesQueryKey, data);
-      toast.success('Approval stages initialized');
-    },
-    onError: (error) => {
-      console.error('Error initializing approval stages:', error);
-      toast.error('Failed to initialize approval stages');
-    }
-  });
 
   // Create a new stage
   const createStageMutation = useMutation({
     mutationFn: async (stageData: Partial<ApprovalStage>) => {
-      const response = await fetch('/api/approval-stages-db', {
+      const response = await fetch('/api/approval-stages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -86,7 +60,7 @@ export function useApprovalStagesQuery() {
   // Update a stage
   const updateStageMutation = useMutation({
     mutationFn: async (stageData: Partial<ApprovalStage>) => {
-      const response = await fetch('/api/approval-stages-db', {
+      const response = await fetch('/api/approval-stages', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -117,7 +91,7 @@ export function useApprovalStagesQuery() {
   // Delete a stage
   const deleteStageMutation = useMutation({
     mutationFn: async (stageId: string) => {
-      const response = await fetch(`/api/approval-stages-db?id=${stageId}`, {
+      const response = await fetch(`/api/approval-stages?id=${stageId}`, {
         method: 'DELETE'
       });
       
@@ -165,7 +139,6 @@ export function useApprovalStagesQuery() {
     isError,
     error,
     refetch,
-    initializeStagesMutation,
     createStageMutation,
     updateStageMutation,
     deleteStageMutation

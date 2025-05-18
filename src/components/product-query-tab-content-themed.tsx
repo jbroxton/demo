@@ -35,8 +35,11 @@ export function ProductQueryTabContentThemed({ productId, tabId, isNew = false }
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Get the current product (if not new)
-  const product = isNew ? null : productsQuery.getProductById(productId);
+  // Get the current product
+  const product = productsQuery.getProductById(productId);
+  
+  // Check if this is a new product based on isSaved field
+  const isNewProduct = product && !product.isSaved;
   
   // Handle product loading and state initialization
   useEffect(() => {
@@ -97,7 +100,9 @@ export function ProductQueryTabContentThemed({ productId, tabId, isNew = false }
         // Create new product
         const savedProduct = await productsQuery.addProduct({
           name: nameValue.trim(),
-          description: descriptionValue.trim()
+          description: descriptionValue.trim(),
+          isSaved: false,
+          savedAt: null
         });
         
         // Find the current tab (temporary tab)

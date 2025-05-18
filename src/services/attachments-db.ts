@@ -1,9 +1,6 @@
 // IMPORTANT: This file should only be imported from server components or API routes
+import { supabase } from './supabase';
 import { Attachment, AttachmentType, CreateAttachmentRequest, EntityType } from '@/types/models/Attachment';
-import { getDb } from './db.server';
-import { v4 as uuidv4 } from 'uuid';
-
-// Note: Table schema is defined in db.server.ts for consistency
 
 // Helper function to map DB row to Attachment object
 function mapAttachment(row: any): Attachment {
@@ -17,7 +14,7 @@ function mapAttachment(row: any): Attachment {
     updatedAt: row.updated_at,
     entityId: row.entity_id,
     entityType: row.entity_type as EntityType,
-    metadata: row.metadata ? JSON.parse(row.metadata) : undefined
+    metadata: row.metadata || undefined
   };
 }
 
@@ -88,14 +85,43 @@ function extractTitleFromUrl(url: string): string {
   }
 }
 
+// Get all attachments for a tenant
+export async function getAttachmentsFromDb(
+  tenantId: string = 'org1'
+): Promise<{ success: boolean; data?: Attachment[]; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('attachments')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching attachments:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      data: (data || []).map(mapAttachment)
+    };
+  } catch (error) {
+    console.error('Error fetching attachments:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred when fetching attachments'
+    };
+  }
+}
+
 // Create a new attachment
 export async function createAttachmentInDb(
-  attachment: Omit<CreateAttachmentRequest, 'id'> & { tenantId: string }
+  attachment: CreateAttachmentRequest,
+  tenantId: string = 'org1'
 ): Promise<{ success: boolean; data?: Attachment; error?: string }> {
-  const db = getDb();
-  const id = uuidv4();
-  const now = new Date().toISOString();
-
   try {
     // Extract metadata if not provided
     let type: AttachmentType = 'generic';
@@ -113,41 +139,33 @@ export async function createAttachmentInDb(
     }
 
     // Insert into database
-    db.prepare(`
-      INSERT INTO attachments (
-        id, title, url, type, thumbnail_url,
-        created_at, updated_at, entity_id, entity_type, metadata, tenant_id
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      title,
-      attachment.url,
-      type,
-      thumbnailUrl || null,
-      now,
-      now,
-      attachment.entityId,
-      attachment.entityType,
-      JSON.stringify(metadata),
-      attachment.tenantId
-    );
+    const { data, error } = await supabase
+      .from('attachments')
+      .insert({
+        title,
+        url: attachment.url,
+        type,
+        thumbnail_url: thumbnailUrl || null,
+        entity_id: attachment.entityId,
+        entity_type: attachment.entityType,
+        metadata,
+        tenant_id: tenantId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating attachment:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
 
     // Return created attachment
     return {
       success: true,
-      data: {
-        id,
-        title,
-        url: attachment.url,
-        type,
-        thumbnailUrl,
-        createdAt: now,
-        updatedAt: now,
-        entityId: attachment.entityId,
-        entityType: attachment.entityType,
-        metadata
-      }
+      data: mapAttachment(data)
     };
   } catch (error) {
     console.error('Error creating attachment:', error);
@@ -162,25 +180,33 @@ export async function createAttachmentInDb(
 export async function getAttachmentsForEntityFromDb(
   entityId: string, 
   entityType: EntityType,
-  tenantId: string
+  tenantId: string = 'org1'
 ): Promise<{ success: boolean; data?: Attachment[]; error?: string }> {
-  const db = getDb();
-
   try {
     // Apply pagination for better performance with large datasets
     const page = 1;
     const pageSize = 50;
     const offset = (page - 1) * pageSize;
 
-    const rows = db.prepare(`
-      SELECT * FROM attachments
-      WHERE entity_id = ? AND entity_type = ? AND tenant_id = ?
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(entityId, entityType, tenantId, pageSize, offset);
+    const { data, error } = await supabase
+      .from('attachments')
+      .select('*')
+      .eq('entity_id', entityId)
+      .eq('entity_type', entityType)
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.error('Error fetching attachments:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
 
     // Map rows to Attachment objects
-    const attachments = rows.map(mapAttachment);
+    const attachments = (data || []).map(mapAttachment);
 
     return { 
       success: true, 
@@ -199,26 +225,40 @@ export async function getAttachmentsForEntityFromDb(
 export async function getParentEntityAttachmentsFromDb(
   entityId: string,
   entityType: EntityType,
-  tenantId: string
+  tenantId: string = 'org1'
 ): Promise<{ 
   success: boolean; 
   data?: { parentType: EntityType | null; parentId: string | null; attachments: Attachment[] }; 
   error?: string 
 }> {
-  const db = getDb();
-
   try {
     // Only requirements have parent entities (features) that can have attachments
     if (entityType === 'requirement') {
       // Get the parent feature ID
-      const requirement = db.prepare(
-        'SELECT featureId FROM requirements WHERE id = ? AND tenantId = ?'
-      ).get(entityId, tenantId) as { featureId?: string } | undefined;
+      const { data: requirement, error } = await supabase
+        .from('requirements')
+        .select('feature_id')
+        .eq('id', entityId)
+        .eq('tenant_id', tenantId)
+        .single();
 
-      if (requirement && requirement.featureId) {
+      if (error) {
+        console.error('Error fetching requirement:', error);
+        // No parent found - not an error, just return empty
+        return {
+          success: true,
+          data: {
+            parentType: null,
+            parentId: null,
+            attachments: []
+          }
+        };
+      }
+
+      if (requirement && requirement.feature_id) {
         // Get attachments for the parent feature
         const result = await getAttachmentsForEntityFromDb(
-          requirement.featureId,
+          requirement.feature_id,
           'feature',
           tenantId
         );
@@ -228,7 +268,7 @@ export async function getParentEntityAttachmentsFromDb(
             success: true,
             data: {
               parentType: 'feature',
-              parentId: requirement.featureId,
+              parentId: requirement.feature_id,
               attachments: result.data
             }
           };
@@ -257,16 +297,18 @@ export async function getParentEntityAttachmentsFromDb(
 // Get a single attachment by ID
 export async function getAttachmentByIdFromDb(
   id: string,
-  tenantId: string
+  tenantId: string = 'org1'
 ): Promise<{ success: boolean; data?: Attachment; error?: string }> {
-  const db = getDb();
-
   try {
-    const row = db.prepare(
-      'SELECT * FROM attachments WHERE id = ? AND tenant_id = ?'
-    ).get(id, tenantId);
+    const { data, error } = await supabase
+      .from('attachments')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
 
-    if (!row) {
+    if (error) {
+      console.error('Error fetching attachment by ID:', error);
       return {
         success: false,
         error: 'Attachment not found'
@@ -275,7 +317,7 @@ export async function getAttachmentByIdFromDb(
 
     return {
       success: true,
-      data: mapAttachment(row)
+      data: mapAttachment(data)
     };
   } catch (error) {
     console.error('Error fetching attachment by ID:', error);
@@ -290,13 +332,10 @@ export async function getAttachmentByIdFromDb(
 export async function updateAttachmentInDb(
   id: string,
   updates: Partial<Omit<Attachment, 'id' | 'createdAt' | 'updatedAt' | 'entityId' | 'entityType'>>,
-  tenantId: string
+  tenantId: string = 'org1'
 ): Promise<{ success: boolean; data?: Attachment; error?: string }> {
-  const db = getDb();
-  const now = new Date().toISOString();
-
   try {
-    // Get the current attachment
+    // Get the current attachment to verify it exists
     const current = await getAttachmentByIdFromDb(id, tenantId);
     if (!current.success || !current.data) {
       return {
@@ -305,57 +344,52 @@ export async function updateAttachmentInDb(
       };
     }
 
-    // Build update parts
-    const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    // Build update object
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
 
     if (updates.title !== undefined) {
-      updateFields.push('title = ?');
-      updateValues.push(updates.title);
+      updateData.title = updates.title;
     }
 
     if (updates.url !== undefined) {
-      updateFields.push('url = ?');
-      updateValues.push(updates.url);
+      updateData.url = updates.url;
     }
 
     if (updates.type !== undefined) {
-      updateFields.push('type = ?');
-      updateValues.push(updates.type);
+      updateData.type = updates.type;
     }
 
     if (updates.thumbnailUrl !== undefined) {
-      updateFields.push('thumbnail_url = ?');
-      updateValues.push(updates.thumbnailUrl);
+      updateData.thumbnail_url = updates.thumbnailUrl;
     }
 
     if (updates.metadata !== undefined) {
-      updateFields.push('metadata = ?');
-      updateValues.push(JSON.stringify(updates.metadata));
+      updateData.metadata = updates.metadata;
     }
-
-    // Add updated_at
-    updateFields.push('updated_at = ?');
-    updateValues.push(now);
-
-    // Add id and tenantId for WHERE clause
-    updateValues.push(id);
-    updateValues.push(tenantId);
 
     // Execute update
-    if (updateFields.length > 0) {
-      const query = `
-        UPDATE attachments 
-        SET ${updateFields.join(', ')} 
-        WHERE id = ? AND tenant_id = ?
-      `;
-      
-      db.prepare(query).run(...updateValues);
+    const { data, error } = await supabase
+      .from('attachments')
+      .update(updateData)
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating attachment:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
 
-    // Get updated attachment
-    const updated = await getAttachmentByIdFromDb(id, tenantId);
-    return updated;
+    return {
+      success: true,
+      data: mapAttachment(data)
+    };
   } catch (error) {
     console.error('Error updating attachment:', error);
     return {
@@ -368,17 +402,18 @@ export async function updateAttachmentInDb(
 // Delete an attachment
 export async function deleteAttachmentFromDb(
   id: string,
-  tenantId: string
+  tenantId: string = 'org1'
 ): Promise<{ success: boolean; error?: string }> {
-  const db = getDb();
-
   try {
     // Verify the attachment exists and belongs to the tenant
-    const attachment = db.prepare(
-      'SELECT id FROM attachments WHERE id = ? AND tenant_id = ?'
-    ).get(id, tenantId);
+    const { data: attachment, error: fetchError } = await supabase
+      .from('attachments')
+      .select('id')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
 
-    if (!attachment) {
+    if (fetchError || !attachment) {
       return {
         success: false,
         error: 'Attachment not found or you do not have permission to delete it'
@@ -386,9 +421,19 @@ export async function deleteAttachmentFromDb(
     }
 
     // Delete the attachment
-    db.prepare(
-      'DELETE FROM attachments WHERE id = ? AND tenant_id = ?'
-    ).run(id, tenantId);
+    const { error } = await supabase
+      .from('attachments')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      console.error('Error deleting attachment:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
 
     return { success: true };
   } catch (error) {
@@ -399,5 +444,3 @@ export async function deleteAttachmentFromDb(
     };
   }
 }
-
-// Schema initialization is handled in db.server.ts

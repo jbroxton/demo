@@ -11,4 +11,7 @@ export type Requirement = {
   releaseId?: string;
   cuj?: string;
   acceptanceCriteria?: string;
+  tenantId: string;
+  isSaved: boolean;
+  savedAt?: string | null;
 };

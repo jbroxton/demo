@@ -1,17 +1,226 @@
 # AI Chat for Speqq
 
 ## Objective
-Add an AI Chat assistant to Speqq that understands product management context and provides intelligent responses based on the user's product data.
+
+Add an Prototype AI Chat assistant to Speqq that understands product management context and provides intelligent responses based on the user's product data.
 
 ## About
-An AI assistant that can answer questions about products, generate documents, and provide insights using Retrieval Augmented Generation (RAG) to understand context.
+- AI Chat is an product within Speqq to afford users the ability to 
+  - Query data about their product and answer questions about products
+  - Make agentic action to upate/improve their prodcut data.
+- We are making a prototype version within Speqq to test value
+- The prototype version of AI Chat is to make a simple AI Chat with basic query and agent action
+- The AI chat will be a zero custom build and use off the shelf component 
 
-## Tech Stack
-- **Vercel AI SDK**: Chat UI and state management
-- **OpenAI API**: Embeddings and chat completions
-- **sqlite-vec**: Vector database for RAG
-- **Next.js**: API routes and middleware
-- **SQLite**: Database storage
+## Functional Requirements
+
+### Core Chat Functionality
+
+1. **Conversation Management**
+   - User has single persistent chat conversation
+   - System displays timestamp for each message
+   - Chat history persists between user sessions
+   - System shows typing indicators when AI is responding
+   - System maintains conversation history
+
+2. **Context Awareness**
+   - Chat system maintains context within a conversation session
+   - System can reference earlier messages in the same conversation
+   - System can access and query the user's product, feature, and requirement data
+   - System respects tenant boundaries - only accesses data within user's tenant
+
+3. **Initial Greeting**
+   - System greets new users with "What are we building today {user.name}?" using authenticated user's name
+   - System persists chat session when user logs out and back in
+
+4. **Query Capability**
+   - User queries Features and Releases using natural language
+   - Queryable fields for Features:
+     - Name
+     - Priority
+     - Description
+     - Requirements
+     - Status
+     - Created/Updated dates
+   - Queryable fields for Releases:
+     - Name
+     - Description
+     - Target date
+     - Associated Features
+   - System returns formatted, readable results
+
+5. **Agent Capability**
+   - Agent updates Features only (not Releases for prototype)
+   - Updatable fields:
+     - Name
+     - Priority
+     - Description
+     - Requirements
+   - User workflow:
+     - System shows before/after preview
+     - User explicitly approves or rejects changes
+     - System confirms when changes are applied
+     - Agent provides change confirmation after updates are applied
+
+### Data Access & Permissions
+
+6. **Product Data Integration**
+   - Chat can query and retrieve information about Features and Releases only
+   - System provides basic summaries of data
+   - System respects multi-tenancy - only accesses data within user's tenant
+
+7. **User Privacy**
+   - Chat history stored per user
+   - Each user's chat history is private and isolated
+   - Conversations are not accessible by other users
+
+### User Experience
+
+8. **Error Handling**
+   - System provides clear error feedback to users
+   - System maintains conversation state even if errors occur
+
+9. **Prototype Scope**
+   - Single conversation per user
+   - No conversation management features
+   - Limited to Features and Releases entities
+   - No advanced analytics or insights
+
+## Technical Requirements
+
+### Architecture Overview
+1. **System Architecture**
+   - Client: Next.js App Router with React components
+   - API: Next.js API Routes with streaming responses
+   - Database: SQLite with vector extension (sqlite-vec)
+   - AI Service: OpenAI API for embeddings and chat completions
+   - State Management: Vercel AI SDK for chat state
+
+2. **Platform Integration Requirements**
+   - **Authentication**: Must integrate with existing NextAuth.js middleware
+     - Extract user ID from auth session
+     - Extract tenant ID from auth context
+     - Pass auth headers to AI endpoints
+   - **Database**: Extend existing SQLite database
+     - Add AI-specific tables alongside existing entities
+     - Maintain foreign key relationships with existing tables
+     - Share the same database connection via db.server.ts
+   - **Middleware**: Leverage existing middleware stack
+     - Use existing tenant isolation middleware
+     - Apply rate limiting via existing middleware
+     - Utilize auth validation middleware for all AI routes
+   - **Services**: Integrate with existing service layer
+     - Access Features and Releases via existing services
+     - Use existing tenant utilities for data isolation
+     - Leverage existing query patterns and interfaces
+
+### Core Technology Stack
+2. **Required Technologies**
+   - **Frontend**: 
+     - Vercel AI SDK UI components (zero custom build)
+     - React 18+ with TypeScript
+     - Tailwind CSS for styling
+   - **Backend**:
+     - Next.js 14+ App Router
+     - OpenAI API SDK
+     - sqlite-vec for vector search
+   - **Authentication**: 
+     - NextAuth.js (existing implementation)
+   - **Database**:
+     - SQLite (existing)
+     - Better-sqlite3 driver
+
+### Database Schema
+3. **Required Tables**
+   - **ai_messages**:
+     - id (TEXT PRIMARY KEY)
+     - user_id (TEXT NOT NULL)
+     - tenant_id (TEXT NOT NULL)
+     - role (TEXT: 'user' | 'assistant' | 'system')
+     - content (TEXT NOT NULL)
+     - created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+   
+   - **ai_sessions**:
+     - id (TEXT PRIMARY KEY)
+     - user_id (TEXT NOT NULL)
+     - tenant_id (TEXT NOT NULL)
+     - last_activity (DATETIME)
+     - created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+   
+   - **ai_vectors** (virtual table):
+     - embedding (FLOAT[1536])
+   
+   - **ai_vectors_metadata**:
+     - rowid (INTEGER PRIMARY KEY)
+     - tenant_id (TEXT NOT NULL)
+     - entity_type (TEXT)
+     - entity_id (TEXT)
+
+### API Implementation
+4. **API Endpoints**
+   - `POST /api/ai-chat`: Main chat endpoint
+     - Accepts messages array
+     - Returns streaming response
+     - Handles tenant isolation
+   - `POST /api/ai-index`: Data indexing endpoint
+     - Indexes Features and Releases for RAG
+     - Generates embeddings for searchable content
+
+### Data Processing
+5. **RAG Implementation**
+   - **Indexing Requirements**:
+     - Index Features: name, description, requirements, priority, status
+     - Index Releases: name, description, target date, associated features
+     - Generate embeddings using OpenAI text-embedding-3-small
+     - Store embeddings with tenant isolation
+   
+   - **Search Requirements**:
+     - Vector similarity search limited to user's tenant
+     - Return top 5 most relevant documents
+     - Include metadata for context
+
+### Security Requirements
+6. **Authentication & Authorization**
+   - All requests must include valid auth token
+   - Tenant ID extracted from auth context
+   - User ID required for message attribution
+   - API rate limiting: 60 requests per minute per user
+
+### Performance Requirements
+7. **Response Times**
+   - Chat responses must stream within 500ms
+   - Vector search must complete within 200ms
+   - Message history load within 100ms
+   - Maximum 100 messages per conversation (prototype limit)
+
+### Integration Requirements
+8. **Component Integration**
+   - Use Vercel AI SDK's `<AIChat>` component
+   - Pass authentication context to chat body
+   - Configure streaming responses
+   - Implement typing indicators
+
+### Error Handling
+9. **Technical Error Management**
+   - Graceful OpenAI API failure handling
+   - Database connection error recovery
+   - Invalid request validation
+   - Consistent error response format
+
+### Deployment Requirements
+10. **Environment Configuration**
+    - OPENAI_API_KEY environment variable
+    - Existing auth configuration
+    - Database initialization scripts
+    - Vector extension setup
+
+### Prototype Constraints
+11. **Technical Limitations**
+    - Single conversation per user (no conversation management)
+    - Basic UI using Vercel AI SDK components only
+    - No custom styling beyond Tailwind utilities
+    - Limited to 1536-dimension embeddings
+    - No real-time collaboration features 
 
 ## Implementation Steps
 
@@ -385,3 +594,59 @@ curl -X POST http://localhost:3000/api/ai-chat \
 - Advanced RAG with metadata filtering
 - Custom prompt templates
 - Conversation history persistence
+
+ 1. Conversation Management
+    - User can have up to 1 chat
+    - User can create new chat conversations 
+    - User can access and resume conversations
+    - User can delete old conversations
+    - Conversations are named  `"Chat `
+    - System displays timestamp for each message
+    - System shows typing indicators when AI is responding
+
+  2. Context Awareness
+    - Chat system maintains context within a conversation session
+    - System can reference earlier messages in the same conversation
+    - System can access and query the user's product, feature, and requirement data
+    - System respects tenant boundaries - only accesses data within user's tenant
+  3. Initial Greeting & Onboarding
+    - System greets new users with "What are we building today?" as specified
+    - System provides helpful examples of what users can ask about
+    - System offers guided prompts for common tasks
+ Agent
+ -       - System provides undo/rollback capability
+
+### Data Access & Permissions
+
+  4. Product Data Integration
+    - Chat can query and retrieve information about products, features, requirements
+    - Chat can provide insights based on relationships between entities
+    - Chat can generate summaries of product status and progress
+    - Chat respects multi-tenancy - only accesses data within user's tenant
+  5. User Privacy
+    - Each user's chat history is private and isolated
+    - Conversations are stored per-user and not accessible by other users
+    - Admin users cannot view other users' chat histories
+
+  Agent Capabilities
+
+  6. Agentic Actions (mentioned in About section)
+    - System can suggest updates to product data
+    - System can create drafts of new requirements or features
+    - System requires user confirmation before making any data changes
+    - System provides preview of proposed changes
+
+  User Experience
+
+  7. Error Handling
+    - System gracefully handles failed requests
+    - System provides helpful error messages to users
+    - System maintains conversation state even if errors occur
+  8. Performance
+    - Chat responses stream in real-time for better UX
+    - System handles long conversations without degradation
+    - Previous messages load quickly when resuming conversations
+  9. Search & Navigation
+    - User can search through their chat history
+    - User can filter conversations by date or topic
+    - System provides quick access to recent conversations

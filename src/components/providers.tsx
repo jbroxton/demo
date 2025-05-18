@@ -10,7 +10,6 @@ import { UnifiedStateProvider } from '@/providers/unified-state-provider'
 import { AuthProvider } from '@/providers/auth-provider'
 import { getBaseUrl } from '@/lib/env'
 import { StyleLoader } from '@/components/style-loader'
-import { ApprovalSystemInit } from '@/components/approval-system-init'
 import { TableThemeProvider } from '@/providers/table-theme-provider'
 import { SidenavThemeProvider } from '@/providers/sidenav-theme-provider'
 
@@ -62,7 +61,6 @@ export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
                 <UnifiedStateProvider>
                   <SidenavThemeProvider>
                     <TableThemeProvider>
-                      <ApprovalSystemInit />
                       {content}
                     </TableThemeProvider>
                   </SidenavThemeProvider>
