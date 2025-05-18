@@ -155,13 +155,16 @@ export async function createProductInDb(
   }
   
   try {
-    // Map input to database format
+    // Use direct object literal like interfaces and features
     const dbInput = {
-      ...mapProductToDb(product),
-      tenant_id: tenantId
+      name: product.name,
+      description: product.description || '',
+      tenant_id: tenantId,
+      is_saved: product.isSaved ?? false,
+      saved_at: product.savedAt || null
     };
     
-    console.log('createProductInDb - mapped DB input:', dbInput);
+    console.log('createProductInDb - DB input:', dbInput);
     
     const { data: dbProduct, error } = await supabase
       .from('products')
