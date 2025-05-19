@@ -61,6 +61,8 @@ export function EntityCreator({
   iconOnly = false,
   context
 }: EntityCreatorProps) {
+  console.log('=== EntityCreator MOUNTED ===', { entityType });
+  
   const { openTab } = useTabsQuery();
   const productsQuery = useProductsQuery();
   const interfacesQuery = useInterfacesQuery();
@@ -87,6 +89,7 @@ export function EntityCreator({
   
   // Create a new entity tab
   const createEntityTab = async () => {
+    console.log('=== createEntityTab CALLED ===');
     console.log('Creating entity tab for:', entityType);
     console.log('Auth state:', {
       isAuthenticated: auth.isAuthenticated,
@@ -291,7 +294,12 @@ export function EntityCreator({
             </Button>
           </DialogClose>
           <Button 
-            onClick={createEntityTab}
+            onClick={() => {
+              console.log('=== CREATE BUTTON CLICKED ===');
+              console.log('entityType:', entityType);
+              console.log('isCreating:', isCreating);
+              createEntityTab();
+            }}
             disabled={isCreating}
             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
           >

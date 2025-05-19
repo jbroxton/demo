@@ -6,8 +6,8 @@ import { Product } from '@/types/models'
 // Query key for products
 const PRODUCTS_QUERY_KEY = 'products'
 
-// Type for creating a new product - excludes id and tenantId as they're added automatically
-type CreateProductInput = Omit<Product, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'interfaces'>
+// Type for creating a new product - excludes id and interfaces as they're added automatically
+type CreateProductInput = Omit<Product, 'id' | 'interfaces'>
 
 /**
  * Hook for working with products using React Query
@@ -16,6 +16,7 @@ export function useProductsQuery() {
   const queryClient = useQueryClient()
   
   console.log('useProductsQuery hook called');
+  console.log('queryClient exists:', !!queryClient);
 
   // Check initial cache state
   console.log('Initial cache state:', queryClient.getQueryData([PRODUCTS_QUERY_KEY]));
@@ -39,6 +40,7 @@ export function useProductsQuery() {
   })
   
   console.log('Query hook state:', { products, isLoading, error });
+  console.log('=== CREATING MUTATION ===');
 
   // Create product mutation
   const addProductMutation = useMutation({
@@ -77,6 +79,12 @@ export function useProductsQuery() {
       console.log('Current cache after update:', queryClient.getQueryData([PRODUCTS_QUERY_KEY]));
     },
   })
+
+  console.log('=== MUTATION CREATED ===', {
+    mutationExists: !!addProductMutation,
+    mutateAsyncExists: !!addProductMutation.mutateAsync,
+    mutationKeys: Object.keys(addProductMutation),
+  });
 
   // Update product name mutation
   const updateProductNameMutation = useMutation({
@@ -229,9 +237,22 @@ export function useProductsQuery() {
   
   const addProduct = async (product: CreateProductInput) => {
     console.log('addProduct called with:', product);
-    const result = await addProductMutation.mutateAsync(product);
-    console.log('addProduct result:', result);
-    return result;
+    console.log('addProduct - product type:', typeof product);
+    console.log('addProduct - product keys:', Object.keys(product));
+    console.log('addProduct - mutation state:', {
+      isPending: addProductMutation.isPending,
+      isError: addProductMutation.isError,
+      error: addProductMutation.error,
+    });
+    
+    try {
+      const result = await addProductMutation.mutateAsync(product);
+      console.log('addProduct result:', result);
+      return result;
+    } catch (error) {
+      console.error('addProduct mutation error:', error);
+      throw error;
+    }
   }
   
   const updateProductName = async (productId: string, name: string) => {

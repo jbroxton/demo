@@ -18,6 +18,7 @@ import {
   Plus
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { EntityCreator } from "@/components/entity-creator"
 import { useRouter } from "next/navigation"
 import { useProductsQuery } from "@/hooks/use-products-query"
 import { useInterfacesQuery } from "@/hooks/use-interfaces-query"
@@ -26,7 +27,6 @@ import { useReleasesQuery } from "@/hooks/use-releases-query"
 import { useTabsQuery } from "@/hooks/use-tabs-query"
 import { useRoadmapsQuery } from "@/hooks/use-roadmaps-query"
 import { Button } from "@/components/ui/button"
-import { EntityCreator } from "@/components/entity-creator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 // Data for Goals section
@@ -230,20 +230,13 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
         className="flex items-center px-4 py-2 border-t border-b border-[#232326]"
         data-section="products-header">
         {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow">Products</span>}
-        <button
-          className={`${collapsed ? 'mx-auto' : ''} h-5 w-5 rounded-sm hover:bg-[#232326] flex items-center justify-center`}
-          onClick={() => {
-            console.log('Direct product button clicked');
-            openTab({
-              title: 'New Product',
-              type: 'product',
-              itemId: crypto.randomUUID(),
-              hasChanges: false
-            });
-          }}
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        <EntityCreator
+          entityType="product"
+          buttonVariant="ghost"
+          buttonSize="icon"
+          buttonClassName={`${collapsed ? 'mx-auto' : ''} h-5 w-5 rounded-sm hover:bg-[#232326] flex items-center justify-center`}
+          iconOnly={true}
+        />
       </div>
       
       {/* Products tree */}

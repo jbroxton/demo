@@ -68,7 +68,13 @@ export const POST = authenticatedHandler(async (request, { tenantId, userId, bod
   console.log('POST /api/products-db - result:', result);
   
   if (!result.success) {
+    console.error('Product creation failed:', result.error);
     return apiResponse.error(result.error || 'Failed to create product', 500);
+  }
+  
+  if (!result.data) {
+    console.error('No product data returned despite success');
+    return apiResponse.error('Product created but no data returned', 500);
   }
   
   return apiResponse.success(result.data, 201);

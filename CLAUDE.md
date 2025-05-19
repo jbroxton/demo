@@ -2,894 +2,651 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It documents established patterns, recommended practices, and architectural decisions to ensure consistency across the codebase.
 
+# Table of Contents
 
-**Non breakable rule** ALL DOC DESIGNS AND CODE IMPLEMENTATION MUST NEED COMPLIANCE WITH THIS FILE
+1. [Quick Reference](#quick-reference)
+2. [Critical Rules](#critical-rules)
+3. [Project Structure](#project-structure)
+4. [Frontend Development](#frontend-development)
+5. [Backend Development](#backend-development)
+6. [Database & Service Layer](#database--service-layer)
+7. [State Management](#state-management)
+8. [Code Style Guidelines](#code-style-guidelines)
+9. [Testing](#testing)
+10. [Security & Performance](#security--performance)
+11. [Common Patterns & Templates](#common-patterns--templates)
+12. [Troubleshooting](#troubleshooting)
+13. [Decision Trees](#decision-trees)
+14. [Compliance Checklist](#compliance-checklist)
+15. [Lessons Learned](#lessons-learned)
 
-## Commands
+# Quick Reference
+
+## Primary Technologies
+- Framework: Next.js 14 (App Router)
+- UI Library: shadcn/ui components only
+- State Management: React Query + Context API
+- Database: SQLite
+- Auth: NextAuth.js
+- Styling: Tailwind CSS only
+- Form Handling: React Hook Form + Zod
+- Icons: Lucide React only
+
+## Essential File Locations
+- API Routes: `/src/app/api/`
+- Components: `/src/components/`
+- Hooks: `/src/hooks/`
+- Services: `/src/services/`
+- Types: `/src/types/models/`
+- Providers: `/src/providers/`
+- Utils: `/src/utils/`
+
+## Must-Know Commands
 - `npm run dev` - Start development server with turbopack
 - `npm run build` - Build for production
-- `npm run start` - Start production server
 - `npm run lint` - Run eslint
+- `npm run start` - Start production server
 - `npm test` - Run Jest tests (when implemented)
 
-## Project Structure
-- `/src` - Main source code directory
-  - `/app` - Next.js App Router components and API routes
-  - `/components` - Reusable React components
-  - `/hooks` - Custom React hooks
-  - `/providers` - Context providers
-  - `/services` - Backend service functions
-  - `/types` - TypeScript type definitions
-  - `/utils` - Utility functions
-- `/public` - Static assets
-- `/docs` - Documentation files
+# Critical Rules
 
+## Priority 1 - Non-Negotiable Requirements
+1. **Component Usage**: ONLY use existing shadcn/ui components - NEVER create custom components
+2. **Type Safety**: Avoid `any` types - use specific types or generics
+3. **Security**: Always use parameterized queries for database operations
+4. **Error Handling**: All API routes must have proper error handling
+5. **State Management**: Use React Query for server state, Context/useState for local state
+6. **Styling**: Use Tailwind CSS only - no custom CSS or inline styles
+7. **Code Compliance**: All implementations must follow patterns in this document
 
-**Global Resources:**
-- We are transitioning to a global provider model for UI state management
-- Authentication is handled via NextAuth.js (`/src/lib/auth.ts`)
-- Global styling constants are in CSS variables (dark theme, transitions, etc.)
-- Shared icons come from Lucide React - don't import from other icon libraries
-- Component theming uses context providers for consistent styling
-- Toast notifications via Sonner throughout the application
-- Existing dashboard layout is in `/src/components/dashboard-layout-query.tsx`
+## Priority 2 - Architectural Requirements
+1. Use Next.js App Router structure
+2. Follow established naming conventions (kebab-case files, PascalCase components)
+3. Co-locate related code (keep mutations with queries)
+4. Use service layer for database operations
+5. Apply multi-tenancy patterns where required
 
-## Bugs / Code Errors
-**If you encounter a bug**
-    - Diagnose the issue first. Do not start writing code and trying fixes arbritrarily
-    - Always fix the solution with best practices 
-    - Write the logic of what
-    - When designing a feature / coding, use the best practices and established patterns. 
-    - If a previous solution did not work, then remove the code
+# Project Structure
 
-##Writing Guidlines for docs
-**Rules**: When asked to write/edit a .md file in /docs
-  - Add sections: 
-      - Objective (required)
-      - About (required)
-      - Goals/Non Goals (required)
-      - Functional Requirements/Structured Technical Requirements Documentation (required)
-      - Client
-      - Server
-      - Database
-      - Implementation Design w/code examples
-      - Implementation Steps (eg, Build this, then that...)
-      - Lesson Learned
-  - Add Architecture diagram for implementation design
-  - Use words and phrases from the following Dictionaries:
-      - W3C Web Technology Glossary - For standardized web terminology: https://www.w3.org/standards/webdesign/
-      - Material Design/Apple HIG Terminology - For UI component naming consistency: https://m3.material.io/components
-      - OWASP Glossary - For security requirements terminology: https://owasp.org/www-community/Glossary
-      - IEEE Standard Glossary of Software Engineering - For formal requirements language: IEEE 610.12 standard
+```
+/src
+├── app/              # Next.js App Router
+│   ├── api/         # API routes (kebab-case with -db suffix)
+│   └── [pages]/     # Page components
+├── components/       # Reusable React components (kebab-case)
+├── hooks/           # Custom React hooks (use-*.ts)
+├── providers/       # Context providers (*-provider.tsx)
+├── services/        # Backend services (*-db.ts)
+├── types/           # TypeScript definitions
+│   └── models/      # Data models (PascalCase.ts)
+└── utils/           # Utility functions
+```
 
-  **Example**:
-  /src/components/
-  ├── attachment-button.tsx        # Header button component using shadcn Button
-  ├── attachment-list.tsx          # Main container for displaying attachments
-  ├── attachment-card.tsx          # Individual attachment display using shadcn Card
-  ├── attachment-dialog.tsx        # Dialog using shadcn Dialog (note: renamed from modal to dialog)
-  ├── attachment-form.tsx          # Form using shadcn Form components
-  ├── attachment-preview.tsx       # Preview component with type-specific rendering
-  └── attachment-utils.ts          # Utility functions for attachment handling
-  - When you make lessons learned
-    - Add lessons learned to CLAUDE.md
-    - Clean up lessons learned if any information is incorrect based on your experience.
+# Frontend Development
 
+## Component Development
 
+### Component Rules
+- Use functional components with hooks only
+- Place hooks at the top of components
+- Extract complex logic to custom hooks
+- Use memoization for expensive calculations
+- Avoid prop drilling - use context or composition
 
-
-## Code Style Guidelines
-- **Style** When designing a feature / coding, use the best practices and established patterns. 
-    - Wirte code using Google TypeScript Style Guide: https://google.github.io/styleguide/tsguide.html#array-literals
-- **Imports**: Group imports by type (React, stores, components, utils)
-- **Import Order**: Follow consistent import order:
-    1. React and Next.js imports
-    2. External libraries
-    3. Internal components and hooks
-    4. Types and interfaces
-    5. Utilities and helpers
-    6. Styles (if any)
-    - **Types**: Use TypeScript interfaces for component props, strict typing enabled
-    - **Naming**: Use PascalCase for components, camelCase for functions/variables
-    - **File Naming**: Use kebab-case for files (e.g., `feature-card.tsx`)
-    - **Components**: React functional components with hook state management
-    - **Error Handling**: Use try/catch blocks for async operations, log errors with console.error
-    - **Styling**: Tailwind CSS with shadcn/ui components, following dark theme
-    - **State Management**: React Query for server state, React's useState/useReducer for local state
-    - **File Structure**: Group by feature in `/src` directory
-    - **Component Structure**: Declare all hooks at top, then handlers, then JSX return
-    - **Code Formatting**: Follow project's Prettier and ESLint configuration
-    - **Line Length**: Keep lines under 100 characters when possible
-    - **Components**: Do not build custom components. ONLY use existing pre-built components. If one does not exist and we need to choose a new one then choose the most popular and lightweight option that  solves the need. Existing components and libraries:
-    - shadcn/ui components (from @/components/ui)
-    - Lucide React icons library
-    - React built-in components
-    - Use React's built-in hooks (useState, useEffect, useContext, etc.)
-    - Use React Query for remote data management
-    - Add a file header comment explaining the file's overall purpose
-    - Document each major section with its responsibility
-    - Use JSDoc comments for all exported functions
-    - Include usage examples for complex functions
-    - Keep related code together (cohesion)
-    - Move from general to specific (most general-purpose utilities first)
-    - Place the most frequently used functions earlier in the file
-    - Keep exported functions at a consistent location (either grouped together or near their related internal functions)
-    . **Naming Conventions**
-   - Files use kebab-case (e.g., `ai-chat.ts`, `use-ai-chat.ts`)
-   - Component files use kebab-case (e.g., `ai-chat-provider.tsx`)
-   - Types and interfaces use PascalCase (e.g., `ChatMessage`)
-   - Functions use camelCase (e.g., `searchContext`, `findSimilar`)
-   - Hooks use camelCase with `use` prefix (e.g., `useAiChat`)
-
-  5. Code Organization Principles
-
-  - Keep related code together (cohesion)
-  - Move from general to specific (most general-purpose utilities first)
-  - Place the most frequently used functions earlier in the file
-  - Keep exported functions at a consistent location (either grouped together or near their related internal functions)
-- **Styling**:
-   - Only use Tailwind CSS classes for styling
-   - Follow the project's existing design tokens and color scheme
-   - Do not use inline CSS or external CSS libraries
-   - Group Tailwind classes by category (layout, spacing, colors, etc.)
-   - Do not use any custom classes
-
-## State Management & Data Fetching
-
-### Project Configuration
-  - **Provider Setup**: The application uses React Query through the provider in `/src/providers/query-provider.tsx`
-  - **Configuration**: Default settings are centralized in the provider; don't create separate instances
-  - **Import**: Always import React Query hooks from '@tanstack/react-query', not other packages
-  - **Client Access**: Access QueryClient using `useQueryClient()` hook when needed
-
-### React Query for Server State
-  - **Purpose**: Use React Query as the primary tool for managing server state
-  - **Benefits**: Provides caching, background updates, optimistic updates, and request deduplication
-  - **File Location**: Place all query hooks directly in `/src/hooks/` directory (not in sub-folders)
-  - **Naming**: Use kebab-case with `use-` prefix and `-query` suffix (e.g., `use-attachments-query.ts`)
-  - **Query Keys**: Follow consistent pattern for query keys:
-  ```typescript
-  // Simple query key pattern
-  const queryKey = ['entityName', entityId];
-
-  // Query key with filters
-  const queryKey = ['entityName', entityId, { filters }];
-  ```
-
-### Query Hook Implementation
-- **Structure**: Implement query hooks with consistent pattern:
-  ```typescript
-  export function useEntityQuery(id: string) {
-    const queryClient = useQueryClient();
-    const queryKey = ['entity', id];
-
-    // Main query
-    const entityQuery = useQuery({
-      queryKey,
-      queryFn: () => fetchEntity(id),
-      enabled: !!id,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    });
-
-    // Mutations in the same file
-    const addMutation = useMutation({
-      mutationFn: (data) => addEntity(data),
-      onSuccess: () => queryClient.invalidateQueries({ queryKey })
-    });
-
-    // Return combined result
-    return {
-      data: entityQuery.data,
-      isLoading: entityQuery.isLoading,
-      error: entityQuery.error,
-      add: addMutation.mutateAsync,
-      isAdding: addMutation.isLoading,
-      // other operations...
-    };
-  }
-  ```
-
-### Mutation Patterns
-  - **Co-location**: Include mutations (create, update, delete) in the same hook file as the queries
-  - **Naming**: Use action verbs for mutation methods (e.g., `add`, `update`, `remove`)
-  - **Loading States**: Return `isDoingAction` boolean flags for loading states (e.g., `isAddingAttachment`)
-  - **Cache Updates**: Always invalidate related queries after successful mutations:
-  ```typescript
-  const mutation = useMutation({
-    mutationFn,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-    },
-  });
-  ```
-- **Optimistic Updates**: Use optimistic updates for better UX when appropriate:
-  ```typescript
-  const mutation = useMutation({
-    mutationFn,
-    onMutate: async (newData) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey });
-      // Save current data
-      const previousData = queryClient.getQueryData(queryKey);
-      // Optimistically update
-      queryClient.setQueryData(queryKey, oldData => [...oldData, newData]);
-      // Return context for rollback
-      return { previousData };
-    },
-    onError: (err, newData, context) => {
-      // Roll back on error
-      queryClient.setQueryData(queryKey, context.previousData);
-    },
-    onSettled: () => {
-      // Always refetch after error or success
-      queryClient.invalidateQueries({ queryKey });
-    },
-  });
-  ```
-
-### Error Handling in Queries
-- **Global Handling**: Use the `query-provider.tsx` for global error handling
-- **Component Level**: Implement component-level error handling using React Query's error states
-- **Error Boundaries**: Use React Error Boundaries for catching rendering errors:
-  ```typescript
-  class ErrorBoundary extends React.Component {
-    state = { hasError: false, error: null };
-
-    static getDerivedStateFromError(error) {
-      return { hasError: true, error };
-    }
-
-    render() {
-      if (this.state.hasError) {
-        return <div>Something went wrong. Please try again.</div>;
-      }
-      return this.props.children;
-    }
-  }
-  ```
-- **Using React Query Error State**:
-  ```typescript
-  const { data, error, isLoading } = useEntityQuery(id);
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-  ```
-
-### Local State Management
-- **Component State**: Use React's built-in hooks for component-level state:
-    - `useState` for simple state
-    - `useReducer` for complex state logic
-- **Context API**: Use React Context for shared state that doesn't need to be persisted:
-    - Create dedicated providers in `/src/providers/`
-    - Expose state and update functions through custom hooks
-
-## API Design
-- **File Location**: Place API routes in `/src/app/api/` using the Next.js App Router pattern
-- **Naming**: Use kebab-case with `-db` suffix for database operations (e.g., `attachments-db`)
-- **Route Structure**: Group related operations in the same route.ts file (GET, POST, DELETE)
-- **Error Handling**:
-  - Use consistent response structure with HTTP status codes
-  - Return errors in the format `{ error: string }` with appropriate status codes
-  - For 400 errors, include details about validation failures
-  - For 500 errors, log the error but return a generic message to the client
-- **Response Format**: 
-  - For GET requests, return data directly as JSON array or object
-  - For POST requests, return the created entity with its ID
-  - For DELETE requests, return `{ success: true }` or error
-- **Input Validation**: Validate all inputs before database operations
-- **Database Services**: 
-  - Use service functions from the services directory to handle database operations
-  - Keep route handlers thin and focused on request/response handling
-
-## Database & Service Layer
-
-### Database Design
-- **Schema Definition**: Define all database tables in `src/services/db.server.ts`
-- **SQLite Best Practices**: Follow SQLite-specific best practices:
-  - Use TEXT for IDs instead of INTEGER for flexibility
-  - Use ISO 8601 strings for dates (YYYY-MM-DD HH:MM:SS.SSS)
-  - Add appropriate indexes for frequently queried columns
-- **Migrations**: When changing schema, provide migration functions
-- **Relationships**: Use foreign keys to maintain data integrity
-- **Constraints**: Define appropriate NOT NULL and UNIQUE constraints
-- **Default Values**: Provide sensible defaults when appropriate
-
-### Query Patterns
-- **Parameterized Queries**: Always use parameterized queries to prevent SQL injection:
-  ```typescript
-  // CORRECT - Parameterized
-  db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-
-  // INCORRECT - String interpolation
-  db.prepare(`SELECT * FROM users WHERE id = '${userId}'`).get();
-  ```
-- **Transactions**: Use transactions for operations that modify multiple tables:
-  ```typescript
-  // Transaction example
-  const createFeatureWithRequirements = (feature, requirements) => {
-    const db = getDb();
-    db.transaction(() => {
-      // Create feature
-      const featureId = db.prepare(`
-        INSERT INTO features (name, description)
-        VALUES (?, ?)
-      `).run(feature.name, feature.description).lastInsertRowid;
-
-      // Create requirements with feature ID
-      const insertRequirement = db.prepare(`
-        INSERT INTO requirements (feature_id, title, description)
-        VALUES (?, ?, ?)
-      `);
-
-      for (const req of requirements) {
-        insertRequirement.run(featureId, req.title, req.description);
-      }
-    })();
-  };
-  ```
-- **Pagination**: Implement consistent pagination for large data sets:
-  ```typescript
-  const getPagedRequirements = (featureId, page = 1, pageSize = 20) => {
-    const offset = (page - 1) * pageSize;
-    return db.prepare(`
-      SELECT * FROM requirements
-      WHERE feature_id = ?
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(featureId, pageSize, offset);
-  };
-  ```
-- **Performance**: Use appropriate queries for the task:
-  - Use COUNT(*) for checking existence instead of fetching all rows
-  - Use indexes for frequently filtered columns
-  - Use EXPLAIN QUERY PLAN to verify efficient query execution
-
-### Service Layer
-- **File Location**: Place all services directly in `/src/services/` directory (not in sub-folders)
-- **Naming**: Use kebab-case with `-db` suffix for database services (e.g., `attachments-db.ts`)
-- **Function Naming**: Use descriptive, consistent function names following the pattern:
-  - `getEntityFromDb` - For retrieving data
-  - `createEntityInDb` - For creating data
-  - `updateEntityInDb` - For updating data
-  - `deleteEntityFromDb` - For deleting data
-- **Return Format**: Use consistent return structure for database operations:
-  ```typescript
-  return {
-    success: boolean,
-    data?: T, // for successful operations
-    error?: string // for failed operations
-  }
-  ```
-- **Error Handling**: Use try/catch blocks and log detailed errors, but return generic messages
-- **Type Safety**: Use TypeScript types for parameters and return values
-- **Data Mapping**: Map database column names to camelCase property names:
-  ```typescript
-  // Map snake_case DB fields to camelCase
-  const mapFeature = (row) => ({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    productId: row.product_id
-  });
-  ```
-
-## Providers
-- **File Location**: Place all providers in `/src/providers/` directory
-- **Naming**: Use kebab-case with `-provider` suffix (e.g., `attachment-provider.tsx`)
-- **Component Naming**: Use PascalCase for the actual provider component (e.g., `AttachmentProvider`)
-- **Context Naming**: Use PascalCase with `Context` suffix (e.g., `AttachmentContext`)
-- **Usage**: Export both the provider component and a custom hook to access the context:
-  ```typescript
-  export const AttachmentProvider = ({ children }) => {
-    // provider implementation
-  };
-
-  export const useAttachmentContext = () => {
-    // context consumer hook
-  };
-  ```
-- **Provider Composition**: Compose multiple providers together in the layout component
-- **Context Creation**: Use `createContext` with a meaningful default value and type
-- **Provider Values**: Memoize provider values with `useMemo` to prevent unnecessary re-renders
-
-## Component Reuse
-- **Component Composition**: Prioritize composing existing components over creating new ones
-- **shadcn/ui**: Use shadcn/ui components for all UI elements:
-  - Follow shadcn/ui prop patterns (`open/onOpenChange` for dialogs)
-  - Use shadcn/ui Form for form handling with zod validation
-  - Use shadcn/ui Card, Button, Dialog for consistent UI
-- **Avoid Duplication**: Extract common patterns into reusable helper components
-- **Form Handling**: Use React Hook Form with zod validation for all forms
-
-## TypeScript Best Practices
-- **Type Definitions**: Place shared types in `/src/types/models/` directory
-- **Interface Naming**: Use PascalCase without `I` prefix (e.g., `User`, not `IUser`)
-- **Prop Types**: Define component prop interfaces adjacent to components, not in a separate file
-- **Enums**: Prefer union types over enums (e.g., `type Status = 'pending' | 'complete'`)
-- **Type vs Interface**: Use interfaces for objects and props, types for unions and primitives
-- **Export Types**: Export all shared types/interfaces for reuse
-- **Generic Types**: Use meaningful generic type names (e.g., `T` for generic data, `K` for keys)
-- **Inferred Types**: Leverage TypeScript's type inference where appropriate
-- **JSDoc Comments**: Add JSDoc comments to explain complex types
-
-## Testing
-- **Test Framework**: Use Jest as the testing framework
-- **Test Structure**: Co-locate tests with implementation files using `.test.ts` extension
-- **Component Testing**: Use React Testing Library for component tests with data-testid attributes
-- **Test Scope**: Write tests for business logic, transformations, and critical functionality
-- **Mocking**: Use Jest's mocking capabilities for external dependencies
-- **Query Testing**: Mock React Query hooks in tests using the QueryClientProvider
-  ```typescript
-  const queryClient = new QueryClient();
-  render(
-    <QueryClientProvider client={queryClient}>
-      <Component />
-    </QueryClientProvider>
-  );
-  ```
-- **Coverage**: Aim for high coverage of business logic and transformations
-- **Test Naming**: Use descriptive test names that explain the expected behavior
-- **Test Pattern**: Use the AAA pattern (Arrange, Act, Assert) for all tests
-
-## Performance
-- **Memoization**: Use `useMemo` and `useCallback` for expensive calculations or to prevent unnecessary re-renders
-- **Bundle Size**: Be aware of the bundle size impact when adding dependencies
-- **Virtualization**: Use virtualization for long lists (e.g., react-window)
-- **Lazy Loading**: Use dynamic imports for code splitting where appropriate
-- **Query Optimizations**: Use React Query's features for performance:
-  - Configure appropriate `staleTime` for cached data (default: 0ms)
-  - Use `keepPreviousData` for paginated queries to prevent content flashing
-  - Set proper `cacheTime` for retaining inactive query data (default: 5 minutes)
-  - Apply optimistic updates for immediate UI feedback
-  - Use prefetching for anticipated data needs (`queryClient.prefetchQuery`)
-- **Debounce & Throttle**: Apply debouncing and throttling for frequent user events
-- **Query Deduplication**: Leverage React Query's automatic deduplication of identical requests
-
-## Security
-- **Input Validation**: Validate all user inputs both client-side and server-side
-- **SQL Injection**: Use parameterized queries for all database operations
-- **XSS Prevention**: Escape user-generated content before rendering
-- **API Security**: Validate authentication and authorization for all API routes
-- **Sensitive Data**: Never expose sensitive data or configuration in client-side code
-- **Environment Variables**: Use environment variables for sensitive configuration
-
-## Accessibility
-- **Keyboard Navigation**: Ensure all interactive elements are keyboard accessible
-- **ARIA Attributes**: Use appropriate ARIA roles and attributes
-- **Color Contrast**: Maintain sufficient color contrast ratios
-- **Focus Management**: Properly manage focus, especially in modals
-- **Semantic HTML**: Use appropriate semantic HTML elements
-- **Error Messages**: Provide clear error messages and instructions
-
-## React Patterns
-- **Conditional Rendering**: Use the ternary operator for simple conditions, extract to variables for complex ones
-- **Prop Drilling**: Avoid excessive prop drilling; consider context or composition
-- **Key Prop**: Always use stable, unique keys for list items (avoid using array index)
-- **Handlers Naming**: Use the `handleX` pattern for event handlers
-- **Fragments**: Use React fragments to avoid unnecessary DOM elements
-- **State Management**: Keep state as close as possible to where it's used
-- **Effect Dependencies**: Always include all dependencies in useEffect dependency arrays
-- **Custom Hooks**: Extract reusable logic into custom hooks
-
-The access code is "I read md.claude"
-## JSX Best Practices
-
-### Avoiding Deep Nesting
-- **Maximum Nesting**: Limit JSX nesting to 3-4 levels deep
-- **Component Extraction**: Extract nested JSX into separate components:
-  ```jsx
-  // AVOID
-  return (
-    <div className="card">
-      <div className="card-header">
-        <div className="title-area">
-          <h2>{title}</h2>
-          <div className="actions">
-            <button>Edit</button>
-            <button>Delete</button>
-          </div>
-        </div>
-      </div>
-      <div className="card-body">...</div>
-    </div>
-  );
-
-  // PREFER
-  const CardHeader = ({ title }) => (
-    <div className="card-header">
-      <div className="title-area">
-        <h2>{title}</h2>
-        <CardActions />
-      </div>
-    </div>
-  );
-
-  const CardActions = () => (
-    <div className="actions">
-      <button>Edit</button>
-      <button>Delete</button>
-    </div>
-  );
-
-  return (
-    <div className="card">
-      <CardHeader title={title} />
-      <div className="card-body">...</div>
-    </div>
-  );
-  ```
-
-### Layout Structuring
-- **Composition**: Use component composition over deep nesting
-- **Layout Components**: Create reusable layout components for common patterns:
-  ```jsx
-  // Create reusable layout components
-  const TwoColumnLayout = ({ left, right }) => (
-    <div className="grid grid-cols-2 gap-4">
-      <div>{left}</div>
-      <div>{right}</div>
-    </div>
-  );
-
-  // Use composition in your components
-  return (
-    <TwoColumnLayout
-      left={<FeaturesList features={features} />}
-      right={<FeatureDetails feature={selectedFeature} />}
-    />
-  );
-  ```
-
-### Conditional Rendering Patterns
-- **Early Return**: Use early returns for conditional rendering of entire components
-- **Component Variables**: Assign JSX to variables for complex conditional structures
-- **Conditional Chains**: Avoid nested ternary operators; use component variables instead:
-  ```jsx
-  // AVOID
+### Component Structure
+```tsx
+// Standard component pattern
+export function ComponentName({ prop1, prop2 }: ComponentProps) {
+  // 1. Hooks
+  const [state, setState] = useState();
+  const queryResult = useCustomQuery();
+  
+  // 2. Handlers
+  const handleClick = () => {};
+  
+  // 3. Render logic
+  if (loading) return <Spinner />;
+  
+  // 4. Main render
   return (
     <div>
-      {isLoading ? (
-        <Spinner />
-      ) : error ? (
-        <ErrorMessage error={error} />
-      ) : data ? (
-        <DataDisplay data={data} />
-      ) : (
-        <EmptyState />
-      )}
+      {/* Component JSX */}
     </div>
   );
+}
+```
 
-  // PREFER
-  let content;
-  if (isLoading) {
-    content = <Spinner />;
-  } else if (error) {
-    content = <ErrorMessage error={error} />;
-  } else if (data) {
-    content = <DataDisplay data={data} />;
-  } else {
-    content = <EmptyState />;
-  }
+### Form Handling Pattern
+```tsx
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
-  return <div>{content}</div>;
-  ```
+// 1. Define schema
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+});
 
-### Function Extraction
-- **Event Handlers**: Extract inline event handlers to named functions
-- **Render Methods**: Extract complex rendering logic to separate functions:
-  ```jsx
-  // Extract rendering logic
-  const renderTableHeaders = () => {
-    return columns.map(column => (
-      <th key={column.id}>{column.label}</th>
-    ));
-  };
-
-  const renderTableRows = () => {
-    return data.map(row => (
-      <tr key={row.id}>
-        {columns.map(column => (
-          <td key={`${row.id}-${column.id}`}>{row[column.id]}</td>
-        ))}
-      </tr>
-    ));
-  };
-
-  return (
-    <table>
-      <thead><tr>{renderTableHeaders()}</tr></thead>
-      <tbody>{renderTableRows()}</tbody>
-    </table>
-  );
-  ```
-
-### Props Organization
-- **Prop Spreading**: Avoid prop spreading for better code readability and type safety
-- **Prop Grouping**: Group related props using objects
-- **Destructuring**: Use destructuring for cleaner prop access
-
-## Multi-Tenancy
-- **Tenant Identification**: Use the tenantId attribute consistently across all entities
-- **Tenant Context**: Access the current tenant through the unified tenant context provider
-- **Data Isolation**: Always include tenant filtering in database queries:
-  ```typescript
-  // Example of a tenant-aware database query
-  const results = db.prepare(`
-    SELECT * FROM entities
-    WHERE tenant_id = ? AND other_conditions
-  `).all(tenantId, otherParams);
-  ```
-- **Tenant Middleware**: Apply tenant-specific middleware for all API routes
-- **Route Handlers**: Always extract and validate tenantId in API route handlers
-- **Default Tenant**: Use the default tenant ID for system-wide entities when appropriate
-- **Tenant Headers**: Include tenant information in API requests via headers
-- **Tenant Switching**: Support tenant switching through the tenant context
-- **Multi-Tenant UI**: Use tenant-specific theming and branding when required
-- **Tenant Utilities**: Use the tenant utility functions from `/src/utils/tenant-utils.ts`
-- **Permission Checks**: Combine tenant validation with permission checks for secure operations
-
-## Form Handling
-
-- **Form Library**: Use React Hook Form for all form implementations
-- **Validation**: Use zod for form validation schema
-- **Integration**: Use shadcn/ui Form components which integrate with React Hook Form:
-  ```typescript
-  import { zodResolver } from "@hookform/resolvers/zod";
-  import { useForm } from "react-hook-form";
-  import * as z from "zod";
-  import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-  import { Button } from "@/components/ui/button";
-  import { Input } from "@/components/ui/input";
-
-  // Define schema
-  const formSchema = z.object({
-    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-    email: z.string().email({ message: "Please enter a valid email" }),
+// 2. Create form component
+export function EntityForm() {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "", email: "" },
   });
 
-  // Form component
-  function EntityForm() {
-    const form = useForm<z.infer<typeof formSchema>>({
-      resolver: zodResolver(formSchema),
-      defaultValues: {
-        name: "",
-        email: "",
-      },
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Handle submission
+  }
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-      // Handle form submission
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        {/* Form fields */}
+      </form>
+    </Form>
+  );
+}
+```
+
+## Styling Guidelines
+
+### Tailwind-Only Approach
+- Use Tailwind utility classes exclusively
+- Group classes by category (layout, spacing, colors)
+- Follow project's color scheme and design tokens
+- Use CSS variables for theme values
+- Never use custom CSS classes or inline styles
+
+### Example
+```tsx
+// ✅ CORRECT
+<div className="flex flex-col gap-4 p-6 bg-card rounded-lg border">
+
+// ❌ INCORRECT
+<div style={{ display: 'flex' }} className="custom-card">
+```
+
+# Backend Development
+
+## API Route Development
+
+### Route Structure
+- Location: `/src/app/api/[entity-name]/route.ts`
+- Naming: Use kebab-case with `-db` suffix for database operations
+- Group related operations (GET, POST, DELETE) in same file
+
+### Standard API Route Pattern
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getEntityFromDb, createEntityInDb } from '@/services/entity-db';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    const result = await getEntityFromDb(id);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 }
+      );
     }
-
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit">Submit</Button>
-        </form>
-      </Form>
+    
+    return NextResponse.json(result.data);
+  } catch (error) {
+    console.error('Error in GET /api/entity:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
-  ```
-- **Error Handling**: Display form errors inline using FormMessage
-- **Form State**: Use form.formState for submission and error state
-- **Form Reset**: Call form.reset() after successful submission
+}
+```
 
-## Next.js Best Practices
-- **App Router**: Use the App Router directory structure (/src/app)
-- **Route Handlers**: Place API routes in the appropriate route.ts files
-- **Server Components**: Use server components by default for data fetching
-- **Client Components**: Only use client components when needed for interactivity
-- **Metadata**: Use Next.js metadata API for SEO optimization
-- **Error Handling**: Implement error.tsx files for graceful error handling
-- **Loading States**: Use loading.tsx files for loading states
-- **Image Optimization**: Always use Next.js Image component for images
-- **Font Optimization**: Use Next.js Font component for custom fonts
+### Error Handling Standards
+- Return consistent error format: `{ error: string }`
+- Use appropriate HTTP status codes
+- Log detailed errors server-side
+- Return generic messages to client for 500 errors
 
-## Deployment & CI/CD
-- **Environment Variables**: Use .env files for environment-specific configuration
-- **Vercel Deployment**: Deploy to Vercel with appropriate settings
-- **Build Process**: Ensure all commands pass before deployment
-- **Environment Configuration**: Configure separate environments (development, staging, production)
-- **Branch Strategy**: Follow the GitFlow branching strategy
+# Database & Service Layer
 
-## Code Cleanup
-- **Unused Code**: Delete unused functions, imports, and variables
-- **Commented Code**: Remove commented-out code
-- **Duplication**: Refactor duplicate code into shared functions
-- **TypeScript**: Fix TypeScript `any` types when possible
-- **Simplification**: Optimize overly complex conditionals
-- **Dead Code**: Remove unreachable code and unused dependencies
+## Service Layer Pattern
 
-## Lessons Learned
+### File Structure
+- Location: `/src/services/[entity]-db.ts`
+- Naming: kebab-case with `-db` suffix
+- One service file per entity/table
 
-### TypeScript Function Signatures and Adapter Patterns
+### Standard Service Functions
+```typescript
+// Standard naming patterns
+export async function getEntityFromDb(id: string): Promise<ServiceResult<Entity>> {
+  try {
+    const db = getDb();
+    const result = db.prepare('SELECT * FROM entities WHERE id = ?').get(id);
+    
+    return {
+      success: true,
+      data: mapDbToEntity(result),
+    };
+  } catch (error) {
+    console.error('Error getting entity:', error);
+    return {
+      success: false,
+      error: 'Failed to retrieve entity',
+    };
+  }
+}
 
-- **Problem**: React Query mutations and UI components often have incompatible function signatures that cause type errors
-- **Solution**: Create adapter functions to bridge different function signatures
+// Data mapping pattern
+function mapDbToEntity(row: any): Entity {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at, // snake_case to camelCase
+    updatedAt: row.updated_at,
+  };
+}
+```
+
+## Database Operations
+
+### Query Patterns
+```typescript
+// ✅ CORRECT - Parameterized queries
+db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+
+// ❌ INCORRECT - String interpolation
+db.prepare(`SELECT * FROM users WHERE id = '${userId}'`).get();
+```
+
+### Transaction Pattern
+```typescript
+export function createWithRelations(entity: Entity, relations: Relation[]) {
+  const db = getDb();
+  
+  return db.transaction(() => {
+    // Create main entity
+    const entityId = db.prepare(
+      'INSERT INTO entities (name) VALUES (?)'
+    ).run(entity.name).lastInsertRowid;
+    
+    // Create relations
+    const stmt = db.prepare(
+      'INSERT INTO relations (entity_id, value) VALUES (?, ?)'
+    );
+    
+    for (const relation of relations) {
+      stmt.run(entityId, relation.value);
+    }
+    
+    return entityId;
+  })();
+}
+```
+
+# State Management
+
+## React Query Implementation
+
+### Hook Pattern
+```typescript
+// File: /src/hooks/use-entity-query.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+export function useEntityQuery(id: string) {
+  const queryClient = useQueryClient();
+  const queryKey = ['entity', id];
+  
+  // Main query
+  const entityQuery = useQuery({
+    queryKey,
+    queryFn: () => fetchEntity(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Mutations
+  const addMutation = useMutation({
+    mutationFn: addEntity,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entities'] });
+    },
+  });
+  
+  return {
+    data: entityQuery.data,
+    isLoading: entityQuery.isLoading,
+    error: entityQuery.error,
+    add: addMutation.mutateAsync,
+    isAdding: addMutation.isPending,
+  };
+}
+```
+
+### Query Key Patterns
+```typescript
+// Simple key
+const queryKey = ['entity', id];
+
+// With filters
+const queryKey = ['entities', { status: 'active', page: 1 }];
+
+// Nested resources
+const queryKey = ['project', projectId, 'tasks', taskId];
+```
+
+# Code Style Guidelines
+
+## Import Order
+1. React and Next.js imports
+2. External libraries
+3. Internal components and hooks
+4. Types and interfaces
+5. Utilities and helpers
+6. Styles (if any)
 
 ```typescript
-// INCORRECT: Direct assignment of incompatible signatures
+// Example
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import type { User } from '@/types/models';
+import { formatDate } from '@/utils/date';
+```
+
+## Naming Conventions
+
+### Files and Folders
+- Components: `component-name.tsx`
+- Hooks: `use-hook-name.ts`
+- Services: `service-name-db.ts`
+- Types: `TypeName.ts`
+- Utils: `util-name.ts`
+
+### Code Elements
+- Components: `PascalCase`
+- Functions: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Types/Interfaces: `PascalCase`
+- Hooks: `useCamelCase`
+
+# Testing
+
+## Testing Strategy
+- Framework: Jest + React Testing Library
+- File naming: `*.test.ts` or `*.test.tsx`
+- Location: Co-locate with implementation files
+- Focus: Business logic, critical paths, transformations
+
+## Test Pattern
+```typescript
+import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+describe('ComponentName', () => {
+  const queryClient = new QueryClient();
+  
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    );
+  };
+  
+  it('should render correctly', () => {
+    renderWithProviders(<Component />);
+    expect(screen.getByText('Expected text')).toBeInTheDocument();
+  });
+});
+```
+
+# Security & Performance
+
+## Security Requirements
+1. **Input Validation**: Validate all inputs client and server-side
+2. **SQL Injection**: Use parameterized queries exclusively
+3. **XSS Prevention**: Escape user content before rendering
+4. **Auth**: Validate authentication on all protected routes
+5. **Environment**: Use env variables for sensitive config
+
+## Performance Guidelines
+1. **Memoization**: Use `useMemo` and `useCallback` appropriately
+2. **React Query**: Configure `staleTime` and `cacheTime`
+3. **Code Splitting**: Use dynamic imports for large components
+4. **Images**: Use Next.js Image component
+5. **Lists**: Virtualize long lists (react-window)
+
+# Common Patterns & Templates
+
+## API Client Pattern
+```typescript
+// Standard fetch wrapper
+async function apiRequest<T>(
+  path: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+```
+
+## Error Boundary Pattern
+```typescript
+class ErrorBoundary extends React.Component<Props, State> {
+  state = { hasError: false, error: null };
+  
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback error={this.state.error} />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+# Troubleshooting
+
+## Common Issues & Solutions
+
+### TypeScript Errors
+**Problem**: Type 'null' is not assignable to type 'string | undefined'
+**Solution**: Use `undefined` instead of `null` for optional properties
+
+**Problem**: Cannot find name 'Type'
+**Solution**: Import the type explicitly from its source file
+
+### Component Errors
+**Problem**: Component not found
+**Solution**: Install via `npx shadcn@latest add [component-name]`
+
+**Problem**: Hydration mismatch
+**Solution**: Ensure consistent rendering between server and client
+
+### API Errors
+**Problem**: CORS errors in development
+**Solution**: Configure Next.js rewrites or use API routes
+
+### Build Errors
+**Problem**: Module not found
+**Solution**: Check import paths and case sensitivity
+
+# Decision Trees
+
+## Creating a New Feature
+```mermaid
+graph TD
+    A[New Feature] --> B{Needs UI?}
+    B -->|Yes| C[Use shadcn/ui component]
+    B -->|No| D{Needs API?}
+    C --> D
+    D -->|Yes| E[Create API route]
+    D -->|No| F{Needs Data?}
+    E --> F
+    F -->|Server| G[Create React Query hook]
+    F -->|Local| H[Use useState/Context]
+    F -->|No| I[Implement logic]
+```
+
+## Choosing State Management
+1. **Server data?** → React Query
+2. **Form data?** → React Hook Form
+3. **Global UI state?** → Context API
+4. **Component state?** → useState/useReducer
+
+# Compliance Checklist
+
+Before submitting code, ensure:
+
+- [ ] Used existing shadcn/ui components only
+- [ ] No `any` types in TypeScript
+- [ ] All API routes have proper error handling
+- [ ] Database queries use parameterization
+- [ ] React Query hooks follow naming convention
+- [ ] Files use kebab-case naming
+- [ ] Imports follow standard order
+- [ ] No custom CSS or inline styles
+- [ ] Forms use React Hook Form + Zod
+- [ ] Error messages are user-friendly
+- [ ] Console.error used for error logging
+- [ ] Multi-tenancy considered (if applicable)
+
+# Lessons Learned
+
+## TypeScript Best Practices
+
+### Function Signatures and Adapters
+**Problem**: Incompatible function signatures between React Query and UI
+**Solution**: Create adapter functions
+
+```typescript
+// ❌ INCORRECT
 const addAttachment = addAttachmentMutation; // Type error
 
-// CORRECT: Adapter function that transforms parameters and preserves return type
+// ✅ CORRECT
 const addAttachment = async (url: string, title?: string): Promise<Attachment> => {
   return await addAttachmentMutation({ url, title });
 };
 ```
 
-### Missing UI Components
-
-- **Problem**: Using components that haven't been installed (e.g., shadcn/ui components)
-- **Solution**: Install the component before using it via the CLI
-
-```bash
-# Always install shadcn components before use
-npx shadcn@latest add badge
-```
-
-### Auth Context Imports
-
-- **Problem**: Importing auth context from the wrong location (e.g., from API routes that don't export it)
-- **Solution**: Always import from the definitive source
+### Null vs Undefined
+**Problem**: TypeScript treats null and undefined differently
+**Solution**: Use undefined for optional properties
 
 ```typescript
-// INCORRECT: Importing from an API route that doesn't export the object
-import { authOptions } from '../auth/[...nextauth]/route';
+// ❌ INCORRECT
+const data = { id: '123', optional: value || null };
 
-// CORRECT: Import from the source where it's defined
-import { authOptions } from '@/lib/auth';
-```
-
-### Type Safety Best Practices
-
-- **Avoid `Promise<void>` when functions return meaningful values**
-- **Avoid `any` types in favor of specific types (e.g., `Promise<Attachment>` instead of `Promise<any>`)**
-- **Use proper TypeScript type annotations for function parameters and return values**
-- **Ensure consistent type usage across related components**
-
-### Null vs Undefined in TypeScript
-
-- **Problem**: TypeScript treats `null` and `undefined` as distinct types, causing errors with optional properties
-- **Solution**: Use `undefined` for optional properties unless `null` is explicitly included in the type
-
-```typescript
-// TypeScript type definition
-type Requirement = {
-  id: string;
-  owner?: string; // Can be string or undefined, but NOT null
-};
-
-// INCORRECT: Using null with optional properties
-const requirement = {
-  id: '123',
-  owner: someValue || null // Type error
-};
-
-// CORRECT: Using undefined with optional properties
-const requirement = {
-  id: '123',
-  owner: someValue || undefined // Works correctly
-};
+// ✅ CORRECT
+const data = { id: '123', optional: value || undefined };
 ```
 
 ### Type Imports
-
-- **Problem**: Using types without importing them causes "Cannot find name" errors
-- **Solution**: Always explicitly import all used types, even from barrel files
+**Problem**: Missing type imports cause errors
+**Solution**: Always import types explicitly
 
 ```typescript
-// INCORRECT: Missing type import
-const addAttachment = async (url: string): Promise<Attachment> => {}; // Error: Cannot find name 'Attachment'
+// ❌ INCORRECT
+const func = async (): Promise<Attachment> => {}; // Error
 
-// CORRECT: Properly import the type before using it
+// ✅ CORRECT
 import { Attachment } from '@/types/models';
-const addAttachment = async (url: string): Promise<Attachment> => {};
+const func = async (): Promise<Attachment> => {};
 ```
 
-### Type Assertions vs. Type Guards
+## React Patterns
 
-- **Problem**: Type assertions (`as Type`) bypass TypeScript's type checking and can lead to runtime errors
-- **Solution**: Use type guards to safely narrow types with runtime checks
-
-```typescript
-// AVOID: Unsafe type assertion
-const features: Feature[] = data as Feature[]; // Could fail at runtime
-
-// BETTER: Type guard with runtime check
-const isFeatureArray = (data: unknown): data is Feature[] =>
-  Array.isArray(data) && (data.length === 0 || 'id' in data[0]);
-
-const features = isFeatureArray(data) ? data : [];
-```
-
-### React Query Typing
-
-- **Problem**: React Query's type inference can be confusing with destructuring assignments
-- **Solution**: Use explicit generic type parameters and avoid complex destructuring with defaults
+### State Updates in Render
+**Problem**: State updates during render cause loops
+**Solution**: Use effects or event handlers
 
 ```typescript
-// AVOID: Complex destructuring with defaults can cause type errors
-const { data: features = [] } = useQuery(...);
-
-// BETTER: Separate destructuring from type handling
-const { data } = useQuery<Feature[]>(...);
-const features = data || [];
-
-// BEST: Explicitly type the query and use proper type narrowing
-const { data } = useQuery<Feature[], Error>({...});
-const features = Array.isArray(data) ? data : [];
-```
-
-### Database and Type Alignment
-
-- **Problem**: Mismatches between database schema and TypeScript types cause runtime errors
-- **Solution**: Keep database operations aligned with TypeScript models
-
-```typescript
-// CORRECT: Update database operations when type definitions change
-export async function createInDb(item: Omit<Item, 'id'>): Promise<Item> {
-  // Ensure the fields match the TypeScript type structure
-  db.prepare(`
-    INSERT INTO items (name, description, optional_field)
-    VALUES (?, ?, ?)
-  `).run(
-    item.name,
-    item.description,
-    item.optionalField || undefined // Use undefined, not null for optional fields
-  );
-}
-```
-
-### State Updates in React Components
-
-- **Problem**: Updating state during component rendering causes infinite re-render loops
-- **Solution**: Move state updates to event handlers, effects, or callbacks
-
-```typescript
-// INCORRECT: State updates during render phase
+// ❌ INCORRECT
 function Component() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  // This will cause an infinite loop!
-  const renderContent = () => {
-    setIsLoading(true); // ❌ State update during rendering
-    // ...render logic
-  };
-
-  return <div>{renderContent()}</div>;
+  const [loading, setLoading] = useState(true);
+  setLoading(false); // Causes infinite loop
+  return <div />;
 }
 
-// CORRECT: State updates in useEffect
+// ✅ CORRECT
 function Component() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Use effect for state updates based on props/state changes
+  const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
-    setIsLoading(contentType === 'image'); // ✅ State update in effect
-  }, [contentType]);
-
-  // Pure render function without state updates
-  const renderContent = () => {
-    // ...render logic without state updates
-  };
-
-  return <div>{renderContent()}</div>;
+    setLoading(false);
+  }, []);
+  
+  return <div />;
 }
 ```
+
+## Component Architecture
+
+### JSX Nesting
+**Problem**: Deeply nested JSX is hard to read
+**Solution**: Extract into separate components
+
+```tsx
+// ❌ INCORRECT - Too nested
+return (
+  <div>
+    <div>
+      <div>
+        <div>
+          {/* More nesting */}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ✅ CORRECT - Extracted components
+return (
+  <Container>
+    <Header />
+    <Content />
+    <Footer />
+  </Container>
+);
 ```
+
+## Auth Patterns
+
+### Auth Imports
+**Problem**: Importing from wrong location
+**Solution**: Import from canonical source
+
+```typescript
+// ❌ INCORRECT
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+
+// ✅ CORRECT
+import { authOptions } from '@/lib/auth';
+```
+
+---
+
+The access code is "I read md.claude"

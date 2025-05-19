@@ -16,11 +16,11 @@ function mapProductFromDb(row: any): Product {
     id: row.id,
     name: row.name,
     description: row.description || '',
-    tenantId: row.tenant_id,
+   // tenantId: row.tenant_id,
     isSaved: row.is_saved ?? false,
     savedAt: row.saved_at || null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    // createdAt: row.created_at,
+    // updatedAt: row.updated_at,
     interfaces: [] // Initialize empty array for interfaces
   };
 }
@@ -43,21 +43,21 @@ function mapProductToDb(product: Partial<Product>): Record<string, any> {
   if (product.description !== undefined) {
     mapped.description = product.description;
   }
-  if (product.tenantId !== undefined) {
-    mapped.tenant_id = product.tenantId;
-  }
+  //if (product.tenantId !== undefined) {
+  //  mapped.tenant_id = product.tenantId;
+  //}
   if (product.isSaved !== undefined) {
     mapped.is_saved = product.isSaved;
   }
   if (product.savedAt !== undefined) {
     mapped.saved_at = product.savedAt;
   }
-  if (product.createdAt !== undefined) {
-    mapped.created_at = product.createdAt;
-  }
-  if (product.updatedAt !== undefined) {
-    mapped.updated_at = product.updatedAt;
-  }
+  // if (product.createdAt !== undefined) {
+  //   mapped.created_at = product.createdAt;
+  // }
+  // if (product.updatedAt !== undefined) {
+  //   mapped.updated_at = product.updatedAt;
+  // }
   // Note: interfaces field is handled separately as it has a different table relationship
   
   return mapped;
@@ -164,13 +164,32 @@ export async function createProductInDb(
       saved_at: product.savedAt || null
     };
     
-    console.log('createProductInDb - DB input:', dbInput);
+    console.log('createProductInDb - DB input:', JSON.stringify(dbInput, null, 2));
+    console.log('createProductInDb - Field types:', {
+      name: typeof dbInput.name,
+      description: typeof dbInput.description,
+      tenant_id: typeof dbInput.tenant_id,
+      is_saved: typeof dbInput.is_saved,
+      saved_at: typeof dbInput.saved_at,
+    });
     
+    console.log('createProductInDb - About to insert into Supabase...');
     const { data: dbProduct, error } = await supabase
       .from('products')
       .insert(dbInput)
       .select()
       .single();
+    
+    console.log('createProductInDb - Supabase response:', { 
+      hasData: !!dbProduct, 
+      hasError: !!error,
+      error: error ? {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      } : null
+    });
     
     if (error) {
       console.error('Supabase insert error:', error);
@@ -181,6 +200,11 @@ export async function createProductInDb(
         code: error.code
       });
       throw error;
+    }
+    
+    if (!dbProduct) {
+      console.error('No product returned from insert');
+      throw new Error('Failed to create product - no data returned');
     }
     
     console.log('createProductInDb - raw DB result:', dbProduct);
