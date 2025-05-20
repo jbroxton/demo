@@ -477,14 +477,12 @@ export function useDocumentsQuery(featureId?: string, releaseId?: string) {
   const queryClient = useQueryClient();
   const documentsKey = ['documents', { featureId, releaseId }];
 
-  // Log the query parameters
-  console.log(`Creating documents query with featureId: ${featureId}, releaseId: ${releaseId}`);
+  // The query is created with these parameters (removed log for clarity)
 
   // Main query to fetch documents
   const documentsQuery = useQuery({
     queryKey: documentsKey,
     queryFn: () => {
-      console.log(`Executing documents query for featureId: ${featureId}, releaseId: ${releaseId}`);
       return fetchDocuments(featureId, releaseId);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -502,14 +500,43 @@ export function useDocumentsQuery(featureId?: string, releaseId?: string) {
     }
   });
   
-  // Update document mutation
+  // Update document mutation - always use optimistic updates to prevent UI refreshes
   const updateDocumentMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string, updates: Partial<Omit<Document, 'id' | 'createdAt' | 'updatedAt' | 'tenantId'>> }) => 
-      updateDocument(id, updates),
-    onSuccess: (_, variables) => {
-      // Invalidate both the document list and the specific document
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
-      queryClient.invalidateQueries({ queryKey: ['document', variables.id] });
+    mutationFn: ({ id, updates }: { 
+      id: string, 
+      updates: Partial<Omit<Document, 'id' | 'createdAt' | 'updatedAt' | 'tenantId'>>
+    }) => updateDocument(id, updates),
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['documents'] });
+      await queryClient.cancelQueries({ queryKey: ['document', variables.id] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['documents', { featureId, releaseId }]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(['documents', { featureId, releaseId }], (oldData: Document[] | undefined) => {
+        if (!oldData) return [];
+        
+        // Update document in cache
+        return oldData.map(doc => 
+          doc.id === variables.id ? { ...doc, ...variables.updates } : doc
+        );
+      });
+      
+      // Return a context object with the previous data
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context to roll back
+      if (context?.previousData) {
+        queryClient.setQueryData(['documents', { featureId, releaseId }], context.previousData);
+      }
+      console.error('Error updating document:', err);
+    },
+    onSettled: () => {
+      // No query invalidation - we already updated the cache optimistically
+      // This prevents unnecessary refreshes while still keeping data in sync
     }
   });
   

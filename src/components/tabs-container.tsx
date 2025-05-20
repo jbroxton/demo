@@ -17,12 +17,7 @@ export function TabsContainer() {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  console.log('TabsContainer - tabs:', tabs);
-  console.log('TabsContainer - activeTabId:', activeTabId);
-  console.log('TabsContainer - tabs with active state:', tabs.map(t => ({ id: t.id, title: t.title, active: t.id === activeTabId })));
-
   if (tabs.length === 0) {
-    console.log('TabsContainer - No tabs to display');
     return null;
   }
 
@@ -101,9 +96,6 @@ export function TabsContainer() {
       <Tabs
         value={activeTabId || ''}
         onValueChange={(value) => {
-          console.log('Tabs onValueChange - value:', value, 'type:', typeof value);
-          console.log('Tabs onValueChange - current activeTabId:', activeTabId);
-          console.log('Tabs onValueChange - all tabs:', tabs.map(t => ({ id: t.id, title: t.title })));
           activateTab(value);
         }}
         className="w-full"

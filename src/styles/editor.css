@@ -4,6 +4,95 @@
 .ProseMirror {
   caret-color: white;
   caret-width: 2px;
+  max-width: 960px; /* Increased from 800px */
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Improve content width for better readability but don't force center alignment */
+.ProseMirror p, 
+.ProseMirror h1, 
+.ProseMirror h2, 
+.ProseMirror h3, 
+.ProseMirror ul, 
+.ProseMirror ol,
+.ProseMirror blockquote {
+  max-width: 80ch; /* Increased from 65ch */
+  /* Remove auto margins that force centering regardless of alignment setting */
+  /* Let text-align property control the alignment instead */
+}
+
+/* Using StarterKit's default blockquote styling */
+/* No custom styles */
+
+/* Table styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  background-color: rgba(30, 30, 32, 0.8);
+  border-radius: 4px;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  position: relative;
+  padding: 0.5rem;
+  vertical-align: top;
+  border: 1px solid rgba(80, 80, 80, 0.3);
+  min-width: 3rem;
+}
+
+.ProseMirror table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: rgba(20, 20, 22, 0.6);
+}
+
+/* Table selection styles */
+.ProseMirror table .selectedCell {
+  position: relative;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Add a class that can be used to detect focused tables */
+.ProseMirror:focus-within table {
+  position: relative;
+}
+
+.ProseMirror:focus-within table:after {
+  content: '';
+  display: none;
+}
+
+/* Table resize handle */
+.ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s ease-in;
+}
+
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.ProseMirror table p {
+  margin: 0;
+}
+
+/* Show resize handle when column is being resized */
+.ProseMirror.resize-cursor .column-resize-handle {
+  opacity: 1;
 }
 
 /* Override default selection color */
@@ -41,6 +130,8 @@
   height: 0;
   pointer-events: none;
   font-style: italic;
+  font-size: 1.1em;
+  font-weight: 300;
 }
 
 /* Custom styling for the title editor */
@@ -154,6 +245,46 @@
 .group button:hover {
   opacity: 1 !important;
   box-shadow: 0 0 0 1px rgba(147, 51, 234, 0.15) !important;
+}
+
+/* Safari-specific fixes */
+.safari-editor-fix {
+  /* Ensure consistent width behavior in Safari */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Apply Safari-specific fixes */
+@media not all and (min-resolution:.001dpcm) { 
+  @supports (-webkit-appearance:none) {
+    .ProseMirror {
+      width: 100%;
+      max-width: 900px !important; /* Increased from 720px */
+      /* Center the container but not the content */
+      margin: 0 auto !important;
+      padding-left: 20px !important;
+      padding-right: 20px !important;
+    }
+    
+    /* Ensure alignment controls work in Safari */
+    .ProseMirror [style*="text-align: left"] {
+      text-align: left !important;
+    }
+    
+    .ProseMirror [style*="text-align: center"] {
+      text-align: center !important;
+    }
+    
+    .ProseMirror [style*="text-align: right"] {
+      text-align: right !important;
+    }
+    
+    .ProseMirror [style*="text-align: justify"] {
+      text-align: justify !important;
+    }
+  }
 }
 
 /* Remove the bottom indicator line for active tabs */

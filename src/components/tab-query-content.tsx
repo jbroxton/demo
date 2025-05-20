@@ -11,8 +11,6 @@ import { RoadmapSpecificTabContent } from './roadmap-specific-tab-content';
 export function TabQueryContent() {
   const { tabs, activeTabId, isLoading } = useTabsQuery();
 
-  console.log('TabQueryContent - tabs:', tabs);
-  console.log('TabQueryContent - activeTabId:', activeTabId);
 
   // If there are no tabs or no active tab, show a placeholder
   if (!tabs.length || !activeTabId) {
@@ -33,9 +31,6 @@ export function TabQueryContent() {
   const activeTab = tabs.find(tab => tab.id === activeTabId);
   if (!activeTab) return null;
 
-  console.log('[TabQueryContent] activeTab:', activeTab);
-  console.log('[TabQueryContent] activeTab.itemId:', activeTab.itemId);
-  console.log('[TabQueryContent] activeTab.id (tabId):', activeTab.id);
 
   let content;
   
@@ -43,7 +38,6 @@ export function TabQueryContent() {
   switch (activeTab.type) {
     case 'product': {
       // Since we don't have the product data here, pass the productId and let the component check isSaved
-      console.log('[TabQueryContent] Rendering ProductQueryTabContent with productId:', activeTab.itemId);
       content = <ProductQueryTabContent key={activeTab.itemId} productId={activeTab.itemId} tabId={activeTab.id} />;
       break;
     }
@@ -56,8 +50,6 @@ export function TabQueryContent() {
       break;
     }
     case 'feature': {
-      console.log('[TabQueryContent] Rendering FeatureQueryTabContent', { itemId: activeTab.itemId });
-
       content = <FeatureQueryTabContent
         featureId={activeTab.itemId}
         tabId={activeTab.id}

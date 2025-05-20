@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -12,6 +12,10 @@ import Typography from '@tiptap/extension-typography';
 import Placeholder from '@tiptap/extension-placeholder';
 import UnderlineExtension from '@tiptap/extension-underline';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { common, createLowlight } from 'lowlight';
 import 'highlight.js/styles/atom-one-dark.css';
 import '@/styles/code-highlight.css';
@@ -22,6 +26,7 @@ import css from 'highlight.js/lib/languages/css';
 import python from 'highlight.js/lib/languages/python';
 import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
+import debounce from 'lodash/debounce';
 
 // Create a lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -38,6 +43,7 @@ lowlight.register('py', python);
 lowlight.register('json', json);
 lowlight.register('bash', bash);
 lowlight.register('sh', bash);
+
 
 // Lucide React Icons
 import {
@@ -60,7 +66,20 @@ import {
   Undo,
   Redo,
   Code,
-  FileCode
+  FileCode,
+  Quote,
+  Table as TableIcon,
+  RowsIcon,
+  ColumnsIcon,
+  Trash2,
+  Plus,
+  ChevronsUp,
+  ChevronsDown,
+  ChevronsLeft,
+  ChevronsRight,
+  Combine,
+  Split,
+  Grid
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -84,7 +103,7 @@ interface SimpleEditorProps {
 export function SimpleEditor({
   initialContent = '',
   onChange,
-  placeholder = 'Start writing...',
+  placeholder = 'What are we building today?',
   readOnly = false,
   className = '',
   persistenceKey,
@@ -93,6 +112,13 @@ export function SimpleEditor({
 }: SimpleEditorProps) {
   const [isClient, setIsClient] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  
+  // Track if editor has been initialized with content
+  const hasInitialized = useRef(false);
+  // Track if a transaction is being applied programmatically 
+  const isApplyingTransaction = useRef(false);
+  // Track the last content for comparison
+  const lastContent = useRef<string>('');
   
   // Process initialContent if it's a JSON string
   const processedContent = useCallback(() => {
@@ -108,15 +134,30 @@ export function SimpleEditor({
     return initialContent;
   }, [initialContent]);
 
+  // Create debounced onChange to reduce updates
+  const debouncedOnChange = useRef(
+    debounce((content: string) => {
+      if (onChange) {
+        onChange(content);
+      }
+    }, 500)
+  ).current;
+
   // Editor instance with extensions
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
         // Disable the default code block as we'll use the lowlight version
         codeBlock: false,
+        // Use the default StarterKit blockquote with no customization
+        blockquote: {},
+        // Enhanced heading with markdown shortcuts enabled
+        heading: {
+          levels: [1, 2, 3],
+          HTMLAttributes: {
+            class: 'font-bold',
+          },
+        },
       }),
       Typography,
       UnderlineExtension,
@@ -141,7 +182,7 @@ export function SimpleEditor({
         },
       }),
       TextAlign.configure({
-        types: ['heading', 'paragraph'],
+        types: ['heading', 'paragraph', 'blockquote'],
         alignments: ['left', 'center', 'right', 'justify'],
       }),
       TaskList.configure({
@@ -155,6 +196,28 @@ export function SimpleEditor({
         },
         nested: true,
       }),
+      // Table extensions configuration
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full my-4',
+        },
+      }),
+      TableRow.configure({
+        HTMLAttributes: {
+          class: 'border-b border-gray-700',
+        },
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'border-b-2 border-gray-600 bg-gray-800 text-left p-2 font-bold',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-700 p-2',
+        },
+      }),
       Placeholder.configure({
         placeholder,
         emptyEditorClass: 'is-editor-empty',
@@ -163,17 +226,49 @@ export function SimpleEditor({
     content: processedContent(),
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none p-6 focus:outline-none min-h-full',
+        class: 'prose prose-invert p-6 focus:outline-none min-h-full',
+      },
+      handlePaste: (view, event) => {
+        return false;
       },
     },
     onUpdate: ({ editor }) => {
-      const json = editor.getJSON();
-      const jsonString = JSON.stringify(json);
-      onChange?.(jsonString);
-      
-      // Save to localStorage if persistenceKey is provided
-      if (persistenceKey && window.localStorage) {
-        localStorage.setItem(`tiptap-content-${persistenceKey}`, jsonString);
+      // Only send updates to parent if they're not from programmatic changes
+      if (!isApplyingTransaction.current) {
+        // Get current content
+        const json = editor.getJSON();
+        const jsonString = JSON.stringify(json);
+        
+        // Update last content reference
+        lastContent.current = jsonString;
+        
+        // Debounce the onChange to parent
+        debouncedOnChange(jsonString);
+        
+        // Save to localStorage for recovery
+        if (persistenceKey && window.localStorage) {
+          localStorage.setItem(`tiptap-content-${persistenceKey}`, jsonString);
+        }
+      }
+    },
+    // Monitor all transactions to distinguish between user and programmatic changes
+    onTransaction: ({ transaction }) => {
+      // If the transaction has our specific meta flag, it's a programmatic update
+      if (transaction.getMeta('isExternalContentUpdate')) {
+        isApplyingTransaction.current = true;
+        // Reset after the current call stack completes
+        setTimeout(() => {
+          isApplyingTransaction.current = false;
+        }, 0);
+      }
+    },
+    onFocus: () => {
+      // The editor has focus now, no additional action needed
+    },
+    onBlur: (props) => {
+      // Forward the blur event if handler provided
+      if (onBlur) {
+        onBlur();
       }
     },
     editable: !readOnly,
@@ -184,63 +279,75 @@ export function SimpleEditor({
     setIsClient(true);
   }, []);
 
-  // Handle content updates
+  // Set up editor content on initial load
   useEffect(() => {
-    if (editor && !editor.isDestroyed) {
-      const content = processedContent();
-      editor.commands.setContent(content);
+    // Skip if editor isn't available 
+    if (!editor || editor.isDestroyed) {
+      return;
     }
+    
+    // Process content
+    const content = processedContent();
+    const contentString = typeof content === 'string' ? content : JSON.stringify(content);
+    
+    // Skip if content hasn't changed
+    if (lastContent.current === contentString) {
+      return;
+    }
+    
+    // For first load, just set the content directly
+    if (!hasInitialized.current) {
+      // Set initial content and mark as a programmatic update
+      isApplyingTransaction.current = true;
+      
+      // Use Tiptap's safer setContent API instead of direct nodeFromJSON
+      editor.commands.setContent(content);
+      
+      // Store for comparison
+      lastContent.current = contentString;
+      
+      // Mark as initialized
+      hasInitialized.current = true;
+      console.log('[SimpleEditor] Editor initialized with initial content');
+      
+      // Reset flag
+      setTimeout(() => {
+        isApplyingTransaction.current = false;
+      }, 0);
+      
+      return;
+    }
+    
+    // If editor is focused (user is typing), don't update content
+    if (editor.isFocused) {
+      console.log('[SimpleEditor] Skipping content update while editor is focused');
+      return;
+    }
+    
+    // Otherwise, it's safe to update content (when editor doesn't have focus)
+    console.log('[SimpleEditor] Updating content when editor is not focused');
+    
+    // Set flag that this is a programmatic update
+    isApplyingTransaction.current = true;
+    
+    // Use Tiptap's safer setContent API instead of direct nodeFromJSON
+    editor.commands.setContent(content);
+    
+    // Update stored content
+    lastContent.current = contentString;
+    
+    // Reset flag after a brief delay
+    setTimeout(() => {
+      isApplyingTransaction.current = false;
+    }, 0);
   }, [editor, initialContent, processedContent]);
 
-  // Handle tab visibility change and focus/blur
+  // Cleanup on unmount
   useEffect(() => {
-    if (!editor || !persistenceKey || readOnly) return;
-
-    // Function to handle document visibility changes (tab switching)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && saveDocument) {
-        console.log('Tab visibility changed to hidden, saving document...');
-        saveDocument()
-          .then(() => {
-            setLastSavedAt(new Date());
-            console.log('Document saved on tab switch');
-          })
-          .catch(error => console.error('Failed to save document on tab switch:', error));
-      }
-    };
-
-    // Add event listener for document visibility change
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Setup editor blur event handler
-    editor.on('blur', () => {
-      if (onBlur) {
-        console.log('Editor blur event, triggering save...');
-        onBlur();
-      }
-    });
-
-    // Load content from localStorage if available
-    if (persistenceKey && window.localStorage) {
-      const savedContent = localStorage.getItem(`tiptap-content-${persistenceKey}`);
-      if (savedContent) {
-        try {
-          const parsedContent = JSON.parse(savedContent);
-          if (parsedContent && Object.keys(parsedContent).length > 0) {
-            console.log('Loading saved content from localStorage');
-            editor.commands.setContent(parsedContent);
-          }
-        } catch (e) {
-          console.error('Error parsing saved content:', e);
-        }
-      }
-    }
-
-    // Clean up event listeners
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      debouncedOnChange.cancel();
     };
-  }, [editor, persistenceKey, readOnly, onBlur, saveDocument]);
+  }, [debouncedOnChange]);
 
   // Define helper functions for editor interactions
   // Not using useCallback since it causes issues with hook order
@@ -257,6 +364,81 @@ export function SimpleEditor({
     const url = window.prompt('URL');
     if (url) {
       editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    }
+  };
+  
+  // Table operations helper
+  const tableOperations = {
+    // Add a row above current position
+    addRowBefore: () => {
+      if (!editor) return;
+      editor.chain().focus().addRowBefore().run();
+    },
+    
+    // Add a row below current position
+    addRowAfter: () => {
+      if (!editor) return;
+      editor.chain().focus().addRowAfter().run();
+    },
+    
+    // Add a column to the left of current position
+    addColumnBefore: () => {
+      if (!editor) return;
+      editor.chain().focus().addColumnBefore().run();
+    },
+    
+    // Add a column to the right of current position
+    addColumnAfter: () => {
+      if (!editor) return;
+      editor.chain().focus().addColumnAfter().run();
+    },
+    
+    // Delete current row
+    deleteRow: () => {
+      if (!editor) return;
+      editor.chain().focus().deleteRow().run();
+    },
+    
+    // Delete current column
+    deleteColumn: () => {
+      if (!editor) return;
+      editor.chain().focus().deleteColumn().run();
+    },
+    
+    // Delete entire table
+    deleteTable: () => {
+      if (!editor) return;
+      editor.chain().focus().deleteTable().run();
+    },
+    
+    // Toggle header row
+    toggleHeaderRow: () => {
+      if (!editor) return;
+      editor.chain().focus().toggleHeaderRow().run();
+    },
+    
+    // Toggle header column
+    toggleHeaderColumn: () => {
+      if (!editor) return;
+      editor.chain().focus().toggleHeaderColumn().run();
+    },
+    
+    // Toggle header cell
+    toggleHeaderCell: () => {
+      if (!editor) return;
+      editor.chain().focus().toggleHeaderCell().run();
+    },
+    
+    // Merge cells
+    mergeCells: () => {
+      if (!editor) return;
+      editor.chain().focus().mergeCells().run();
+    },
+    
+    // Split cells
+    splitCell: () => {
+      if (!editor) return;
+      editor.chain().focus().splitCell().run();
     }
   };
 
@@ -451,7 +633,7 @@ export function SimpleEditor({
             </Tooltip>
           </div>
 
-          {/* Lists */}
+          {/* Lists and Blockquote */}
           <div className="flex items-center space-x-1 mr-2">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -493,6 +675,20 @@ export function SimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Task List</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 ${editor.isActive('blockquote') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0] hover:text-white'}`}
+                  onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                >
+                  <Quote className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Blockquote</TooltipContent>
             </Tooltip>
           </div>
 
@@ -555,7 +751,7 @@ export function SimpleEditor({
             </Tooltip>
           </div>
 
-          {/* Media, Links, and Code */}
+          {/* Media, Links, Tables, and Code */}
           <div className="flex items-center space-x-1 mr-2">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -583,6 +779,23 @@ export function SimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Insert Link</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 ${editor.isActive('table') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0] hover:text-white'}`}
+                  onClick={() => {
+                    // Insert a table with 3 rows and 3 columns
+                    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                  }}
+                >
+                  <TableIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Insert Table</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -635,16 +848,20 @@ export function SimpleEditor({
         </TooltipProvider>
       </div>
 
-      {/* Bubble menu that appears when text is selected */}
+      {/* Enhanced bubble menu that appears when text is selected */}
       <BubbleMenu
         editor={editor}
         tippyOptions={{ duration: 150 }}
+        shouldShow={({ editor, view, state, from, to }) => {
+          // Only show the text formatting menu when text is selected and not in a table
+          return from !== to && !editor.isActive('table')
+        }}
         className="bg-[#161618] rounded-md shadow-lg border border-[#1a1a1a] overflow-hidden flex"
       >
         <Button
           size="sm"
           variant="ghost"
-          className={`rounded-none h-8 px-2 ${editor.isActive('bold') ? 'bg-[#232326]' : ''}`}
+          className={`rounded-none h-8 px-2 ${editor.isActive('bold') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0]'}`}
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
           <Bold className="h-4 w-4" />
@@ -652,7 +869,7 @@ export function SimpleEditor({
         <Button
           size="sm"
           variant="ghost"
-          className={`rounded-none h-8 px-2 ${editor.isActive('italic') ? 'bg-[#232326]' : ''}`}
+          className={`rounded-none h-8 px-2 ${editor.isActive('italic') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0]'}`}
           onClick={() => editor.chain().focus().toggleItalic().run()}
         >
           <Italic className="h-4 w-4" />
@@ -660,72 +877,319 @@ export function SimpleEditor({
         <Button
           size="sm"
           variant="ghost"
-          className={`rounded-none h-8 px-2 ${editor.isActive('link') ? 'bg-[#232326]' : ''}`}
+          className={`rounded-none h-8 px-2 ${editor.isActive('underline') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0]'}`}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+        >
+          <UnderlineIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={`rounded-none h-8 px-2 ${editor.isActive('strike') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0]'}`}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+        >
+          <Strikethrough className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={`rounded-none h-8 px-2 ${editor.isActive('code') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0]'}`}
+          onClick={() => editor.chain().focus().toggleCode().run()}
+        >
+          <Code className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={`rounded-none h-8 px-2 ${editor.isActive('link') ? 'bg-[#232326] text-white' : 'text-[#a0a0a0]'}`}
           onClick={addLink}
         >
           <LinkIcon className="h-4 w-4" />
         </Button>
       </BubbleMenu>
+      
+      {/* Special bubble menu for tables */}
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 150 }}
+        shouldShow={({ editor }) => editor.isActive('table')}
+        className="bg-[#161618] rounded-md shadow-lg border border-[#1a1a1a] p-2"
+      >
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-white/70 text-xs">Table Controls</span>
+          </div>
+          
+          {/* Row operations */}
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.addRowBefore}
+                >
+                  <ChevronsUp className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add Row Before</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.addRowAfter}
+                >
+                  <ChevronsDown className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add Row After</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.deleteRow}
+                >
+                  <RowsIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete Row</TooltipContent>
+            </Tooltip>
+          </div>
+          
+          {/* Column operations */}
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.addColumnBefore}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add Column Before</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.addColumnAfter}
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add Column After</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.deleteColumn}
+                >
+                  <ColumnsIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete Column</TooltipContent>
+            </Tooltip>
+          </div>
+          
+          {/* Cell operations */}
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.toggleHeaderCell}
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle Header Cell</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.mergeCells}
+                >
+                  <Combine className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Merge Cells</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-[#232326]/80 text-[#a0a0a0] hover:text-white h-8 w-8 p-0"
+                  onClick={tableOperations.splitCell}
+                >
+                  <Split className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Split Cell</TooltipContent>
+            </Tooltip>
+          </div>
+          
+          {/* Table operations */}
+          <div className="flex items-center gap-1 mt-1 pt-1 border-t border-[#323232]">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-[6px] transition-all duration-150 hover:bg-red-900/20 text-red-400/70 hover:text-red-400 h-8 w-8 p-0"
+                  onClick={tableOperations.deleteTable}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete Table</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </BubbleMenu>
 
-      {/* Floating menu that appears on empty lines */}
+      {/* Horizontal floating menu that appears on empty lines */}
       <FloatingMenu
         editor={editor}
         tippyOptions={{ duration: 150 }}
-        className="bg-[#161618] rounded-md shadow-lg border border-[#1a1a1a] overflow-hidden flex flex-col py-1"
+        className="bg-[#161618] rounded-md shadow-lg border border-[#1a1a1a] overflow-hidden flex flex-row py-1 px-1"
       >
-        <Button
-          size="sm"
-          variant="ghost"
-          className="justify-start"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        >
-          <Heading1 className="h-4 w-4 mr-2" />
-          <span>Heading 1</span>
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="justify-start"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        >
-          <Heading2 className="h-4 w-4 mr-2" />
-          <span>Heading 2</span>
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="justify-start"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-        >
-          <List className="h-4 w-4 mr-2" />
-          <span>Bullet List</span>
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="justify-start"
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-        >
-          <CheckSquare className="h-4 w-4 mr-2" />
-          <span>Task List</span>
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="justify-start"
-          onClick={addCodeBlock}
-        >
-          <FileCode className="h-4 w-4 mr-2" />
-          <span>Code Block</span>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            >
+              <Heading1 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Heading 1</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            >
+              <Heading2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Heading 2</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Bullet List</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={() => editor.chain().focus().toggleTaskList().run()}
+            >
+              <CheckSquare className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Task List</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            >
+              <Quote className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Blockquote</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={() => {
+                // Insert a table with 3 rows and 3 columns
+                editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+              }}
+            >
+              <TableIcon className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Table</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-md p-2 h-auto w-auto"
+              onClick={addCodeBlock}
+            >
+              <FileCode className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Code Block</TooltipContent>
+        </Tooltip>
       </FloatingMenu>
 
-      {/* Editor content */}
+      {/* Editor content with proper alignment support */}
       <div className="flex-1 overflow-hidden rounded-[12px]">
-        <EditorContent
-          editor={editor}
-          className="flex-1 h-full overflow-auto bg-[#0A0A0A] rounded-[12px]"
-        />
+        <div className="mx-auto w-full max-w-4xl px-4">
+          <EditorContent
+            editor={editor}
+            className="flex-1 h-full overflow-auto bg-[#0A0A0A] rounded-[12px] safari-editor-fix"
+          />
+        </div>
       </div>
     </div>
   );

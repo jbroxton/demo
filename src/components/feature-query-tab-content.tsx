@@ -193,13 +193,17 @@ export function FeatureQueryTabContent({
               return;
             }
             
+            // Simply update the content - no special handling needed anymore
+            // with the optimistic updates in place, this won't cause refreshes
             updateContent(jsonContent)
               .then(() => {
-                console.log('Auto-saved document:', new Date().toLocaleTimeString());
-                // Also update the tab title here for faster sync
+                // We don't need to log all the autosaves anymore
+                
+                // Update tab title
                 if (featureId) {
                   updateTabTitle(featureId, 'feature', nameValue);
                 }
+                
                 hasUnsavedChanges.current = false;
               })
               .catch(error => {
@@ -216,7 +220,7 @@ export function FeatureQueryTabContent({
           console.error('Error in debouncedSaveContent:', e);
         }
       }
-    }, 1000), // Reduced to 1 second to make auto-save feel more responsive
+    }, 1500), // Extended to 1.5 seconds to reduce autosave frequency when typing in tables
     [featureId, isNew, updateContent, docData, isTitleFocused, nameValue, updateTabTitle]
   );
 
@@ -650,7 +654,7 @@ export function FeatureQueryTabContent({
               initialContent={descriptionValue}
               onChange={setDescriptionValue}
               readOnly={false}
-              placeholder="Start writing about this feature..."
+              placeholder="What are we building today? Start writing about this feature..."
               className="overflow-hidden"
               persistenceKey={`feature-${featureId}`}
               onBlur={() => {

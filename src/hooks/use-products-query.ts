@@ -15,38 +15,27 @@ type CreateProductInput = Omit<Product, 'id' | 'interfaces'>
 export function useProductsQuery() {
   const queryClient = useQueryClient()
   
-  console.log('useProductsQuery hook called');
-  console.log('queryClient exists:', !!queryClient);
-
-  // Check initial cache state
-  console.log('Initial cache state:', queryClient.getQueryData([PRODUCTS_QUERY_KEY]));
+  // Initialize query client
   
   // Get all products
   const { data: products = [], isLoading, error } = useQuery<Product[]>({
     queryKey: [PRODUCTS_QUERY_KEY],
     queryFn: async () => {
-      console.log('useQuery - Fetching products...');
       const response = await fetch('/api/products-db')
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`)
       }
       const result = await response.json();
-      console.log('useQuery - Fetched products response:', result);
-      console.log('useQuery - Extracted data:', result.data);
       // Extract the data array from the response
       const productsData = result.data || [];
       return productsData;
     }
   })
   
-  console.log('Query hook state:', { products, isLoading, error });
-  console.log('=== CREATING MUTATION ===');
 
   // Create product mutation
   const addProductMutation = useMutation({
     mutationFn: async (product: CreateProductInput): Promise<Product> => {
-      console.log('=== MUTATION FUNCTION CALLED ===');
-      console.log('Creating product:', product);
       const response = await fetch('/api/products-db', {
         method: 'POST',
         headers: {
@@ -60,31 +49,20 @@ export function useProductsQuery() {
       }
       
       const result = await response.json();
-      console.log('Created product response:', result);
       // Extract the data from the response
       return result.data;
     },
     onSuccess: (newProduct) => {
-      console.log('addProductMutation onSuccess:', newProduct);
-      console.log('Current cache before update:', queryClient.getQueryData([PRODUCTS_QUERY_KEY]));
       
       // Update cache with the new product
       queryClient.setQueryData<Product[]>([PRODUCTS_QUERY_KEY], (oldData = []) => {
-        console.log('Old data in cache:', oldData);
         const updatedData = [...oldData, newProduct];
-        console.log('New data to set in cache:', updatedData);
         return updatedData;
       });
       
-      console.log('Current cache after update:', queryClient.getQueryData([PRODUCTS_QUERY_KEY]));
     },
   })
 
-  console.log('=== MUTATION CREATED ===', {
-    mutationExists: !!addProductMutation,
-    mutateAsyncExists: !!addProductMutation.mutateAsync,
-    mutationKeys: Object.keys(addProductMutation),
-  });
 
   // Update product name mutation
   const updateProductNameMutation = useMutation({
@@ -221,33 +199,17 @@ export function useProductsQuery() {
   const getProducts = (): Product[] => products
   
   const getProductById = (productId: string): Product | undefined => {
-    console.log('getProductById called with:', productId);
-    console.log('Current products state:', products);
-    console.log('Is Loading?', isLoading);
     if (!products || !Array.isArray(products)) {
-      console.log('Products not loaded or not an array, returning undefined');
       return undefined
     }
-    console.log('Looking for product with id:', productId);
-    console.log('Products in store:', products.map(p => ({ id: p.id, name: p.name, isSaved: p.isSaved })));
     const found = products.find(product => product.id === productId);
-    console.log('Found product:', found);
     return found;
   }
   
   const addProduct = async (product: CreateProductInput) => {
-    console.log('addProduct called with:', product);
-    console.log('addProduct - product type:', typeof product);
-    console.log('addProduct - product keys:', Object.keys(product));
-    console.log('addProduct - mutation state:', {
-      isPending: addProductMutation.isPending,
-      isError: addProductMutation.isError,
-      error: addProductMutation.error,
-    });
     
     try {
       const result = await addProductMutation.mutateAsync(product);
-      console.log('addProduct result:', result);
       return result;
     } catch (error) {
       console.error('addProduct mutation error:', error);
@@ -276,7 +238,6 @@ export function useProductsQuery() {
   }
   
   const markProductAsSaved = async (productId: string) => {
-    console.log('markProductAsSaved called with:', productId)
     try {
       await markProductAsSavedMutation.mutateAsync(productId)
       return true
@@ -289,7 +250,6 @@ export function useProductsQuery() {
   // Temporary placeholder for interface updates, to be implemented later
   const updateProductWithInterface = (productId: string, interfaceId: string) => {
     // This will be implemented properly when we refactor interfaces
-    console.log('updateProductWithInterface called:', productId, interfaceId)
   }
 
   return {
@@ -318,17 +278,13 @@ export function useProductsQuery() {
     
     // Refetch helper
     refetch: async () => {
-      console.log('Refetching products query...');
       const result = await queryClient.refetchQueries({ queryKey: [PRODUCTS_QUERY_KEY] });
-      console.log('Refetch complete', result);
       return result;
     },
     
     // Invalidate queries helper
     invalidateQueries: async () => {
-      console.log('Invalidating products query...');
       await queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY] });
-      console.log('Products query invalidated');
     }
   }
 }

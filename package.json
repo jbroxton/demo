@@ -44,6 +44,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-query": "^5.75.1",
     "@tanstack/react-table": "^8.21.3",
+    "@tiptap/extension-blockquote": "^2.12.0",
     "@tiptap/extension-code-block-lowlight": "^2.12.0",
     "@tiptap/extension-collaboration": "^2.12.0",
     "@tiptap/extension-collaboration-cursor": "^2.12.0",

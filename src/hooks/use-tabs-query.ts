@@ -17,15 +17,12 @@ export function useTabsQuery() {
     queryKey: [TABS_QUERY_KEY],
     queryFn: async () => {
       try {
-        console.log('Fetching tabs...');
         const response = await fetch('/api/tabs-db');
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unknown error');
           return Promise.reject(new Error(`Failed to fetch tabs: ${response.status} - ${errorText}`));
         }
         const result = await response.json();
-        console.log('Tabs fetched raw response:', result);
-        console.log('Tabs data:', result.data);
         // The API returns { data: { tabs: [], activeTabId: null } }
         // But we expect { tabs: [], activeTabId: null }
         return result.data || result;
@@ -41,15 +38,11 @@ export function useTabsQuery() {
   const tabs = data?.tabs || []
   const activeTabId = data?.activeTabId || null
   
-  console.log('use-tabs-query - data from query:', data)
-  console.log('use-tabs-query - current activeTabId:', activeTabId)
-  console.log('use-tabs-query - current tabs:', tabs.map(t => ({ id: t.id, title: t.title, type: t.type })))
-  console.log('use-tabs-query - tabs length:', tabs.length)
+  // Removed console logs for performance
 
   // Create and open tab mutation
   const openTabMutation = useMutation({
     mutationFn: async (tab: Omit<Tab, 'id'>): Promise<{ tab: Tab, isExisting: boolean }> => {
-      console.log('Opening tab with data:', tab);
       try {
         const response = await fetch('/api/tabs-db', {
           method: 'POST',
@@ -66,7 +59,6 @@ export function useTabsQuery() {
         }
         
         const result = await response.json()
-        console.log('Tab created successfully:', result)
         // The API returns { data: { tab, isExisting } }
         return result.data || result
       } catch (error) {
@@ -74,13 +66,35 @@ export function useTabsQuery() {
         throw error
       }
     },
+    onMutate: async (tab) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [TABS_QUERY_KEY] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      return { previousData };
+    },
     onSuccess: (data) => {
-      console.log('Tab mutation success:', data)
-      console.log('New tab created with ID:', data.tab?.id)
-      console.log('Is existing tab?:', data.isExisting)
-      console.log('Invalidating tabs query...')
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
-      console.log('Tabs query invalidated, should refetch now')
+      // Directly update cache instead of invalidating and refetching
+      const currentData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      if (currentData) {
+        // If the tab already exists, don't modify the tabs array
+        if (!data.isExisting) {
+          // Add the new tab to the existing tabs
+          queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+            tabs: [...currentData.tabs, data.tab],
+            activeTabId: data.tab.id
+          });
+        } else {
+          // Just update the active tab ID if the tab already exists
+          queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+            ...currentData,
+            activeTabId: data.tab.id
+          });
+        }
+      }
     },
     onError: (error) => {
       console.error('Tab mutation error:', error)
@@ -102,19 +116,51 @@ export function useTabsQuery() {
       
       return response.json()
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
+    onMutate: async (tabId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [TABS_QUERY_KEY] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      // Optimistically remove the tab
+      if (previousData?.tabs) {
+        const remainingTabs = previousData.tabs.filter(tab => tab.id !== tabId);
+        
+        // Determine new active tab ID
+        let newActiveTabId = previousData.activeTabId;
+        if (previousData.activeTabId === tabId && remainingTabs.length > 0) {
+          // Set active tab to the last tab
+          newActiveTabId = remainingTabs[remainingTabs.length - 1].id;
+        } else if (remainingTabs.length === 0) {
+          newActiveTabId = null;
+        }
+        
+        // Update cache
+        queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+          tabs: remainingTabs,
+          activeTabId: newActiveTabId
+        });
+      }
+      
+      return { previousData };
+    },
+    onError: (err, tabId, context) => {
+      // Restore previous data if the mutation fails
+      if (context?.previousData) {
+        queryClient.setQueryData([TABS_QUERY_KEY], context.previousData);
+      }
+    },
+    onSuccess: () => {
+      // No need to invalidate when using optimistic updates
     },
   })
 
   // Activate tab mutation
   const activateTabMutation = useMutation({
     mutationFn: async (tabId: string) => {
-      console.log('activateTabMutation called with tabId:', tabId, 'type:', typeof tabId)
-      
       // Ensure tabId is a string
       const stringTabId = String(tabId);
-      console.log('activateTabMutation stringTabId:', stringTabId)
       
       try {
         const response = await fetch('/api/tabs-db', {
@@ -128,16 +174,12 @@ export function useTabsQuery() {
           }),
         });
 
-        console.log('activateTabMutation response status:', response.status)
-
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unknown error');
-          console.error('activateTabMutation error:', errorText);
           return Promise.reject(new Error(`Failed to activate tab: ${response.status} - ${errorText}`));
         }
 
         const result = await response.json();
-        console.log('activateTabMutation result:', result);
         return result;
       } catch (error) {
         console.error('Error activating tab:', error);
@@ -169,8 +211,7 @@ export function useTabsQuery() {
       }
     },
     onSettled: () => {
-      // Always refetch after error or success to ensure we're in sync
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] });
+      // Removed refetch which causes flickers and jumps
     },
   })
 
@@ -200,8 +241,40 @@ export function useTabsQuery() {
       // the mutation expects, which is the input parameters
       return { itemId, type, title }
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
+    onMutate: async ({ itemId, type, title }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [TABS_QUERY_KEY] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      // Optimistically update tab titles
+      if (previousData?.tabs) {
+        const updatedTabs = previousData.tabs.map(tab => {
+          // Update all tabs that match the item ID and type
+          if (tab.itemId === itemId && tab.type === type) {
+            return { ...tab, title };
+          }
+          return tab;
+        });
+        
+        // Update cache
+        queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+          ...previousData,
+          tabs: updatedTabs
+        });
+      }
+      
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // Restore previous data if the mutation fails
+      if (context?.previousData) {
+        queryClient.setQueryData([TABS_QUERY_KEY], context.previousData);
+      }
+    },
+    onSuccess: () => {
+      // No need to invalidate when using optimistic updates
     },
   })
 
@@ -226,8 +299,39 @@ export function useTabsQuery() {
       
       return { tabId, newTabProps }
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
+    onMutate: async ({ tabId, newTabProps }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [TABS_QUERY_KEY] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      // Optimistically update the tab
+      if (previousData?.tabs) {
+        const updatedTabs = previousData.tabs.map(tab => {
+          if (tab.id === tabId) {
+            return { ...tab, ...newTabProps };
+          }
+          return tab;
+        });
+        
+        // Update cache
+        queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+          ...previousData,
+          tabs: updatedTabs
+        });
+      }
+      
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // Restore previous data if the mutation fails
+      if (context?.previousData) {
+        queryClient.setQueryData([TABS_QUERY_KEY], context.previousData);
+      }
+    },
+    onSuccess: () => {
+      // No need to invalidate when using optimistic updates
     },
   })
 
@@ -264,14 +368,48 @@ export function useTabsQuery() {
       
       return response.json()
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
+    onMutate: async ({ temporaryTabId, newItemId, newItemName, type }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [TABS_QUERY_KEY] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY]);
+      
+      // Optimistically update the tab
+      if (previousData?.tabs) {
+        const updatedTabs = previousData.tabs.map(tab => {
+          if (tab.id === temporaryTabId) {
+            return { 
+              ...tab, 
+              itemId: newItemId,
+              title: newItemName
+            };
+          }
+          return tab;
+        });
+        
+        // Update cache
+        queryClient.setQueryData<{ tabs: Tab[], activeTabId: string | null }>([TABS_QUERY_KEY], {
+          ...previousData,
+          tabs: updatedTabs
+        });
+      }
+      
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // Restore previous data if the mutation fails
+      if (context?.previousData) {
+        queryClient.setQueryData([TABS_QUERY_KEY], context.previousData);
+      }
+    },
+    onSuccess: () => {
+      // No need to invalidate when using optimistic updates
     },
   })
 
   // Compatibility methods that match the Zustand API
   const openTab = async (tab: Omit<Tab, 'id'>) => {
-    console.log('openTab called with:', tab);
     return openTabMutation.mutateAsync(tab)
   }
   
@@ -281,11 +419,8 @@ export function useTabsQuery() {
   }
   
   const activateTab = async (tabId: string) => {
-    console.log('use-tabs-query: activateTab called with tabId:', tabId, 'type:', typeof tabId)
     const stringTabId = String(tabId);
-    const result = await activateTabMutation.mutateAsync(stringTabId)
-    console.log('use-tabs-query: activateTab result:', result)
-    return result
+    return activateTabMutation.mutateAsync(stringTabId)
   }
   
   const getActiveTab = () => {
@@ -329,7 +464,7 @@ export function useTabsQuery() {
     updateTab,
     updateNewTabToSavedItem,
     
-    // Refetch helper
+    // Refetch helper - only use when absolutely necessary as it can cause flickering
     refetch: () => queryClient.invalidateQueries({ queryKey: [TABS_QUERY_KEY] })
   }
 }
