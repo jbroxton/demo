@@ -10,14 +10,14 @@ import { UnifiedStateProvider } from '@/providers/unified-state-provider'
 import { AuthProvider } from '@/providers/auth-provider'
 import { getBaseUrl } from '@/lib/env'
 import { StyleLoader } from '@/components/style-loader'
-import { TableThemeProvider } from '@/providers/table-theme-provider'
-import { SidenavThemeProvider } from '@/providers/sidenav-theme-provider'
+// Theme providers removed
 
 type AppProvidersProps = {
   children?: React.ReactNode
   session?: any
 }
 
+// Main application providers component
 export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
   function AppProviders({ children, session }: AppProvidersProps, ref: React.ForwardedRef<HTMLDivElement>) {
     // Add state to track client-side hydration
@@ -59,11 +59,7 @@ export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
               <StyleLoader />
               {isHydrated ? (
                 <UnifiedStateProvider>
-                  <SidenavThemeProvider>
-                    <TableThemeProvider>
-                      {content}
-                    </TableThemeProvider>
-                  </SidenavThemeProvider>
+                    {content}
                 </UnifiedStateProvider>
               ) : (
                 // Render without the providers until hydration is complete

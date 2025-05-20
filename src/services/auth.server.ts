@@ -123,12 +123,21 @@ export async function validateCredentials(email: string, password: string): Prom
       return null;
     }
     
+    // Debug raw data from Supabase
+    console.log('Raw user tenants data from Supabase:', JSON.stringify(userTenants, null, 2));
+    
     // Map the nested data structure to our Tenant interface
-    const allowedTenants: Tenant[] = (userTenants || []).map((ut: UserTenantJoin) => ({
-      id: ut.tenants.id,
-      name: ut.tenants.name,
-      slug: ut.tenants.slug
-    }));
+    const allowedTenants: Tenant[] = (userTenants || []).map((ut: UserTenantJoin) => {
+      console.log('Processing tenant join:', ut);
+      console.log('Tenant ID from DB:', ut.tenant_id); 
+      console.log('Tenant object from DB:', ut.tenants);
+      
+      return {
+        id: ut.tenants.id, // This should be the UUID
+        name: ut.tenants.name,
+        slug: ut.tenants.slug
+      };
+    });
     
     console.log(`Found ${allowedTenants.length} tenants for user ${user.id}`);
     

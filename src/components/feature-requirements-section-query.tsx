@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RequirementsPlaceholder } from './requirements/requirements-placeholder';
 import { FileText, Plus } from 'lucide-react';
-import { ThemedButton } from '@/components/ui/themed-button';
-import { useAppTheme } from '@/providers/sidenav-theme-provider';
+import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 interface FeatureRequirementsSectionProps {
@@ -18,7 +17,7 @@ export function FeatureRequirementsSectionQuery({
   isNew = false
 }: FeatureRequirementsSectionProps) {
   const [showAddRow, setShowAddRow] = useState(false);
-  const appTheme = useAppTheme();
+  // Theme hook removed
   const router = useRouter();
 
   // Hard code userId for now
@@ -48,22 +47,22 @@ export function FeatureRequirementsSectionQuery({
         <p className="text-white/70 text-sm">Requirements</p>
         {!isNew && (
           <div className="flex gap-2">
-            <ThemedButton
-              variant="primary"
+            <Button
+              variant="default"
               onClick={handleAddToggle}
               className="text-sm"
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
               Add Requirement
-            </ThemedButton>
-            <ThemedButton
+            </Button>
+            <Button
               variant="secondary"
               onClick={handleNewRequirementInEditor}
               className="text-sm"
             >
               <FileText className="h-3.5 w-3.5 mr-1" />
               New in Editor
-            </ThemedButton>
+            </Button>
           </div>
         )}
       </div>

@@ -76,6 +76,9 @@ interface SimpleEditorProps {
   placeholder?: string;
   readOnly?: boolean;
   className?: string;
+  persistenceKey?: string; // Unique key for content persistence between tab switches
+  onBlur?: () => void; // Called when editor loses focus (for auto-save)
+  saveDocument?: () => Promise<void>; // Direct function to trigger document save
 }
 
 export function SimpleEditor({
@@ -83,9 +86,13 @@ export function SimpleEditor({
   onChange,
   placeholder = 'Start writing...',
   readOnly = false,
-  className = ''
+  className = '',
+  persistenceKey,
+  onBlur,
+  saveDocument
 }: SimpleEditorProps) {
   const [isClient, setIsClient] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   
   // Process initialContent if it's a JSON string
   const processedContent = useCallback(() => {
@@ -161,7 +168,13 @@ export function SimpleEditor({
     },
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
-      onChange?.(JSON.stringify(json));
+      const jsonString = JSON.stringify(json);
+      onChange?.(jsonString);
+      
+      // Save to localStorage if persistenceKey is provided
+      if (persistenceKey && window.localStorage) {
+        localStorage.setItem(`tiptap-content-${persistenceKey}`, jsonString);
+      }
     },
     editable: !readOnly,
   });
@@ -178,6 +191,56 @@ export function SimpleEditor({
       editor.commands.setContent(content);
     }
   }, [editor, initialContent, processedContent]);
+
+  // Handle tab visibility change and focus/blur
+  useEffect(() => {
+    if (!editor || !persistenceKey || readOnly) return;
+
+    // Function to handle document visibility changes (tab switching)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && saveDocument) {
+        console.log('Tab visibility changed to hidden, saving document...');
+        saveDocument()
+          .then(() => {
+            setLastSavedAt(new Date());
+            console.log('Document saved on tab switch');
+          })
+          .catch(error => console.error('Failed to save document on tab switch:', error));
+      }
+    };
+
+    // Add event listener for document visibility change
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Setup editor blur event handler
+    editor.on('blur', () => {
+      if (onBlur) {
+        console.log('Editor blur event, triggering save...');
+        onBlur();
+      }
+    });
+
+    // Load content from localStorage if available
+    if (persistenceKey && window.localStorage) {
+      const savedContent = localStorage.getItem(`tiptap-content-${persistenceKey}`);
+      if (savedContent) {
+        try {
+          const parsedContent = JSON.parse(savedContent);
+          if (parsedContent && Object.keys(parsedContent).length > 0) {
+            console.log('Loading saved content from localStorage');
+            editor.commands.setContent(parsedContent);
+          }
+        } catch (e) {
+          console.error('Error parsing saved content:', e);
+        }
+      }
+    }
+
+    // Clean up event listeners
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [editor, persistenceKey, readOnly, onBlur, saveDocument]);
 
   // Define helper functions for editor interactions
   // Not using useCallback since it causes issues with hook order

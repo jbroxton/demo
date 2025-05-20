@@ -87,7 +87,7 @@ function extractTitleFromUrl(url: string): string {
 
 // Get all attachments for a tenant
 export async function getAttachmentsFromDb(
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ success: boolean; data?: Attachment[]; error?: string }> {
   try {
     const { data, error } = await supabase
@@ -120,7 +120,7 @@ export async function getAttachmentsFromDb(
 // Create a new attachment
 export async function createAttachmentInDb(
   attachment: CreateAttachmentRequest,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ success: boolean; data?: Attachment; error?: string }> {
   try {
     // Extract metadata if not provided
@@ -180,7 +180,7 @@ export async function createAttachmentInDb(
 export async function getAttachmentsForEntityFromDb(
   entityId: string, 
   entityType: EntityType,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ success: boolean; data?: Attachment[]; error?: string }> {
   try {
     // Apply pagination for better performance with large datasets
@@ -225,7 +225,7 @@ export async function getAttachmentsForEntityFromDb(
 export async function getParentEntityAttachmentsFromDb(
   entityId: string,
   entityType: EntityType,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ 
   success: boolean; 
   data?: { parentType: EntityType | null; parentId: string | null; attachments: Attachment[] }; 
@@ -297,7 +297,7 @@ export async function getParentEntityAttachmentsFromDb(
 // Get a single attachment by ID
 export async function getAttachmentByIdFromDb(
   id: string,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ success: boolean; data?: Attachment; error?: string }> {
   try {
     const { data, error } = await supabase
@@ -332,7 +332,7 @@ export async function getAttachmentByIdFromDb(
 export async function updateAttachmentInDb(
   id: string,
   updates: Partial<Omit<Attachment, 'id' | 'createdAt' | 'updatedAt' | 'entityId' | 'entityType'>>,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ success: boolean; data?: Attachment; error?: string }> {
   try {
     // Get the current attachment to verify it exists
@@ -402,7 +402,7 @@ export async function updateAttachmentInDb(
 // Delete an attachment
 export async function deleteAttachmentFromDb(
   id: string,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Verify the attachment exists and belongs to the tenant

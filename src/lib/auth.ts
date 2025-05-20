@@ -102,12 +102,39 @@ export const authOptions: NextAuthOptions = {
           console.log('Authorize - User from DB:', user);
           console.log('Authorize - User allowedTenants:', user.allowedTenants);
           
+          // Log detailed information about tenant IDs for debugging
+          if (user.allowedTenants && user.allowedTenants.length > 0) {
+            console.log('TENANT DEBUG INFO:');
+            user.allowedTenants.forEach((tenant, index) => {
+              console.log(`Tenant ${index+1}:`, {
+                id: tenant.id,
+                name: tenant.name,
+                slug: tenant.slug,
+                idType: typeof tenant.id,
+                idLength: tenant.id?.length,
+                isStringLiteral: tenant.id === 'org1'
+              });
+            });
+          }
+          
           // Extract the tenant ID - users have exactly one tenant
           const tenantId = user.allowedTenants[0]?.id;
           
           if (!tenantId) {
             console.error('User has no tenant assigned:', user.email);
             return null; // Reject login if no tenant
+          }
+          
+          // Validate tenant ID format (should be UUID)
+          const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId);
+          if (!isValidUuid) {
+            console.error(`Invalid tenant ID format: ${tenantId} - expected UUID format`);
+            // If not in production, we can attempt to continue and generate a warning
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('WARNING: Non-UUID tenant ID detected. This will cause errors with Supabase queries!');
+            } else {
+              return null; // Reject login in production if tenant ID is not valid UUID
+            }
           }
           
           console.log('Authorize - User tenant ID:', tenantId);

@@ -27,9 +27,16 @@ export function useRoadmapsQuery() {
         return await api.get('/api/roadmaps-db')
       } catch (error) {
         console.error('Error fetching roadmaps:', error)
-        throw error
+        // Provide a more user-friendly error message
+        if (error instanceof Error) {
+          throw new Error(`Failed to load roadmaps: ${error.message}`)
+        } else {
+          throw new Error('Failed to load roadmaps. Please try again later.')
+        }
       }
     },
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   })
 
   // Get roadmap by ID
@@ -54,11 +61,27 @@ export function useRoadmapsQuery() {
       console.log('Fetching roadmap features with params:', params);
 
       const data = await api.get('/api/roadmaps-db', params);
+      // Validate that data is an array
+      if (!Array.isArray(data)) {
+        console.error('Invalid roadmap features data format:', data);
+        return [];
+      }
+      
       console.log(`Received ${data.length} features for roadmap ${roadmapId}`);
       return data;
     } catch (error) {
       console.error('Error fetching roadmap features:', error);
       // Return empty array instead of throwing to prevent UI errors
+      // But log the detailed error for debugging
+      if (error instanceof Error) {
+        console.error(`  Error details: ${error.message}`);
+      } else if (typeof error === 'object' && error !== null) {
+        try {
+          console.error(`  Error details: ${JSON.stringify(error, null, 2)}`);
+        } catch (jsonError) {
+          console.error(`  Error details: Unable to stringify error object`);
+        }
+      }
       return [];
     }
   }
@@ -71,10 +94,18 @@ export function useRoadmapsQuery() {
       retry: 2, // Retry failed requests up to 2 times
       retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
       // Return empty array instead of undefined on error to prevent UI errors
-      initialData: []
+      initialData: [],
+      // Set timeout to avoid long hanging requests
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 30 * 1000, // 30 seconds
+      // Handle errors more gracefully
+      onError: (error) => {
+        console.error('Error in roadmap features query:', error);
+        // You could trigger a toast notification here if needed
+      }
     });
 
-    // Handle errors separately, outside the options object
+    // Additional error logging for debugging
     if (query.error) {
       console.error('Error in roadmap features query:', query.error);
     }

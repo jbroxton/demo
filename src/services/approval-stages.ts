@@ -4,7 +4,7 @@ import { ApprovalStage } from '@/types/models';
 /**
  * Get all approval stages
  */
-export async function getApprovalStages(tenantId: string = 'org1'): Promise<ApprovalStage[]> {
+export async function getApprovalStages(tenantId: string): Promise<ApprovalStage[]> {
   try {
     console.log(`Fetching approval stages from database for tenant: ${tenantId}`);
     
@@ -42,7 +42,7 @@ export async function getApprovalStages(tenantId: string = 'org1'): Promise<Appr
 /**
  * Get approval stage by ID
  */
-export async function getApprovalStageById(id: string, tenantId: string = 'org1'): Promise<ApprovalStage | null> {
+export async function getApprovalStageById(id: string, tenantId: string): Promise<ApprovalStage | null> {
   try {
     console.log(`Fetching approval stage with ID: ${id} for tenant: ${tenantId}`);
     
@@ -83,7 +83,7 @@ export async function getApprovalStageById(id: string, tenantId: string = 'org1'
 /**
  * Create a new approval stage
  */
-export async function createApprovalStage(stageData: Partial<ApprovalStage>, tenantId: string = 'org1'): Promise<ApprovalStage | null> {
+export async function createApprovalStage(stageData: Partial<ApprovalStage>, tenantId: string): Promise<ApprovalStage | null> {
   try {
     console.log(`Creating new approval stage with data for tenant ${tenantId}:`, stageData);
     
@@ -125,7 +125,7 @@ export async function createApprovalStage(stageData: Partial<ApprovalStage>, ten
 /**
  * Update approval stage
  */
-export async function updateApprovalStage(id: string, stageData: Partial<ApprovalStage>, tenantId: string = 'org1'): Promise<ApprovalStage | null> {
+export async function updateApprovalStage(id: string, stageData: Partial<ApprovalStage>, tenantId: string): Promise<ApprovalStage | null> {
   try {
     console.log(`Updating approval stage with ID: ${id} for tenant ${tenantId} with data:`, stageData);
     
@@ -169,7 +169,7 @@ export async function updateApprovalStage(id: string, stageData: Partial<Approva
 /**
  * Delete approval stage
  */
-export async function deleteApprovalStage(id: string, tenantId: string = 'org1'): Promise<boolean> {
+export async function deleteApprovalStage(id: string, tenantId: string): Promise<boolean> {
   try {
     console.log(`Deleting approval stage with ID: ${id} for tenant ${tenantId}`);
     

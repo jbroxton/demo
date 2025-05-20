@@ -16,7 +16,7 @@ const mapInterface = (row: any): Interface => ({
 /**
  * Get all interfaces from the database
  */
-export async function getInterfacesFromDb(tenantId: string = 'org1') {
+export async function getInterfacesFromDb(tenantId: string) {
   try {
     const { data, error } = await supabase
       .from('interfaces')
@@ -43,7 +43,7 @@ export async function getInterfacesFromDb(tenantId: string = 'org1') {
 /**
  * Get interfaces by product ID
  */
-export async function getInterfacesByProductIdFromDb(productId: string, tenantId: string = 'org1') {
+export async function getInterfacesByProductIdFromDb(productId: string, tenantId: string) {
   try {
     const { data, error } = await supabase
       .from('interfaces')
@@ -71,7 +71,7 @@ export async function getInterfacesByProductIdFromDb(productId: string, tenantId
 /**
  * Get a interface by ID
  */
-export async function getInterfaceByIdFromDb(id: string, tenantId: string = 'org1') {
+export async function getInterfaceByIdFromDb(id: string, tenantId: string) {
   try {
     const { data, error } = await supabase
       .from('interfaces')
@@ -200,7 +200,7 @@ export async function updateInterfaceDescriptionInDb(id: string, description: st
 /**
  * Delete an interface
  */
-export async function deleteInterfaceFromDb(id: string, tenantId: string = 'org1') {
+export async function deleteInterfaceFromDb(id: string, tenantId: string) {
   try {
     // First check if interface exists
     const { data: existingInterface, error: checkError } = await supabase
@@ -241,7 +241,7 @@ export async function deleteInterfaceFromDb(id: string, tenantId: string = 'org1
 /**
  * Mark an interface as saved with timestamp
  */
-export async function markInterfaceAsSavedInDb(id: string, tenantId: string = 'org1') {
+export async function markInterfaceAsSavedInDb(id: string, tenantId: string) {
   try {
     const { error } = await supabase
       .from('interfaces')

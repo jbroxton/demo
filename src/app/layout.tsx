@@ -1,7 +1,7 @@
 import React from "react"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AppProviders } from '@/components/providers'
+import { AppProviders } from '@/providers/app-providers'
 import { Metadata } from "next"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"

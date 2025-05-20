@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Puzzle, Save, X, Plus, FileText, Trash2, Paperclip, Calendar, ClipboardCheck, ChevronRight, ChevronLeft, ChevronDown, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SimpleEditor } from './simple-editor.jsx';
+import { SimpleEditor } from './simple-editor';
 import { FeatureRequirementsSectionQuery } from './feature-requirements-section-query';
 import { StagesApprovalTable } from './stages-approval-table';
 import { toast } from 'sonner';
@@ -63,6 +63,8 @@ export function FeatureQueryTabContent({
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMetadataExpanded, setIsMetadataExpanded] = useState(false);
+  // Add state to track if title is being edited to disable auto-save
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
 
   // Create refs to track initial load and unsaved changes
   const isInitialLoad = useRef(true);
@@ -78,21 +80,76 @@ export function FeatureQueryTabContent({
   const feature = !isNew ? featuresQuery.getFeatureById(featureId) : null;
   const interfaces = interfacesQuery.getInterfaces();
 
-  // Document query for feature content
+  // Get documents for this feature using the feature ID
   const {
-    document: docData,
-    updateContent,
-    updateTitle: updateDocTitle,
-    isSavingContent,
-    isSavingTitle,
-    error: docError,
-  } = useDocumentQuery(isNew ? undefined : featureId);
+    documents: featureDocuments,
+    updateDocument,
+    isLoading: isLoadingDocuments,
+    error: docsError,
+    createDocument
+  } = useDocumentsQuery(isNew ? undefined : featureId);  
   
-  // Documents list query hooks (for creating new documents)
-  const {
-    createDocument,
-    isCreating,
-  } = useDocumentsQuery();
+  // Get the first document for this feature (there should be only one)
+  const docData = featureDocuments && featureDocuments.length > 0 ? featureDocuments[0] : null;
+  
+  // Helper functions for document operations
+  const updateContent = useCallback(
+    async (content: any) => {
+      if (!docData) {
+        console.error('Cannot update content: No document exists yet');
+        throw new Error('Document not found');
+      }
+      return updateDocument(docData.id, { content });
+    },
+    [docData, updateDocument]
+  );
+  
+  const updateDocTitle = useCallback(
+    async (title: string) => {
+      if (!docData) {
+        console.error('Cannot update title: No document exists yet');
+        throw new Error('Document not found');
+      }
+      
+      try {
+        if (!title || title.trim() === '') {
+          console.warn('Attempted to update document title with empty string, using fallback');
+          title = 'Untitled';
+        }
+        
+        console.log(`Updating document ${docData.id} title to: "${title}"`);
+        return updateDocument(docData.id, { title: title.trim() });
+      } catch (error) {
+        console.error('Error in updateDocTitle:', error);
+        throw new Error('Failed to update document title');
+      }
+    },
+    [docData, updateDocument]
+  );
+  
+  const isSavingContent = false; // We don't have this information from useDocumentsQuery
+  const isSavingTitle = false;   // We don't have this information from useDocumentsQuery
+  
+  // Track document creation state
+  const [isCreating, setIsCreating] = useState(false);
+  
+  // Create a separate debounce function just for title updates
+  const debouncedTitleUpdate = useCallback(
+    debounce((newTitle: string) => {
+      console.log('Debounced title update:', newTitle);
+      
+      // Only proceed if we have a valid feature ID and not creating a new feature
+      if (!isNew && featureId && featureId !== 'new') {
+        // First update the tab title (UI only operation)
+        updateTabTitle(featureId, 'feature', newTitle);
+        
+        // We no longer update the document title during typing
+        // This will be handled when the feature is saved to reduce errors
+        console.log('Title update in UI only - document title will be updated on save');
+      }
+    }, 500), // Slightly longer delay to reduce update frequency
+    [featureId, isNew, updateTabTitle]
+  );
 
   // Attachments query - only enabled when not a new feature
   const {
@@ -104,15 +161,19 @@ export function FeatureQueryTabContent({
   } = useAttachmentsQuery(!isNew ? featureId : undefined, 'feature');
 
   // Loading states
-  const isLoading = featuresQuery.isLoading || interfacesQuery.isLoading;
+  const isLoading = featuresQuery.isLoading || interfacesQuery.isLoading || isLoadingDocuments;
   const isSaving =
     featuresQuery.addFeatureMutation.isPending ||
     featuresQuery.updateFeatureNameMutation.isPending ||
     featuresQuery.updateFeatureDescriptionMutation.isPending;
 
-  // Create debounced save function for document content
+  // Create debounced save function for document content with shorter delay
   const debouncedSaveContent = useCallback(
     debounce((content: string) => {
+      // Always mark that there are unsaved changes
+      hasUnsavedChanges.current = true;
+      
+      // Check if we should save
       if (!isNew && featureId && featureId !== 'new') {
         console.log('Auto-saving document content...');
         try {
@@ -125,34 +186,54 @@ export function FeatureQueryTabContent({
             jsonContent = content;
           }
 
-          updateContent(jsonContent)
-            .then(() => {
-              console.log('Auto-saved document:', new Date().toLocaleTimeString());
-              hasUnsavedChanges.current = false;
-            })
-            .catch(error => {
-              console.error('Failed to auto-save content:', error);
-              if (error.message && !error.message.includes('network')) {
-                toast.error('Failed to auto-save content');
-              }
-            });
+          if (docData) {
+            // Skip save if title input is focused
+            if (isTitleFocused) {
+              console.log('Auto-save skipped because title is focused');
+              return;
+            }
+            
+            updateContent(jsonContent)
+              .then(() => {
+                console.log('Auto-saved document:', new Date().toLocaleTimeString());
+                // Also update the tab title here for faster sync
+                if (featureId) {
+                  updateTabTitle(featureId, 'feature', nameValue);
+                }
+                hasUnsavedChanges.current = false;
+              })
+              .catch(error => {
+                console.error('Failed to auto-save content:', error);
+                if (error.message && !error.message.includes('network')) {
+                  toast.error('Failed to auto-save content');
+                }
+              });
+          } else {
+            console.log('No document exists yet, changes will be saved when you click Save');
+            hasUnsavedChanges.current = true;
+          }
         } catch (e) {
           console.error('Error in debouncedSaveContent:', e);
         }
       }
-    }, 2000), // 2 second debounce to avoid performance issues
-    [featureId, isNew, updateContent]
+    }, 1000), // Reduced to 1 second to make auto-save feel more responsive
+    [featureId, isNew, updateContent, docData, isTitleFocused, nameValue, updateTabTitle]
   );
+
+  // Track if we've done the initial setup to prevent constant feature name updates
+  const initialSetupDone = useRef(false);
 
   // Initialize from feature data on component mount
   useEffect(() => {
     setIsClient(true);
 
     // Initialize values from feature and document when we have them
-    if (feature) {
+    if (feature && !initialSetupDone.current) {
+      console.log("Initial setup with feature name:", feature.name);
       setNameValue(feature.name || '');
       setPriorityValue(feature.priority || 'Med');
       setInterfaceId(feature.interfaceId || '');
+      initialSetupDone.current = true;
 
       // Use document content if available, otherwise fall back to feature description
       if (docData && docData.content) {
@@ -171,9 +252,7 @@ export function FeatureQueryTabContent({
   }, [feature, featureId, isNew, docData, debouncedSaveContent]); // All dependencies now defined before useEffect
 
   // Event handlers
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNameValue(e.target.value);
-  };
+  // Removed handleNameChange since we're handling it directly in the input
 
   const handlePriorityChange = (value: string) => {
     setPriorityValue(value as 'High' | 'Med' | 'Low');
@@ -186,13 +265,15 @@ export function FeatureQueryTabContent({
   const handleSaveFeature = async () => {
     if (!isNew && feature) {
       try {
-        // Save feature name if changed
+        // First update feature name in the database and tab title
         if (nameValue.trim() !== feature.name) {
+          console.log('Updating feature name from', feature.name, 'to', nameValue.trim());
           await featuresQuery.updateFeatureName(featureId, nameValue);
+          // Update the tab title when saving - this is the right time to sync them
           updateTabTitle(featureId, 'feature', nameValue);
         }
 
-        // Save document content - first trying to parse as JSON
+        // Now prepare document content for saving
         try {
           // Try to parse the content as JSON first
           let jsonContent;
@@ -203,21 +284,47 @@ export function FeatureQueryTabContent({
             jsonContent = descriptionValue;
           }
 
-          // Update document content in DB
-          await updateContent(jsonContent);
-
-          // Also update document title if it's different from feature name
-          if (docData && docData.title !== nameValue.trim()) {
-            await updateDocTitle(nameValue.trim());
-          }
-
+          // Check if document exists first before trying to update it
+          if (docData) {
+            // Document exists, batch update both title and content together
+            console.log('Updating existing document:', docData.id);
+            
+            // Create updates object with both title and content
+            const updates: Partial<Document> = { content: jsonContent };
+            
+            // Always sync title with feature name on save to ensure consistency
+            // This will update title even if it hasn't changed, for consistency
+            updates.title = nameValue.trim();
+            
+            console.log('Updating document with title and content:', updates);
+            try {
+              // Single update call with both fields to avoid race conditions
+              await updateDocument(docData.id, updates);
+              console.log('Document title and content updated successfully');
+            } catch (updateError) {
+              console.error('Error updating document:', updateError);
+              toast.error('Failed to update document');
+              throw updateError;
+            }
+          } 
           // If there is no document yet, create one
-          if (!docData && descriptionValue) {
-            await createDocument({
-              title: nameValue.trim(),
-              content: jsonContent,
-              featureId: featureId,
-            });
+          else if (descriptionValue) {
+            console.log('Creating new document for feature:', featureId);
+            try {
+              setIsCreating(true);
+              const newDoc = await createDocument({
+                title: nameValue.trim() || 'Untitled',
+                content: jsonContent,
+                featureId: featureId,
+              });
+              console.log('Successfully created document:', newDoc);
+              setIsCreating(false);
+            } catch (createError) {
+              console.error('Failed to create document for feature:', createError);
+              toast.error('Failed to create document, saving description to feature instead');
+              // Fall back to direct feature description update
+              await featuresQuery.updateFeatureDescription(featureId, typeof descriptionValue === 'string' ? descriptionValue : JSON.stringify(descriptionValue));
+            }
           }
         } catch (docError) {
           console.error('Failed to save document:', docError);
@@ -262,15 +369,20 @@ export function FeatureQueryTabContent({
     }
 
     try {
+      // Use the current name value from the input for the feature name
+      // This ensures what the user typed is what gets saved
+      const featureName = nameValue.trim();
+      
+      // Get the tenant ID from the auth context instead of hardcoding
       const newFeatureData = {
-        name: nameValue.trim(),
+        name: featureName,
         description: descriptionValue,
         priority: priorityValue,
         interfaceId: interfaceId,
         showRequirements: true,
         isSaved: false,
-        savedAt: null,
-        tenantId: 'org1'
+        savedAt: null
+        // The tenantId should be handled by the service layer using the auth context
       };
 
       const savedFeature = await featuresQuery.addFeature(newFeatureData);
@@ -279,7 +391,8 @@ export function FeatureQueryTabContent({
         const temporaryTabId = tabId;
 
         console.log('[FeatureQueryTabContent] Calling updateNewTabToSavedItem with type:', 'feature');
-        updateNewTabToSavedItem(temporaryTabId, savedFeature.id, savedFeature.name, 'feature');
+        // Use our local name value to ensure consistency
+        updateNewTabToSavedItem(temporaryTabId, savedFeature.id, featureName, 'feature');
 
         setShowSaveSuccess(true);
         setTimeout(() => setShowSaveSuccess(false), 3000);
@@ -354,11 +467,44 @@ export function FeatureQueryTabContent({
         <div className="flex items-center">
           <Puzzle className="h-7 w-7 mr-3 text-white/50" />
           <div className="flex items-center w-full max-w-xl">
-            <Input
+            <input
+              type="text"
+              // Use value instead of defaultValue to fully control the input
               value={nameValue}
-              onChange={handleNameChange}
+              // Direct event handler without calling setNameValue to avoid interference
+              onChange={(e) => {
+                console.log("Input change:", e.target.value);
+                // This is the only place we update the nameValue
+                const newValue = e.target.value;
+                setNameValue(newValue);
+                hasUnsavedChanges.current = true;
+                
+                // Update the tab title and document title with a short debounce
+                // The debounced function now handles both tab and document title updates
+                debouncedTitleUpdate(newValue);
+              }}
               autoFocus
-              className="text-3xl font-medium text-white bg-transparent border-none focus:ring-0 focus-visible:ring-0 shadow-none px-0 placeholder:text-white/40 h-auto py-1"
+              onFocus={() => {
+                console.log("Input focused");
+                setIsTitleFocused(true);
+              }}
+              onBlur={(e) => {
+                console.log("Input blur:", e.target.value);
+                setIsTitleFocused(false);
+                hasUnsavedChanges.current = true;
+                
+                // On blur, update only the tab title for immediate visual feedback
+                if (!isNew && featureId && featureId !== 'new') {
+                  debouncedTitleUpdate.cancel(); // Cancel any pending debounced updates
+                  
+                  // Just update tab title immediately in UI
+                  updateTabTitle(featureId, 'feature', e.target.value);
+                  
+                  // Log that we're deferring document title updates to save operation
+                  console.log('Title changes will be saved when saving the feature');
+                }
+              }}
+              className="text-3xl font-medium text-white bg-transparent border-none focus:ring-0 focus-visible:ring-0 focus:outline-none shadow-none px-0 placeholder:text-white/40 h-auto py-1 w-full"
               placeholder="Untitled"
             />
           </div>
@@ -506,6 +652,27 @@ export function FeatureQueryTabContent({
               readOnly={false}
               placeholder="Start writing about this feature..."
               className="overflow-hidden"
+              persistenceKey={`feature-${featureId}`}
+              onBlur={() => {
+                // Only trigger save if title is not focused
+                if (!isTitleFocused && !isNew && featureId && hasUnsavedChanges.current) {
+                  console.log('Editor blur - saving because title is not focused');
+                  handleSaveFeature();
+                } else if (isTitleFocused) {
+                  console.log('Editor blur - not saving because title is focused');
+                }
+              }}
+              saveDocument={async () => {
+                // Only save if title is not focused
+                if (!isTitleFocused && !isNew && featureId && hasUnsavedChanges.current) {
+                  console.log('Save document - proceeding because title is not focused');
+                  await handleSaveFeature();
+                  return Promise.resolve();
+                } else if (isTitleFocused) {
+                  console.log('Save document - skipping because title is focused');
+                }
+                return Promise.resolve();
+              }}
             />
           </div>
         </div>

@@ -4,7 +4,7 @@ import { ApprovalStatus } from '@/types/models';
 /**
  * Get all approval statuses
  */
-export async function getApprovalStatuses(tenantId: string = 'org1'): Promise<ApprovalStatus[]> {
+export async function getApprovalStatuses(tenantId: string): Promise<ApprovalStatus[]> {
   try {
     console.log(`Fetching approval statuses from database for tenant: ${tenantId}`);
     
@@ -30,7 +30,7 @@ export async function getApprovalStatuses(tenantId: string = 'org1'): Promise<Ap
 /**
  * Get approval status by ID
  */
-export async function getApprovalStatusById(id: string, tenantId: string = 'org1'): Promise<ApprovalStatus | null> {
+export async function getApprovalStatusById(id: string, tenantId: string): Promise<ApprovalStatus | null> {
   try {
     console.log(`Fetching approval status with ID: ${id} for tenant: ${tenantId}`);
     
@@ -60,7 +60,7 @@ export async function getApprovalStatusById(id: string, tenantId: string = 'org1
 /**
  * Create a new approval status
  */
-export async function createApprovalStatus(statusData: Partial<ApprovalStatus>, tenantId: string = 'org1'): Promise<ApprovalStatus | null> {
+export async function createApprovalStatus(statusData: Partial<ApprovalStatus>, tenantId: string): Promise<ApprovalStatus | null> {
   try {
     console.log(`Creating approval status for tenant: ${tenantId}`);
     
@@ -89,7 +89,7 @@ export async function createApprovalStatus(statusData: Partial<ApprovalStatus>, 
 /**
  * Update approval status
  */
-export async function updateApprovalStatus(id: string, statusData: Partial<ApprovalStatus>, tenantId: string = 'org1'): Promise<ApprovalStatus | null> {
+export async function updateApprovalStatus(id: string, statusData: Partial<ApprovalStatus>, tenantId: string): Promise<ApprovalStatus | null> {
   try {
     console.log(`Updating approval status with ID: ${id} for tenant: ${tenantId}`);
     
@@ -120,7 +120,7 @@ export async function updateApprovalStatus(id: string, statusData: Partial<Appro
 /**
  * Delete approval status
  */
-export async function deleteApprovalStatus(id: string, tenantId: string = 'org1'): Promise<boolean> {
+export async function deleteApprovalStatus(id: string, tenantId: string): Promise<boolean> {
   try {
     console.log(`Deleting approval status with ID: ${id} for tenant: ${tenantId}`);
     

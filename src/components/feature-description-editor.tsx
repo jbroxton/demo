@@ -11,7 +11,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import { DocumentEditorToolbar } from './document-editor-toolbar';
-import { useAppTheme } from '@/providers/sidenav-theme-provider';
+// Theme import removed
 import debounce from 'lodash/debounce';
 
 interface FeatureDescriptionEditorProps {
@@ -31,7 +31,7 @@ export function FeatureDescriptionEditor({
   const initialJsonContent = useRef<any>(null);
   const initialStringContent = useRef(initialContent);
   const hasInitializedEditor = useRef(false);
-  const appTheme = useAppTheme();
+  // Theme hook removed
 
   // Try to parse the initial HTML content to JSON, or create a default structure
   useEffect(() => {
@@ -197,7 +197,7 @@ export function FeatureDescriptionEditor({
   // Show loading state on server or while initializing
   if (!isClient || !editor) {
     return (
-      <div className={`${appTheme.editor} p-4`}>
+      <div className="bg-[#0C0C0C] border border-white/[0.02] rounded-md p-4">
         <div className="text-white/60">Loading editor...</div>
       </div>
     );
@@ -206,7 +206,7 @@ export function FeatureDescriptionEditor({
   // Render the editor in read-only mode
   if (readOnly) {
     return (
-      <div className={`tiptap-editor-read-only ${appTheme.editor} border-0 h-full`}>
+      <div className="tiptap-editor-read-only bg-[#0C0C0C] border border-white/[0.02] rounded-md border-0 h-full">
         <EditorContent editor={editor} className="h-full" />
       </div>
     );

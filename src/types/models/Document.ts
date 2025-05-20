@@ -7,7 +7,7 @@ export interface Document {
   requirementId?: string; // Added for requirement documents
   createdAt: string;
   updatedAt: string;
-  tenantId: string;
+  // tenantId field is omitted as it's managed by auth context
 }
 
 // Document with content typed as JSON object (optional but more specific)

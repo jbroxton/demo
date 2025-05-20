@@ -3,7 +3,7 @@ import { Document } from '@/types/models';
 
 // Get all documents or filter by featureId or releaseId
 export async function getDocumentsFromDb(
-  tenantId: string = 'org1',
+  tenantId: string, // No default, must be provided from auth context
   featureId?: string,
   releaseId?: string
 ) {
@@ -91,20 +91,47 @@ export async function getDocumentsFromDb(
 }
 
 // Get a single document by ID
-export async function getDocumentFromDb(id: string, tenantId: string = 'org1') {
+export async function getDocumentFromDb(id: string, tenantId: string) {
   try {
+    console.log(`Getting document ID: ${id} for tenant: ${tenantId}`);
+    
+    if (!tenantId) {
+      console.error('No tenant ID provided for getDocumentFromDb');
+      return {
+        success: false,
+        error: 'Tenant ID is required'
+      };
+    }
+    
+    // First check if document exists
     const { data: document, error } = await supabase
       .from('documents')
       .select('*')
       .eq('id', id)
-      .eq('tenant_id', tenantId)
       .single();
-    
+      
     if (error) {
-      console.error('Error getting document:', error);
+      console.error(`Error retrieving document ${id}:`, error);
       return {
         success: false,
         error: 'Document not found'
+      };
+    }
+    
+    if (!document) {
+      console.error(`Document with ID ${id} does not exist`);
+      return {
+        success: false,
+        error: 'Document not found'
+      };
+    }
+    
+    // Check tenant ID match
+    if (document.tenant_id !== tenantId) {
+      console.error(`Tenant ID mismatch: Document belongs to tenant ${document.tenant_id}, but request from ${tenantId}`);
+      return {
+        success: false,
+        error: 'Access denied. Document belongs to a different tenant.'
       };
     }
     
@@ -124,14 +151,33 @@ export async function getDocumentFromDb(id: string, tenantId: string = 'org1') {
 // Create a new document
 export async function createDocumentInDb(
   document: Omit<Document, 'id' | 'createdAt' | 'updatedAt'>,
-  tenantId: string = 'org1'
+  tenantId: string
 ) {
   try {
+    console.log(`Creating document in tenant ${tenantId}:`, document);
+    
+    if (!tenantId) {
+      console.error('No tenant ID provided for createDocumentInDb');
+      return {
+        success: false,
+        error: 'Tenant ID is required'
+      };
+    }
+    
     if (!document.title) {
       console.error('Title is required for document creation');
       return {
         success: false,
         error: 'Title is required'
+      };
+    }
+    
+    // Verify we have at least one entity ID
+    if (!document.featureId && !document.releaseId && !document.requirementId) {
+      console.error('Document must be associated with at least one entity');
+      return {
+        success: false,
+        error: 'At least one of featureId, releaseId, or requirementId is required'
       };
     }
 
@@ -191,23 +237,48 @@ export async function createDocumentInDb(
 export async function updateDocumentInDb(
   id: string,
   updates: Partial<Omit<Document, 'id' | 'createdAt' | 'updatedAt'>>,
-  tenantId: string = 'org1'
+  tenantId: string
 ) {
   try {
-    // First, check if document exists and belongs to tenant
-    const { data: existing, error: checkError } = await supabase
-      .from('documents')
-      .select('id')
-      .eq('id', id)
-      .eq('tenant_id', tenantId)
-      .single();
+    // Enhanced logging
+    console.log(`Checking document existence for update - ID: ${id} in tenant: ${tenantId}`);
+    console.log('Updates object:', JSON.stringify(updates, null, 2));
     
-    if (checkError || !existing) {
+    // First check if the document exists at all
+    const { data: documentExists, error: existsError } = await supabase
+      .from('documents')
+      .select('id, tenant_id, title, feature_id, release_id')
+      .eq('id', id)
+      .single();
+      
+    if (existsError) {
+      console.error(`Document lookup error for ID ${id}:`, existsError);
       return {
         success: false,
-        error: 'Document not found or access denied'
+        error: `Document not found: ${existsError.message}`
       };
     }
+    
+    if (!documentExists) {
+      console.error(`Document with ID ${id} does not exist`); 
+      return {
+        success: false,
+        error: 'Document not found'
+      };
+    }
+    
+    // Now check tenant ID match
+    if (documentExists.tenant_id !== tenantId) {
+      console.error(`Tenant ID mismatch: Document belongs to tenant ${documentExists.tenant_id}, but request from ${tenantId}`);
+      return {
+        success: false,
+        error: 'Access denied. Document belongs to a different tenant.'
+      };
+    }
+    
+    console.log(`Found existing document: ${id}, title: "${documentExists.title}", feature_id: ${documentExists.feature_id}`);
+    
+    // If we get here, document exists and belongs to the tenant
     
     // Build update object
     const updateData: any = {
@@ -216,27 +287,73 @@ export async function updateDocumentInDb(
     
     if (updates.title !== undefined) {
       updateData.title = updates.title;
+      console.log(`Setting title to: "${updates.title}"`);
     }
     
     if (updates.content !== undefined) {
-      updateData.content = typeof updates.content === 'string' 
-        ? updates.content 
-        : JSON.stringify(updates.content);
+      try {
+        // Make sure content is always stored as a string
+        const finalContent = typeof updates.content === 'string' 
+          ? updates.content 
+          : JSON.stringify(updates.content);
+        
+        // Validate it's valid JSON before saving
+        try {
+          // Test if it's valid JSON by trying to parse it
+          JSON.parse(finalContent);
+          // If it parses, it's valid JSON
+          updateData.content = finalContent;
+        } catch (jsonError) {
+          // Not valid JSON, convert to a basic document structure
+          console.warn('Attempted to save invalid JSON content, converting to basic structure');
+          updateData.content = JSON.stringify({
+            type: 'doc',
+            content: [
+              { 
+                type: 'paragraph', 
+                content: [
+                  { 
+                    type: 'text', 
+                    text: typeof updates.content === 'string' 
+                      ? updates.content 
+                      : 'Content could not be properly formatted'
+                  }
+                ] 
+              }
+            ]
+          });
+        }
+        
+        console.log(`Setting content (${typeof updates.content}, final length: ${
+          updateData.content.length
+        })`);
+      } catch (e) {
+        console.error('Error processing content for storage:', e);
+        // Fallback to empty document
+        updateData.content = JSON.stringify({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [] }]
+        });
+      }
     }
     
     if (updates.featureId !== undefined) {
       updateData.feature_id = updates.featureId || null;
+      console.log(`Setting feature_id to: ${updates.featureId || 'null'}`);
     }
     
     if (updates.releaseId !== undefined) {
       updateData.release_id = updates.releaseId || null;
+      console.log(`Setting release_id to: ${updates.releaseId || 'null'}`);
     }
     
+    console.log(`Executing Supabase update for document ${id} with data:`, updateData);
+    
+    // Use .match condition to be extra explicit about updating this specific document
     const { data, error } = await supabase
       .from('documents')
       .update(updateData)
-      .eq('id', id)
-      .eq('tenant_id', tenantId)
+      .match({ id: id, tenant_id: tenantId }) // Use match for multiple conditions
       .select()
       .single();
     
@@ -244,9 +361,19 @@ export async function updateDocumentInDb(
       console.error('Error updating document:', error);
       return {
         success: false,
-        error: 'Failed to update document'
+        error: `Failed to update document: ${error.message}`
       };
     }
+    
+    if (!data) {
+      console.error('No data returned after update');
+      return {
+        success: false,
+        error: 'Document update did not return data'
+      };
+    }
+    
+    console.log(`Document ${id} successfully updated`);
     
     return {
       success: true,
@@ -256,28 +383,49 @@ export async function updateDocumentInDb(
     console.error('Error updating document:', error);
     return {
       success: false,
-      error: 'Failed to update document'
+      error: `Failed to update document: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 }
 
 // Delete a document
-export async function deleteDocumentFromDb(id: string, tenantId: string = 'org1') {
+export async function deleteDocumentFromDb(id: string, tenantId: string) {
   try {
-    // First, check if document exists and belongs to tenant
-    const { data: existing, error: checkError } = await supabase
-      .from('documents')
-      .select('id')
-      .eq('id', id)
-      .eq('tenant_id', tenantId)
-      .single();
+    console.log(`Checking document existence for deletion - ID: ${id} in tenant: ${tenantId}`); 
     
-    if (checkError || !existing) {
+    // First check if the document exists at all
+    const { data: documentExists, error: existsError } = await supabase
+      .from('documents')
+      .select('id, tenant_id')
+      .eq('id', id)
+      .single();
+      
+    if (existsError) {
+      console.error(`Document lookup error for ID ${id}:`, existsError);
       return {
         success: false,
-        error: 'Document not found or access denied'
+        error: 'Document not found'
       };
     }
+    
+    if (!documentExists) {
+      console.error(`Document with ID ${id} does not exist`); 
+      return {
+        success: false,
+        error: 'Document not found'
+      };
+    }
+    
+    // Now check tenant ID match
+    if (documentExists.tenant_id !== tenantId) {
+      console.error(`Tenant ID mismatch: Document belongs to tenant ${documentExists.tenant_id}, but request from ${tenantId}`);
+      return {
+        success: false,
+        error: 'Access denied. Document belongs to a different tenant.'
+      };
+    }
+    
+    // If we get here, document exists and belongs to the tenant
     
     const { error } = await supabase
       .from('documents')
@@ -342,8 +490,9 @@ function mapDocumentFromDb(row: any): Document {
     content: parsedContent,
     featureId: row.feature_id,
     releaseId: row.release_id,
+    requirementId: row.requirement_id,
     createdAt: row.created_at || new Date().toISOString(),
-    updatedAt: row.updated_at || new Date().toISOString(),
-    tenantId: row.tenant_id
+    updatedAt: row.updated_at || new Date().toISOString()
+    // tenantId is omitted as it's managed by auth context
   };
 }

@@ -17,7 +17,7 @@ export const ROADMAP_STATUS = {
 export async function getApprovalsByEntity(
   entityId: string,
   entityType: 'feature' | 'release',
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<EntityApproval[]> {
   try {
     console.log(`Fetching approvals for ${entityType} with ID: ${entityId} for tenant: ${tenantId}`);
@@ -45,7 +45,7 @@ export async function getApprovalsByEntity(
 /**
  * Get approval by ID
  */
-export async function getApprovalById(id: string, tenantId: string = 'org1'): Promise<EntityApproval | null> {
+export async function getApprovalById(id: string, tenantId: string): Promise<EntityApproval | null> {
   try {
     console.log(`Fetching approval with ID: ${id} for tenant: ${tenantId}`);
     
@@ -73,7 +73,7 @@ export async function getApprovalById(id: string, tenantId: string = 'org1'): Pr
  */
 export async function createOrUpdateEntityApproval(
   approvalData: Partial<EntityApproval>,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<EntityApproval | null> {
   try {
     if (!approvalData.entity_id || !approvalData.entity_type || !approvalData.stage_id || !approvalData.status_id) {
@@ -152,7 +152,7 @@ export async function createOrUpdateEntityApproval(
 /**
  * Delete entity approval
  */
-export async function deleteEntityApproval(id: string, tenantId: string = 'org1'): Promise<boolean> {
+export async function deleteEntityApproval(id: string, tenantId: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('entity_approvals')
@@ -177,7 +177,7 @@ export async function deleteEntityApproval(id: string, tenantId: string = 'org1'
 export async function deleteEntityApprovals(
   entityId: string, 
   entityType: 'feature' | 'release',
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<boolean> {
   try {
     const { error } = await supabase
@@ -205,7 +205,7 @@ export async function deleteEntityApprovals(
 export async function initializeEntityApprovals(
   entityId: string,
   entityType: 'feature' | 'release',
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<EntityApproval[]> {
   try {
     // Get all stages
@@ -266,7 +266,7 @@ export async function initializeEntityApprovals(
  */
 export async function initializeAllFeatureRoadmapStatuses(
   defaultStatus: string = ROADMAP_STATUS.BACKLOG,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<boolean> {
   try {
     console.log(`Initializing roadmap status for all features to: ${defaultStatus} for tenant: ${tenantId}`);
@@ -296,7 +296,7 @@ export async function initializeAllFeatureRoadmapStatuses(
 export async function updateApprovalWithRoadmapStatus(
   approvalId: string,
   roadmapStatus: string,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<EntityApproval | null> {
   try {
     console.log(`Updating approval ${approvalId} with roadmap status: ${roadmapStatus} for tenant: ${tenantId}`);
@@ -330,7 +330,7 @@ export async function bulkUpdateApprovalsWithRoadmapStatus(
   entityId: string,
   entityType: 'feature' | 'release',
   roadmapStatus: string,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<EntityApproval[]> {
   try {
     console.log(`Updating all approvals for ${entityType} ${entityId} with roadmap status: ${roadmapStatus} for tenant: ${tenantId}`);
@@ -362,7 +362,7 @@ export async function bulkUpdateApprovalsWithRoadmapStatus(
  */
 export async function deleteApprovalWithRoadmapStatus(
   approvalId: string,
-  tenantId: string = 'org1'
+  tenantId: string
 ): Promise<EntityApproval | null> {
   try {
     console.log(`Removing roadmap status from approval ${approvalId} for tenant: ${tenantId}`);
