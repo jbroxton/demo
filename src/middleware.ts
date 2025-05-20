@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/debug-auth") || // Debug endpoint
     pathname === "/signin" ||
+    pathname === "/signup" || // Explicitly allow signup page
     pathname === "/error" ||
     pathname === "/" || // Explicitly allow home page
     // Keep old paths temporarily for compatibility

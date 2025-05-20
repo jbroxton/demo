@@ -190,12 +190,9 @@ export function AuthForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="bg-[#0A0A0A] border-0 shadow-none">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
+          <CardTitle className="text-4xl text-center font-bold">Sign in to Speqq</CardTitle>
         </CardHeader>
         <CardContent>
           {effectiveError && (
@@ -223,8 +220,9 @@ export function AuthForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="name@email.com"
                   required
+                  className="bg-transparent border-white/80 text-white focus-visible:ring-[#4f46e5]/30 focus-visible:border-white placeholder:text-white/50"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email && (
@@ -251,6 +249,7 @@ export function AuthForm({
                   id="password" 
                   type="password" 
                   required
+                  className="bg-transparent border-white/80 text-white focus-visible:ring-[#4f46e5]/30 focus-visible:border-white"
                   {...form.register("password")}
                 />
                 {form.formState.errors.password && (
@@ -273,7 +272,7 @@ export function AuthForm({
               </div>
               <Button 
                 type="submit" 
-                className="w-full"
+                className="w-full bg-gradient-to-r from-[#9333EA] to-[#2563EB] hover:from-[#8327d9] hover:to-[#2359d4] border-0"
                 disabled={form.formState.isSubmitting || isLoading}
               >
                 {form.formState.isSubmitting || isLoading ? (
@@ -282,19 +281,25 @@ export function AuthForm({
                     <span>Signing in...</span>
                   </>
                 ) : (
-                  "Login"
+                  "Sign in"
                 )}
               </Button>
+              
+              <div className="text-center text-sm">
+                Don't have an account?{" "}
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-[#9333EA] hover:text-[#8327d9]"
+                  onClick={() => router.push('/signup')}
+                >
+                  Sign up
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col">
-          {/* Demo user info for testing */}
-          <div className="w-full rounded-md bg-muted p-3 text-xs">
-            <p className="font-medium">Demo Users:</p>
-            <p className="mt-1">Email: pm1@demo.com | Password: password</p>
-            <p>Email: admin@example.com | Password: password</p>
-          </div>
+          {/* Demo user info removed for production */}
         </CardFooter>
       </Card>
     </div>

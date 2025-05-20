@@ -1,8 +1,8 @@
 "use client"
 
-import { AuthForm } from "@/components/auth/auth-form"
+import { SignupForm } from "@/components/auth/signup-form"
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0A0A0A] text-white p-6 md:p-10">
       {/* Logo and title in a row */}
@@ -29,9 +29,9 @@ export default function SignInPage() {
         <h1 className="text-xl md:text-2xl font-semibold text-white">Speqq</h1>
       </div>
       
-      {/* Auth form with refined styling */}
+      {/* Signup form with refined styling */}
       <div className="w-full max-w-sm bg-transparent">
-        <AuthForm />
+        <SignupForm />
       </div>
       
       {/* Footer */}
@@ -40,4 +40,4 @@ export default function SignInPage() {
       </div>
     </div>
   )
-}
+} 

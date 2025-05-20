@@ -1,90 +1,69 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/hooks/use-auth"
-import { ArrowRight, Package, Users, Database } from "lucide-react"
 
 export default function Home() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-8 bg-background text-foreground">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm flex">
-        <div className="fixed left-0 top-0 flex w-full justify-between items-center border-b border-border bg-gradient-to-b from-muted pb-6 pt-8 px-8 backdrop-blur-2xl dark:border-border dark:bg-background/30 dark:from-inherit">
-          <p className="font-mono text-xl font-semibold">
-            Speqq
-          </p>
-          <ThemeToggle />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0A0A0A] text-white">
+      {/* Main content */}
+      <div className="container mx-auto px-6 flex flex-col items-center text-center z-0">
+        {/* Logo above welcome text */}
+        <div className="mb-8 w-16 h-16">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="speqqGradientMain" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#9333EA" />
+                <stop offset="100%" stopColor="#2563EB" />
+              </linearGradient>
+            </defs>
+            <circle cx="32" cy="32" r="30" fill="url(#speqqGradientMain)" />
+            <path d="M40 24c0-4.42-3.58-8-8-8s-8 3.58-8 8c0 3.54 2.29 6.53 5.47 7.59.12.04.26.06.4.06h5.27c.14 0 .28-.02.4-.06C38.71 30.53 40 27.54 40 24zm-8 12h-5.27c-.14 0-.28.02-.4.06C23.29 37.13 21 40.12 21 43.66c0 4.42 3.58 8 8 8s8-3.58 8-8c0-3.54-2.29-6.53-5.47-7.59-.12-.04-.26-.06-.4-.06z" fill="white" />
+          </svg>
         </div>
-      </div>
-
-      <div className="flex flex-col items-center justify-center max-w-3xl text-center mt-20 mb-10">
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
-          Modern Database-Driven Product Management
-        </h1>
-        <p className="text-xl text-muted-foreground mb-10">
-          Multi-tenant, high-performance product management platform powered by Supabase
+        
+        <h2 className="text-5xl md:text-6xl font-bold mb-6 max-w-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">
+          Welcome to Speqq
+        </h2>
+        
+        <p className="text-xl text-white/70 mb-12 max-w-xl">
+          Where Product Managers Work
         </p>
         
-        <div className="flex gap-4">
-          {isAuthenticated ? (
+        <div className="flex flex-col sm:flex-row gap-5">
+          <Link href="/signin" passHref>
             <Button 
               size="lg"
-              onClick={() => router.push('/dashboard')}
-              className="px-8"
+              className="bg-gradient-to-r from-[#9333EA] to-[#2563EB] hover:from-[#8327d9] hover:to-[#2359d4] text-white border-0 px-8 py-6 text-lg"
             >
-              Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+              Sign In
             </Button>
-          ) : (
+          </Link>
+          
+          <Link href="/signup" passHref>
             <Button 
               size="lg"
-              onClick={() => router.push('/signin')}
-              className="px-8"
+              className="bg-transparent border-white/80 text-white hover:bg-white/10 px-8 py-6 text-lg focus-visible:ring-[#4f46e5]/30 focus-visible:border-white"
             >
-              Sign In <ArrowRight className="ml-2 h-4 w-4" />
+              Sign Up
             </Button>
-          )}
+          </Link>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl mb-10">
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-            <Package className="h-6 w-6 text-primary" />
-          </div>
-          <h3 className="font-bold text-lg mb-2">Product Management</h3>
-          <p className="text-muted-foreground">
-            Create and organize products with intuitive interfaces
-          </p>
-        </div>
-        
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-            <Users className="h-6 w-6 text-primary" />
-          </div>
-          <h3 className="font-bold text-lg mb-2">Multi-tenant Access</h3>
-          <p className="text-muted-foreground">
-            Secure organization-based access controls
-          </p>
-        </div>
-        
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-            <Database className="h-6 w-6 text-primary" />
-          </div>
-          <h3 className="font-bold text-lg mb-2">Supabase Database</h3>
-          <p className="text-muted-foreground">
-            Scalable PostgreSQL backend with real-time capabilities
-          </p>
-        </div>
-      </div>
-
-      <div className="w-full border-t border-border pt-8 pb-4 text-center text-sm text-muted-foreground">
-        &copy; 2023 Speqq App. All rights reserved.
-      </div>
+      
+      {/* Background gradient */}
+      <div className="fixed top-1/3 -left-1/4 w-1/2 h-1/2 bg-[#9333EA]/10 rounded-full blur-[120px] -z-10"></div>
+      <div className="fixed top-1/2 -right-1/4 w-1/2 h-1/2 bg-[#2563EB]/10 rounded-full blur-[120px] -z-10"></div>
+      
+      {/* Footer */}
+      <footer className="w-full absolute bottom-6 text-center text-sm text-white/40">
+        &copy; {new Date().getFullYear()} Speqq. All rights reserved.
+      </footer>
     </main>
   )
 }
