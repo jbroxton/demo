@@ -20,17 +20,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 14. [Compliance Checklist](#compliance-checklist)
 15. [Lessons Learned](#lessons-learned)
 
-# Quick Reference
+#App Overview
+- The app is a Product Management Platform to manage Roadmaps, Features, Goals, and TODOs.
+- The app is planned to use AI to allow users to interact with their data (agent) and query their data
+- The current codebase is for the MVP version which is mean to be tested by <100 users. Even tho the MVP is not for massive scale, its best build in a way we can evolve the MVP to a full Production App, meaning do not build throw away code that will need to be thrown away
+- The app is hosted on Vercel and need to be built in a way which supports this fact.
 
+# Quick Reference
 ## Primary Technologies
 - Framework: Next.js 14 (App Router)
 - UI Library: shadcn/ui components only
 - State Management: React Query + Context API
-- Database: SQLite
+- Database: Supabase
 - Auth: NextAuth.js
 - Styling: Tailwind CSS only
 - Form Handling: React Hook Form + Zod
 - Icons: Lucide React only
+- Document Editor: Tiptap
 
 ## Essential File Locations
 - API Routes: `/src/app/api/`
@@ -64,7 +70,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. Follow established naming conventions (kebab-case files, PascalCase components)
 3. Co-locate related code (keep mutations with queries)
 4. Use service layer for database operations
-5. Apply multi-tenancy patterns where required
+5. Apply multi-tenancy patterns where required (use auth-provider for tenant_id)
 
 # Project Structure
 

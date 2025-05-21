@@ -65,7 +65,10 @@ export function TabQueryContent() {
     }
     case 'roadmap': {
       // Check if this is the main roadmaps tab or a specific roadmap tab
-      if (activeTab.itemId === 'roadmaps') {
+      // Note: For group/list views, we use a placeholder UUID ('00000000-0000-0000-0000-000000000001')
+      // instead of a string like 'roadmaps' because backend validation expects UUID-formatted itemIds.
+      // We keep the check for 'roadmaps' for backward compatibility with existing tabs.
+      if (activeTab.itemId === 'roadmaps' || activeTab.itemId === '00000000-0000-0000-0000-000000000001') {
         // This is the main roadmaps tab showing all roadmaps
         content = <RoadmapQueryTabContent tabId={activeTab.id} />;
       } else {

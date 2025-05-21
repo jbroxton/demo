@@ -188,7 +188,6 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                 <button
                   className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
                   onClick={async () => {
-                    alert('Roadmap button clicked!');
                     console.log('Roadmap button clicked directly');
                     try {
                       await openTab({

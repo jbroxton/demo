@@ -5,12 +5,42 @@
 Add an Prototype AI Chat assistant to Speqq that understands product management context and provides intelligent responses based on the user's product data.
 
 ## About
-- AI Chat is an product within Speqq to afford users the ability to 
+- AI Chat is a product within Speqq to afford users the ability to 
   - Query data about their product and answer questions about products
-  - Make agentic action to upate/improve their prodcut data.
+  - Make agentic action to update/improve their product data
 - We are making a prototype version within Speqq to test value
 - The prototype version of AI Chat is to make a simple AI Chat with basic query and agent action
-- The AI chat will be a zero custom build and use off the shelf component 
+- The AI chat will be a zero custom build and use off the shelf components
+
+## Current State
+
+The current implementation has:
+
+1. **Basic Vercel AI SDK integration:**
+   - Uses `useChat` hook from `ai/react` for frontend state management
+   - Implements streaming responses via the OpenAI SDK
+   - Has a working UI component with proper styling and error handling
+   - Includes a data indexing button (non-functional)
+
+2. **Simplified API route:**
+   - Follows project API best practices (uses `asyncHandler`, `apiResponse`, etc.)
+   - Handles tenant isolation via context extraction
+   - Contains a basic system prompt for product management
+   - No database/vector operations implemented yet
+
+3. **Features that can be reused:**
+   - The entire UI component structure (`AIChatComponent`)
+   - The `useAIChat` hook implementation (needs minimal updates)
+   - The API route structure and error handling
+   - The authentication/tenant context handling
+
+4. **Features that need implementation:**
+   - Supabase pgvector integration for embeddings
+   - RAG functionality with vector search
+   - Chat history persistence
+   - Message context handling
+   - Data indexing functionality
+   - Function calling for agent capabilities
 
 ## Functional Requirements
 
@@ -92,19 +122,19 @@ Add an Prototype AI Chat assistant to Speqq that understands product management 
 1. **System Architecture**
    - Client: Next.js App Router with React components
    - API: Next.js API Routes with streaming responses
-   - Database: SQLite with vector extension (sqlite-vec)
-   - AI Service: OpenAI API for embeddings and chat completions
-   - State Management: Vercel AI SDK for chat state
+   - Database: Supabase with pgvector extension
+   - AI Service: OpenAI API
+   - State Management: Vercel AI SDK for chat state 
 
 2. **Platform Integration Requirements**
    - **Authentication**: Must integrate with existing NextAuth.js middleware
      - Extract user ID from auth session
      - Extract tenant ID from auth context
      - Pass auth headers to AI endpoints
-   - **Database**: Extend existing SQLite database
-     - Add AI-specific tables alongside existing entities
-     - Maintain foreign key relationships with existing tables
-     - Share the same database connection via db.server.ts
+   - **Database**: Use Supabase with pgvector
+     - Add AI-specific tables for chat history and embeddings
+     - Maintain tenant isolation for embeddings and chat history
+     - Leverage Supabase RLS for data security
    - **Middleware**: Leverage existing middleware stack
      - Use existing tenant isolation middleware
      - Apply rate limiting via existing middleware
@@ -123,38 +153,38 @@ Add an Prototype AI Chat assistant to Speqq that understands product management 
    - **Backend**:
      - Next.js 14+ App Router
      - OpenAI API SDK
-     - sqlite-vec for vector search
+     - Supabase with pgvector
    - **Authentication**: 
      - NextAuth.js (existing implementation)
    - **Database**:
-     - SQLite (existing)
-     - Better-sqlite3 driver
+     - Supabase with pgvector extension
 
 ### Database Schema
 3. **Required Tables**
-   - **ai_messages**:
-     - id (TEXT PRIMARY KEY)
-     - user_id (TEXT NOT NULL)
-     - tenant_id (TEXT NOT NULL)
-     - role (TEXT: 'user' | 'assistant' | 'system')
+   - **ai_embeddings**:
+     - id (UUID PRIMARY KEY)
+     - tenant_id (UUID NOT NULL)
+     - entity_type (TEXT NOT NULL) - 'feature' | 'release'
+     - entity_id (UUID NOT NULL)
      - content (TEXT NOT NULL)
-     - created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+     - embedding (vector(1536) NOT NULL)
+     - metadata (JSONB)
+     - created_at (TIMESTAMP WITH TIME ZONE DEFAULT NOW())
+   
+   - **ai_messages**:
+     - id (UUID PRIMARY KEY)
+     - user_id (UUID NOT NULL)
+     - tenant_id (UUID NOT NULL)
+     - role (TEXT NOT NULL) - 'user' | 'assistant' | 'system' | 'function'
+     - content (TEXT NOT NULL)
+     - created_at (TIMESTAMP WITH TIME ZONE DEFAULT NOW())
    
    - **ai_sessions**:
-     - id (TEXT PRIMARY KEY)
-     - user_id (TEXT NOT NULL)
-     - tenant_id (TEXT NOT NULL)
-     - last_activity (DATETIME)
-     - created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
-   
-   - **ai_vectors** (virtual table):
-     - embedding (FLOAT[1536])
-   
-   - **ai_vectors_metadata**:
-     - rowid (INTEGER PRIMARY KEY)
-     - tenant_id (TEXT NOT NULL)
-     - entity_type (TEXT)
-     - entity_id (TEXT)
+     - id (UUID PRIMARY KEY)
+     - user_id (UUID NOT NULL)
+     - tenant_id (UUID NOT NULL)
+     - last_activity (TIMESTAMP WITH TIME ZONE)
+     - created_at (TIMESTAMP WITH TIME ZONE DEFAULT NOW())
 
 ### API Implementation
 4. **API Endpoints**
@@ -162,9 +192,11 @@ Add an Prototype AI Chat assistant to Speqq that understands product management 
      - Accepts messages array
      - Returns streaming response
      - Handles tenant isolation
-   - `POST /api/ai-index`: Data indexing endpoint
+     - Supports function calling for agent actions
+   - `POST /api/ai-chat` with action=index: Data indexing endpoint
      - Indexes Features and Releases for RAG
      - Generates embeddings for searchable content
+     - Uses batch processing for efficiency
 
 ### Data Processing
 5. **RAG Implementation**
@@ -172,11 +204,14 @@ Add an Prototype AI Chat assistant to Speqq that understands product management 
      - Index Features: name, description, requirements, priority, status
      - Index Releases: name, description, target date, associated features
      - Generate embeddings using OpenAI text-embedding-3-small
-     - Store embeddings with tenant isolation
+     - Store embeddings with tenant isolation using Supabase RLS
+     - Support batch embedding generation for efficiency
    
    - **Search Requirements**:
      - Vector similarity search limited to user's tenant
      - Return top 5 most relevant documents
+     - Implement hybrid search (vector + metadata filtering)
+     - Include basic re-ranking for keyword relevance
      - Include metadata for context
 
 ### Security Requirements
@@ -195,24 +230,27 @@ Add an Prototype AI Chat assistant to Speqq that understands product management 
 
 ### Integration Requirements
 8. **Component Integration**
-   - Use Vercel AI SDK's `<AIChat>` component
-   - Pass authentication context to chat body
-   - Configure streaming responses
-   - Implement typing indicators
+   - Use existing UI component which already handles:
+     - Message display
+     - Input field
+     - Loading states
+     - Error handling
+     - Data indexing button  
+   - No UI changes needed beyond connecting to backend functionality
 
 ### Error Handling
 9. **Technical Error Management**
    - Graceful OpenAI API failure handling
    - Database connection error recovery
-   - Invalid request validation
-   - Consistent error response format
+   - Invalid request validation with zod schemas
+   - Consistent error response format using apiResponse utilities
 
 ### Deployment Requirements
 10. **Environment Configuration**
-    - OPENAI_API_KEY environment variable
+    - OPENAI_API_KEY environment variable (already configured)
     - Existing auth configuration
-    - Database initialization scripts
-    - Vector extension setup
+    - Supabase connection details
+    - Enable pgvector extension in Supabase
 
 ### Prototype Constraints
 11. **Technical Limitations**
@@ -228,425 +266,813 @@ Add an Prototype AI Chat assistant to Speqq that understands product management 
 
 1. **Install Dependencies**
 ```bash
-npm install ai @ai-sdk/openai uuid sqlite-vec
+npm install @supabase/supabase-js uuid
 ```
+Note: `ai` and `@ai-sdk/openai` are already installed.
 
 2. **Configure Environment Variables**
 ```
 # .env.local
-OPENAI_API_KEY=your-api-key
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
+Note: `OPENAI_API_KEY` is already configured.
 
 ### Step 2: Database and Services
 
-1. **Create AI Database Service** (`src/services/ai-db.ts`)
-```typescript
-import { getDb } from './db.server';
+1. **Set up pgvector in Supabase**
 
-export function initializeAITables() {
-  const db = getDb();
-  
-  // AI documents table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS ai_documents (
-      id TEXT PRIMARY KEY,
-      content TEXT NOT NULL,
-      metadata TEXT,
-      tenant_id TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+Run this SQL in the Supabase SQL editor:
+```sql
+-- Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
 
-  // AI sessions table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS ai_sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      tenant_id TEXT NOT NULL,
-      last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-}
+-- Create embeddings table
+CREATE TABLE ai_embeddings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id UUID NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  content TEXT NOT NULL,
+  embedding vector(1536) NOT NULL,
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-export function initializeVectorDatabase() {
-  const db = getDb();
-  const sqliteVec = require('sqlite-vec');
-  sqliteVec.load(db);
-  
-  // Vector table
-  db.exec(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS ai_vectors USING vec0(
-      embedding FLOAT[1536]
-    );
-    
-    CREATE TABLE IF NOT EXISTS ai_vectors_metadata (
-      rowid INTEGER PRIMARY KEY,
-      tenant_id TEXT NOT NULL,
-      FOREIGN KEY (rowid) REFERENCES ai_vectors(rowid)
-    );
-  `);
-}
+-- Create messages table
+CREATE TABLE ai_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  tenant_id UUID NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create sessions table
+CREATE TABLE ai_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  tenant_id UUID NOT NULL,
+  last_activity TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Set up RLS
+ALTER TABLE ai_embeddings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY "Users can only access their tenant's embeddings"
+  ON ai_embeddings FOR ALL
+  USING (tenant_id = auth.jwt() -> 'tenant_id');
+
+CREATE POLICY "Users can only access their tenant's messages"
+  ON ai_messages FOR ALL
+  USING (tenant_id = auth.jwt() -> 'tenant_id');
+
+CREATE POLICY "Users can only access their tenant's sessions"
+  ON ai_sessions FOR ALL
+  USING (tenant_id = auth.jwt() -> 'tenant_id');
+
+-- Create HNSW index for faster vector search with better recall
+CREATE INDEX ON ai_embeddings 
+  USING hnsw (embedding vector_cosine_ops) 
+  WITH (m = 16, ef_construction = 64);
 ```
 
-2. **Create Initialization Script** (`scripts/init-ai-db.ts`)
+2. **Create AI Service** (`src/services/ai-service.ts`)
 ```typescript
-import { initializeAITables, initializeVectorDatabase } from '../src/services/ai-db';
+import { createClient } from '@supabase/supabase-js';
+import { createOpenAI } from '@ai-sdk/openai';
+import { Feature, Release } from '@/types/models';
 
-async function initializeAIChat() {
-  try {
-    initializeAITables();
-    console.log('✓ AI tables created');
-    
-    initializeVectorDatabase();
-    console.log('✓ Vector database initialized');
-  } catch (error) {
-    console.error('Failed to initialize AI database:', error);
-    process.exit(1);
-  }
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-initializeAIChat();
-```
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY || ''
+});
 
-3. **Run Database Initialization**
-```bash
-npx tsx scripts/init-ai-db.ts
-```
-
-### Step 3: Create Hook
-
-Create the AI chat hook (`src/hooks/use-ai-chat.ts`):
-```typescript
-'use client'
-
-import { useAIState } from 'ai/react';
-
-export interface Message {
+export type VectorSearchResult = {
   id: string;
-  role: 'user' | 'assistant' | 'system';
   content: string;
-  createdAt?: Date;
+  metadata: any;
+  similarity: number;
+};
+
+// Generate embeddings using OpenAI
+export async function generateEmbedding(text: string) {
+  const embedResponse = await openai.embeddings({
+    model: 'text-embedding-3-small',
+    input: text,
+  });
+  
+  return embedResponse.data[0].embedding;
 }
 
-export interface AIState {
-  messages: Message[];
-  setMessages: (messages: Message[]) => void;
-  input: string;
-  setInput: (input: string) => void;
-  handleSubmit: (event: SubmitEvent) => void;
-  isLoading: boolean;
-  error?: Error | null;
+// Generate embeddings for batch processing (more efficient)
+export async function generateBatchEmbeddings(texts: string[]) {
+  const embedResponse = await openai.embeddings({
+    model: 'text-embedding-3-small',
+    input: texts,
+  });
+  
+  return embedResponse.data.map(item => item.embedding);
 }
 
-export function useAIChat(): AIState {
-  return useAIState();
+// Create embeddings for features
+export async function indexFeature(feature: Feature, tenantId: string) {
+  // Prepare content for embedding with better structured format
+  const content = `
+    Feature: ${feature.name}
+    Priority: ${feature.priority}
+    Status: ${feature.status}
+    Description: ${feature.description}
+    Requirements: ${feature.requirements?.join('\n')}
+  `;
+  
+  const embedding = await generateEmbedding(content);
+  
+  // Store in Supabase with detailed metadata
+  const { data, error } = await supabase
+    .from('ai_embeddings')
+    .insert({
+      tenant_id: tenantId,
+      entity_type: 'feature',
+      entity_id: feature.id,
+      content,
+      embedding,
+      metadata: {
+        id: feature.id,
+        name: feature.name,
+        priority: feature.priority,
+        status: feature.status,
+        created_at: feature.createdAt,
+        updated_at: feature.updatedAt
+      }
+    });
+    
+  if (error) throw error;
+  return data;
+}
+
+// Create embeddings for releases with associated features
+export async function indexRelease(release: Release, tenantId: string) {
+  // Prepare content for embedding
+  const content = `
+    Release: ${release.name}
+    Target Date: ${release.targetDate}
+    Description: ${release.description}
+    Features: ${release.features?.map(f => `- ${f.name} (${f.priority})`).join('\n')}
+  `;
+  
+  const embedding = await generateEmbedding(content);
+  
+  // Store in Supabase with better metadata
+  const { data, error } = await supabase
+    .from('ai_embeddings')
+    .insert({
+      tenant_id: tenantId,
+      entity_type: 'release',
+      entity_id: release.id,
+      content,
+      embedding,
+      metadata: {
+        id: release.id,
+        name: release.name,
+        targetDate: release.targetDate,
+        featureCount: release.features?.length || 0,
+        features: release.features?.map(f => ({ id: f.id, name: f.name }))
+      }
+    });
+    
+  if (error) throw error;
+  return data;
+}
+
+// Vector search with tenant isolation and hybrid filtering
+export async function searchVectors(
+  query: string, 
+  tenantId: string, 
+  filters?: { priority?: string, status?: string, entityType?: string },
+  limit = 5
+): Promise<VectorSearchResult[]> {
+  // Generate embedding for the query
+  const embedding = await generateEmbedding(query);
+  
+  // Search vectors in Supabase
+  const { data, error } = await supabase.rpc('match_documents', {
+    query_embedding: embedding,
+    match_threshold: 0.5,
+    match_count: 20, // Get more results initially for filtering
+    tenant_filter: tenantId
+  });
+  
+  if (error) throw error;
+  
+  // Apply metadata filtering
+  let results = data;
+  
+  if (filters?.entityType) {
+    results = results.filter(item => 
+      item.metadata?.entity_type === filters.entityType
+    );
+  }
+  
+  if (filters?.priority) {
+    results = results.filter(item => 
+      item.metadata?.priority === filters.priority
+    );
+  }
+  
+  if (filters?.status) {
+    results = results.filter(item => 
+      item.metadata?.status === filters.status
+    );
+  }
+  
+  // Simple re-ranking based on keyword matching
+  const keywords = query.toLowerCase().split(/\s+/);
+  results = results.map(result => {
+    // Count keyword matches in content
+    const matches = keywords.reduce((count, keyword) => {
+      const regex = new RegExp(keyword, 'gi');
+      const matchCount = (result.content.match(regex) || []).length;
+      return count + matchCount;
+    }, 0);
+    
+    // Adjust similarity score based on keyword matches
+    const adjustedScore = result.similarity + (matches * 0.01);
+    
+    return {
+      ...result,
+      similarity: adjustedScore
+    };
+  })
+  .sort((a, b) => b.similarity - a.similarity)
+  .slice(0, limit);
+  
+  return results;
+}
+
+// Store chat messages
+export async function storeChatMessage(userId: string, tenantId: string, role: string, content: string) {
+  const { data, error } = await supabase
+    .from('ai_messages')
+    .insert({
+      user_id: userId,
+      tenant_id: tenantId,
+      role,
+      content
+    })
+    .select();
+    
+  if (error) throw error;
+  return data[0];
+}
+
+// Get chat history for a user
+export async function getChatHistory(userId: string, tenantId: string, limit = 100) {
+  const { data, error } = await supabase
+    .from('ai_messages')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+    
+  if (error) throw error;
+  return data;
 }
 ```
 
-### Step 4: Create API Route
+### Step 3: Create Vector Search Function in Supabase
 
-Create the chat API (`src/app/api/ai-chat/route.ts`):
+Create this stored procedure in your Supabase project:
+
+```sql
+CREATE OR REPLACE FUNCTION match_documents(
+  query_embedding vector(1536),
+  match_threshold float,
+  match_count int,
+  tenant_filter uuid
+)
+RETURNS TABLE (
+  id uuid,
+  content text,
+  metadata jsonb,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    e.id,
+    e.content,
+    e.metadata,
+    1 - (e.embedding <=> query_embedding) as similarity
+  FROM ai_embeddings e
+  WHERE 
+    e.tenant_id = tenant_filter
+    AND 1 - (e.embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
+```
+
+### Step 4: Update the API Route
+
+Update the API route (`src/app/api/ai-chat/route.ts`) to integrate RAG and function calling:
+
 ```typescript
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, OpenAIStream } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getDb } from '@/services/db.server';
-import { v4 as uuid } from 'uuid';
+import { apiResponse } from '@/utils/api-response';
+import { asyncHandler } from '@/utils/api-async-handler';
+import { getRequestContext } from '@/utils/api-request-context';
+import { searchVectors, storeChatMessage, indexFeature, indexRelease } from '@/services/ai-service';
+import { getFeaturesFromDb, getFeatureById, updateFeature } from '@/services/features-db';
+import { getReleasesFromDb } from '@/services/releases-db';
 
+// Initialize OpenAI with API key
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY || ''
+});
+
+// Define input schemas
 const chatInputSchema = z.object({
   messages: z.array(
     z.object({
       id: z.string(),
-      role: z.enum(['user', 'assistant', 'system']),
+      role: z.enum(['user', 'assistant', 'system', 'function']),
       content: z.string(),
+      name: z.string().optional(),
     })
   ),
   tenantId: z.string().optional(),
+  userId: z.string().optional(),
+  action: z.enum(['chat', 'index']).optional().default('chat'),
 });
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+// Define the tools for feature updates
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "getFeatureDetails",
+      description: "Get detailed information about a specific feature",
+      parameters: {
+        type: "object",
+        properties: {
+          featureId: {
+            type: "string",
+            description: "The ID of the feature to retrieve",
+          },
+        },
+        required: ["featureId"],
+      },
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "proposeFeatureUpdate",
+      description: "Generate a preview of feature updates for user approval",
+      parameters: {
+        type: "object",
+        properties: {
+          featureId: {
+            type: "string",
+            description: "ID of the feature to update",
+          },
+          updates: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "New name for the feature",
+              },
+              description: {
+                type: "string", 
+                description: "New description for the feature",
+              },
+              priority: {
+                type: "string",
+                enum: ["low", "medium", "high"],
+                description: "New priority level",
+              },
+              requirements: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "Updated requirements list",
+              },
+            },
+          },
+        },
+        required: ["featureId", "updates"],
+      },
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "applyFeatureUpdate",
+      description: "Apply approved feature updates",
+      parameters: {
+        type: "object",
+        properties: {
+          featureId: {
+            type: "string",
+            description: "ID of the feature to update",
+          },
+          updates: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "New name for the feature",
+              },
+              description: {
+                type: "string", 
+                description: "New description for the feature",
+              },
+              priority: {
+                type: "string",
+                enum: ["low", "medium", "high"],
+                description: "New priority level",
+              },
+              requirements: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "Updated requirements list",
+              },
+            },
+          },
+          approved: {
+            type: "boolean",
+            description: "Whether the user has approved these changes",
+          },
+        },
+        required: ["featureId", "updates", "approved"],
+      },
+    }
+  }
+];
+
+// Handle chat conversations
+export const POST = asyncHandler(async (req: NextRequest): Promise<Response | NextResponse> => {
+  // Check if OpenAI API key is configured
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OpenAI API key is not configured');
+    return apiResponse.error('OpenAI API key is not configured. Please add OPENAI_API_KEY to your environment variables.', 500);
+  }
+
+  const { body, tenantId: contextTenantId, userId } = await getRequestContext(req);
+  
+  // Validate the body using our schema
+  const validatedBody = chatInputSchema.parse(body);
+  const { messages, tenantId: bodyTenantId, action, userId: bodyUserId } = validatedBody;
+  
+  // Use tenant ID from context, fallback to body, then default
+  const tenantId = contextTenantId || bodyTenantId || 'default';
+  const userIdForMessages = userId || bodyUserId || 'anonymous';
+  
+  // Handle indexing request
+  if (action === 'index') {
+    return await handleIndexing(tenantId);
+  }
+  
+  // Store user message
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage.role === 'user') {
+    await storeChatMessage(userIdForMessages, tenantId, 'user', lastMessage.content);
+  }
+  
+  // Perform vector search for context
+  const searchResults = await searchVectors(lastMessage.content, tenantId);
+  
+  // Format context from search results
+  const context = searchResults
+    .map(result => result.content)
+    .join('\n\n');
+  
+  // Enhanced system prompt with context
+  const systemPrompt = `
+    You are a Product Management AI assistant for Speqq.
+    You help users manage their products, features, and releases.
     
-    // Handle indexing request
-    if (body.action === 'index') {
-      return handleIndexing(req);
+    When users ask about their data, use the following context to answer accurately:
+    
+    ${context || 'No specific product data found for this query.'}
+    
+    If you don't know something or can't find it in the context, be honest and say you don't know.
+    
+    When a user wants to update a feature:
+    1. Use getFeatureDetails to retrieve current data
+    2. Use proposeFeatureUpdate to show a preview of changes
+    3. Ask the user to confirm or reject the changes
+    4. Use applyFeatureUpdate to apply confirmed changes
+    
+    Always maintain a professional, helpful tone and provide concise, actionable answers.
+  `;
+  
+  // Generate OpenAI response with function calling
+  const response = await openai.chat({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ],
+    tools: tools,
+    stream: true,
+    temperature: 0.7,
+  });
+  
+  // Create streaming response with function calling and message storage callback
+  const stream = OpenAIStream(response, {
+    async experimental_onFunctionCall({ name, arguments: args }) {
+      // Handle getFeatureDetails
+      if (name === 'getFeatureDetails') {
+        const { featureId } = args;
+        const feature = await getFeatureById(featureId, tenantId);
+        
+        return {
+          role: 'function',
+          name: 'getFeatureDetails',
+          content: JSON.stringify(feature),
+        }
+      }
+      
+      // Handle proposeFeatureUpdate
+      if (name === 'proposeFeatureUpdate') {
+        const { featureId, updates } = args;
+        const feature = await getFeatureById(featureId, tenantId);
+        
+        // Format before/after comparison
+        const beforeAfter = {
+          before: {
+            name: feature.name,
+            description: feature.description,
+            priority: feature.priority,
+            requirements: feature.requirements,
+          },
+          after: {
+            name: updates.name || feature.name,
+            description: updates.description || feature.description,
+            priority: updates.priority || feature.priority,
+            requirements: updates.requirements || feature.requirements,
+          }
+        };
+        
+        return {
+          role: 'function',
+          name: 'proposeFeatureUpdate',
+          content: JSON.stringify(beforeAfter),
+        }
+      }
+      
+      // Handle applyFeatureUpdate
+      if (name === 'applyFeatureUpdate') {
+        const { featureId, updates, approved } = args;
+        
+        if (!approved) {
+          return {
+            role: 'function',
+            name: 'applyFeatureUpdate',
+            content: JSON.stringify({ 
+              success: false, 
+              message: 'Changes were not applied as they were rejected by the user' 
+            }),
+          }
+        }
+        
+        const result = await updateFeature(featureId, updates, tenantId);
+        
+        // Re-index the feature after update
+        await indexFeature(result, tenantId);
+        
+        return {
+          role: 'function',
+          name: 'applyFeatureUpdate',
+          content: JSON.stringify({ 
+            success: true, 
+            message: 'Feature updated successfully',
+            updatedFeature: result
+          }),
+        }
+      }
+    },
+    
+    onCompletion: async (completion) => {
+      // Store assistant message
+      await storeChatMessage(userIdForMessages, tenantId, 'assistant', completion);
+    },
+  });
+  
+  return new StreamingTextResponse(stream);
+});
+
+// Handle data indexing
+async function handleIndexing(tenantId: string): Promise<NextResponse> {
+  try {
+    // Get all features and releases for this tenant
+    const features = await getFeaturesFromDb({ tenantId });
+    const releases = await getReleasesFromDb({ tenantId });
+    
+    let indexedCount = 0;
+    let errors = [];
+    
+    // Index features in batches of 10
+    if (features && Array.isArray(features)) {
+      for (let i = 0; i < features.length; i += 10) {
+        const batch = features.slice(i, i + 10);
+        await Promise.all(batch.map(async (feature) => {
+          try {
+            await indexFeature(feature, tenantId);
+            indexedCount++;
+          } catch (error) {
+            console.error(`Error indexing feature ${feature.id}:`, error);
+            errors.push(`Feature ${feature.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }));
+      }
     }
     
-    // Handle chat request
-    const { messages, tenantId: bodyTenantId } = chatInputSchema.parse(body);
-    const tenantId = req.headers.get('x-tenant-id') || bodyTenantId || 'default';
-    const lastMessage = messages[messages.length - 1];
+    // Index releases in batches of 10
+    if (releases && Array.isArray(releases)) {
+      for (let i = 0; i < releases.length; i += 10) {
+        const batch = releases.slice(i, i + 10);
+        await Promise.all(batch.map(async (release) => {
+          try {
+            await indexRelease(release, tenantId);
+            indexedCount++;
+          } catch (error) {
+            console.error(`Error indexing release ${release.id}:`, error);
+            errors.push(`Release ${release.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }));
+      }
+    }
     
-    // Generate embedding
-    const embedAPI = openai.embedding('text-embedding-3-small');
-    const embeddingResponse = await embedAPI.doEmbed({
-      input: lastMessage.content,
+    return NextResponse.json({
+      success: true,
+      indexed: indexedCount,
+      errors: errors.length > 0 ? errors : undefined,
     });
-    
-    const queryEmbedding = new Float32Array(embeddingResponse.embedding);
-    const db = getDb();
-    
-    // Perform vector search
-    const relevantDocs = db.prepare(`
-      SELECT 
-        d.id, d.content, d.metadata,
-        vec_distance(v.embedding, ?) as distance
-      FROM 
-        ai_vectors AS v
-      JOIN 
-        ai_vectors_metadata AS vm ON v.rowid = vm.rowid
-      JOIN 
-        ai_documents AS d ON v.rowid = d.id
-      WHERE 
-        vm.tenant_id = ?
-      ORDER BY 
-        distance
-      LIMIT 5
-    `).all(queryEmbedding.buffer, tenantId);
-    
-    // Format context
-    const context = relevantDocs
-      .map((doc: any) => doc.content)
-      .join('\n\n');
-    
-    // Generate response
-    const result = await streamText({
-      model: openai('gpt-4o'),
-      system: `You are a Product Management AI assistant for Speqq.
-Use the following context to answer the user's question:
-
-Context: ${context}`,
-      messages: messages,
-      temperature: 0.5,
-    });
-    
-    return result.toDataStreamResponse();
   } catch (error) {
-    console.error('AI Chat API error:', error);
-    return Response.json(
-      { error: 'Failed to process request' },
+    console.error('Indexing error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to index data',
+      },
       { status: 500 }
     );
   }
 }
-
-async function handleIndexing(req: NextRequest): Promise<NextResponse> {
-  const tenantId = req.headers.get('x-tenant-id') || 'default';
-  // Simple indexing implementation (add your product/feature indexing logic here)
-  
-  return NextResponse.json({
-    success: true,
-    indexed: 0,
-  });
-}
 ```
 
-### Step 5: Create Components
+### Step 5: No UI Changes Needed
 
-1. **Chat Component** (`src/components/ai-chat/index.tsx`)
-```tsx
-'use client'
+The existing UI component already has all the required functionality:
 
-import { AIChat } from 'ai/react';
-import { useAuth } from '@/hooks/use-auth';
+- Chat messages display
+- Input field
+- Loading indicators
+- Error handling
+- Data indexing button
 
-export function AIChatComponent() {
-  const { user, session } = useAuth();
-  
-  const chatBody = {
-    tenantId: session?.user?.tenantId || 'default',
-    userId: user?.id,
-  };
-  
-  return (
-    <div className="h-full flex flex-col">
-      <h2 className="text-lg font-semibold text-white/90 mb-4">PM Assistant</h2>
-      <AIChat
-        api="/api/ai-chat"
-        id={user?.id || 'anonymous'}
-        initialMessages={[
-          {
-            id: 'welcome',
-            role: 'assistant',
-            content: "Hi! I'm your Product Management Assistant. How can I help you today?"
-          }
-        ]}
-        body={chatBody}
-        className="h-full text-white/70 text-sm"
-      />
-    </div>
-  );
-}
-```
-
-2. **Update Right Sidebar** (`src/components/rightsidebar/right-sidebar.tsx`)
-```tsx
-// Add import
-import { AIChatComponent } from '@/components/ai-chat';
-
-// In the content panel section:
-{activeRightTab === 'chat' && (
-  <AIChatComponent />
-)}
-```
-
-3. **Update Middleware** (`src/middleware.ts`)
-```typescript
-// Add before the final return statement:
-if (pathname.startsWith('/api/ai-chat')) {
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-tenant-id', token.currentTenant || 'default');
-  
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
-}
-```
-
-## Best Practices
-
-### Error Handling
-- Always wrap API calls in try-catch blocks
-- Return consistent error responses
-- Log errors for debugging
-
-### Type Safety
-- Use TypeScript interfaces for all data structures
-- Validate inputs with zod schemas
-- Avoid `any` types
-
-### Performance
-- Limit vector search results
-- Use streaming responses for chat
-- Cache frequently accessed data
-
-### Security
-- Validate tenant access
-- Sanitize user inputs
-- Rate limit API requests
+No changes are required to the UI as it's already well-designed and includes the necessary features.
 
 ## Testing the Implementation
 
-1. **Test Database Setup**
+1. **Test Vector Search**
 ```bash
-npx tsx scripts/init-ai-db.ts
+curl -X POST "https://your-supabase-project.supabase.co/rest/v1/rpc/match_documents" \
+  -H "apikey: YOUR_ANON_KEY" \
+  -H "Authorization: Bearer USER_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{ "query_embedding": [0.1, 0.2, ...], "match_threshold": 0.5, "match_count": 5, "tenant_filter": "tenant-uuid" }'
 ```
 
 2. **Test API Endpoint**
 ```bash
 curl -X POST http://localhost:3000/api/ai-chat \
   -H "Content-Type: application/json" \
-  -H "x-tenant-id: default" \
+  -H "x-tenant-id: tenant-uuid" \
   -d '{
     "messages": [
-      {"id": "1", "role": "user", "content": "Hello"}
-    ]
+      {"id": "1", "role": "user", "content": "Show me my highest priority features"}
+    ],
+    "userId": "user-uuid"
   }'
 ```
 
-3. **Test UI Integration**
+3. **Test Indexing**
+```bash
+curl -X POST http://localhost:3000/api/ai-chat \
+  -H "Content-Type: application/json" \
+  -H "x-tenant-id: tenant-uuid" \
+  -d '{
+    "action": "index",
+    "tenantId": "tenant-uuid"
+  }'
+```
+
+4. **Test Feature Update Flow**
+```bash
+curl -X POST http://localhost:3000/api/ai-chat \
+  -H "Content-Type: application/json" \
+  -H "x-tenant-id: tenant-uuid" \
+  -d '{
+    "messages": [
+      {"id": "1", "role": "user", "content": "Update the priority of feature xyz123 to high"}
+    ],
+    "userId": "user-uuid"
+  }'
+```
+
+5. **Test UI Integration**
 - Navigate to your dashboard
 - Open the right sidebar
 - Click on the Chat tab
-- Try sending a message
+- Click the "Index Data" button
+- Try sending a message about your features
+- Try asking to update a feature
+
+## Performance Optimization
+
+1. **Batch Processing**
+   - Features and releases are indexed in batches of 10 items
+   - Embeddings are generated in batches when possible
+   - Vector operations use the HNSW index for faster similarity search
+
+2. **Caching Strategies**
+   - Implement browser caching for conversation history
+   - Use staleTime in React Query for frequently accessed data
+   - Consider implementing server-side caching for common queries
+
+3. **Efficient Reindexing**
+   - Only reindex features after they've been updated
+   - Use incremental indexing for new data
+   - Consider scheduled background indexing for large datasets
+
+## Best Practices
+
+### Error Handling
+- Always wrap API calls in try-catch blocks
+- Return consistent error responses using `apiResponse` utilities
+- Log errors for debugging with appropriate context
+
+### Type Safety
+- Use TypeScript interfaces for all data structures
+- Validate inputs with zod schemas
+- Avoid `any` types especially for function arguments and return types
+
+### Performance
+- Limit vector search results
+- Use streaming responses for chat
+- Implement batch processing for embedding generation
+- Use HNSW indexing for better performance (over IVFFlat)
+
+### Security
+- Use Supabase RLS policies for tenant isolation
+- Validate tenant access in middleware
+- Sanitize user inputs
+- Rate limit API requests
+- Apply proper input validation
 
 ## Production Checklist
 
 - [ ] Environment variables configured
-- [ ] Database tables created
-- [ ] Vector database initialized
+- [ ] pgvector extension enabled in Supabase
+- [ ] Database tables and RLS policies created
+- [ ] HNSW index created for ai_embeddings
+- [ ] Vector search function implemented
 - [ ] API endpoints tested
-- [ ] UI components integrated
+- [ ] Function calling tested with feature updates
+- [ ] Batch indexing tested with large datasets
 - [ ] Error handling implemented
 - [ ] Security measures in place
 - [ ] Performance optimized
 
-## Common Issues and Solutions
-
-1. **Embedding Errors**
-   - Check OpenAI API key
-   - Verify API rate limits
-   - Handle empty responses
-
-2. **Database Issues**
-   - Ensure sqlite-vec is loaded
-   - Check table permissions
-   - Verify foreign key constraints
-
-3. **UI Integration**
-   - Check auth context availability
-   - Verify component imports
-   - Test responsive behavior
-
 ## Future Enhancements
 
-- Batch embedding generation
-- Caching layer for common queries
-- Advanced RAG with metadata filtering
-- Custom prompt templates
-- Conversation history persistence
-
- 1. Conversation Management
-    - User can have up to 1 chat
-    - User can create new chat conversations 
-    - User can access and resume conversations
-    - User can delete old conversations
-    - Conversations are named  `"Chat `
-    - System displays timestamp for each message
-    - System shows typing indicators when AI is responding
-
-  2. Context Awareness
-    - Chat system maintains context within a conversation session
-    - System can reference earlier messages in the same conversation
-    - System can access and query the user's product, feature, and requirement data
-    - System respects tenant boundaries - only accesses data within user's tenant
-  3. Initial Greeting & Onboarding
-    - System greets new users with "What are we building today?" as specified
-    - System provides helpful examples of what users can ask about
-    - System offers guided prompts for common tasks
- Agent
- -       - System provides undo/rollback capability
-
-### Data Access & Permissions
-
-  4. Product Data Integration
-    - Chat can query and retrieve information about products, features, requirements
-    - Chat can provide insights based on relationships between entities
-    - Chat can generate summaries of product status and progress
-    - Chat respects multi-tenancy - only accesses data within user's tenant
-  5. User Privacy
-    - Each user's chat history is private and isolated
-    - Conversations are stored per-user and not accessible by other users
-    - Admin users cannot view other users' chat histories
-
-  Agent Capabilities
-
-  6. Agentic Actions (mentioned in About section)
-    - System can suggest updates to product data
-    - System can create drafts of new requirements or features
-    - System requires user confirmation before making any data changes
-    - System provides preview of proposed changes
-
-  User Experience
-
-  7. Error Handling
-    - System gracefully handles failed requests
-    - System provides helpful error messages to users
-    - System maintains conversation state even if errors occur
-  8. Performance
-    - Chat responses stream in real-time for better UX
-    - System handles long conversations without degradation
-    - Previous messages load quickly when resuming conversations
-  9. Search & Navigation
-    - User can search through their chat history
-    - User can filter conversations by date or topic
-    - System provides quick access to recent conversations
+- Conversation management for multiple conversations
+- Advanced hybrid search with keyword boosting
+- Metadata-based filtering options in UI
+- Batch embedding update scheduler
+- Streaming function calling results
+- Expanded agent capabilities for other entity types
+- Analytics for tracking chat usage and performance

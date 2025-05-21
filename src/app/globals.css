@@ -1113,3 +1113,312 @@ div[class*='MRT_TopToolbar'],
   margin: 0;
   width: 100%;
 }
+
+/* Roadmap editor custom styles */
+.roadmap-editor [data-slot="select-trigger"] {
+  background-color: transparent !important;
+  border-color: #1a1a1c !important;
+  color: #a0a0a0 !important;
+  font-size: 0.875rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+}
+
+.roadmap-editor [data-slot="select-trigger"]:hover {
+  background-color: rgba(147, 51, 234, 0.1) !important;
+  color: #9333EA !important;
+}
+
+.roadmap-editor [data-slot="select-content"] {
+  background-color: #0A0A0A !important; /* Match page background */
+  border-color: #1a1a1c !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  z-index: 50;
+}
+
+.roadmap-editor [data-slot="select-item"] {
+  color: #a0a0a0 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  padding: 0.5rem 0.75rem;
+}
+
+.roadmap-editor [data-slot="select-item"]:focus, 
+.roadmap-editor [data-slot="select-item"][data-highlighted] {
+  background-color: rgba(147, 51, 234, 0.1) !important;
+  color: #9333EA !important;
+}
+
+/* Title input styling for roadmap editor */
+.roadmap-editor .title-input {
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: white;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  max-width: 90%;
+  padding: 0;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.roadmap-editor .title-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.roadmap-editor .title-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Remove all borders from buttons in the roadmap editor */
+.roadmap-editor button {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure all select triggers in the roadmap editor have no border and tight content fit */
+.roadmap-editor [data-slot="select-trigger"] {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 0.5rem !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+/* Make the select trigger icon (chevron) closer to the content */
+.roadmap-editor [data-slot="select-trigger"] [data-slot="select-trigger-icon"] {
+  margin-left: 0.25rem !important;
+  height: 0.875rem !important;
+  width: 0.875rem !important;
+}
+
+/* Add subtle hover effect for selects */
+.roadmap-editor [data-slot="select-trigger"]:hover {
+  background-color: #1a1a1c !important;
+}
+
+/* Container styling for roadmap editor */
+.roadmap-editor-container {
+  background-color: #0A0A0A;
+  color: white;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Title icon styling for roadmap editor */
+.roadmap-editor-icon {
+  color: #a0a0a0;
+  margin-right: 0.75rem;
+}
+
+/* Dropdown menu styling in roadmap editor */
+.roadmap-editor [data-slot="dropdown-menu-content"] {
+  background-color: #0A0A0A !important;
+  border-color: #1a1a1c !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  z-index: 50;
+}
+
+.roadmap-editor [data-slot="dropdown-menu-item"] {
+  color: #a0a0a0 !important;
+  font-size: 0.875rem;
+  border-radius: 0;
+}
+
+.roadmap-editor [data-slot="dropdown-menu-item"]:focus, 
+.roadmap-editor [data-slot="dropdown-menu-item"]:hover {
+  background-color: #1a1a1c !important;
+  color: white !important;
+}
+
+/* Global dropdown styling to match roadmap editor */
+[data-slot="dropdown-menu-content"],
+.select__menu-list,
+.select__menu,
+.select-content,
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content],
+[data-radix-menu-content],
+[data-state="open"] [role="menu"],
+[data-state="open"] [role="listbox"],
+.radix-dropdown-menu,
+.radix-popover,
+.radix-select,
+.radix-menu,
+.select-dropdown,
+.popover-content,
+.dropdown-content {
+  background-color: #0A0A0A !important; /* Match page background */
+  border-color: #1a1a1c !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+  padding: 0.5rem 0 !important;
+  z-index: 50;
+}
+
+[data-slot="dropdown-menu-item"] {
+  color: #a0a0a0 !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+}
+
+[data-slot="dropdown-menu-item"]:focus,
+[data-slot="dropdown-menu-item"]:hover {
+  background-color: rgba(147, 51, 234, 0.1) !important;
+  color: #9333EA !important;
+}
+
+/* Remove border from dropdown trigger buttons */
+[data-slot="dropdown-menu-trigger"] {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+[data-slot="dropdown-menu-trigger"]:hover {
+  background-color: rgba(147, 51, 234, 0.1) !important;
+  color: #9333EA !important;
+}
+
+/* Styling for the document section */
+.roadmap-editor-document {
+  padding: 1rem 0;
+}
+
+/* Style the tooltip to match the rest of the design */
+.roadmap-editor [data-slot="tooltip-content"] {
+  background-color: #0A0A0A !important;
+  border-color: #1a1a1c !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  font-size: 0.75rem;
+}
+
+/* Improved tiptap styles specifically for roadmap */
+.roadmap-editor .tiptap {
+  min-height: 300px;
+  background-color: #0A0A0A;
+}
+
+.roadmap-editor .tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.roadmap-editor .tiptap th {
+  background-color: #161618;
+  font-weight: 600;
+  color: white;
+  padding: 0.625rem;
+  text-align: left;
+  border: 1px solid #1a1a1c;
+}
+
+.roadmap-editor .tiptap td {
+  padding: 0.625rem;
+  border: 1px solid #1a1a1c;
+  vertical-align: top;
+}
+
+.roadmap-editor .tiptap tr:hover td {
+  background-color: #161618;
+}
+
+/* Save indicator styling */
+.roadmap-editor .save-indicator {
+  font-size: 0.75rem;
+  color: #10B981;
+  background-color: rgba(16, 185, 129, 0.1);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.roadmap-editor .save-indicator.visible {
+  opacity: 1;
+}
+
+/* Force all popover/dialog content to match page background */
+div, span, ul, li, [role="dialog"], [role="menu"], [role="listbox"], [role="option"], [data-radix-popper-content-wrapper], [data-state="open"] div {
+  --background: #0A0A0A !important;
+  --select-background: #0A0A0A !important;
+  --dropdown-background: #0A0A0A !important;
+  --menu-background: #0A0A0A !important;
+  --popover-background: #0A0A0A !important;
+  --dialog-background: #0A0A0A !important;
+}
+
+.select__menu,
+.select__option,
+.react-select__menu,
+.react-select__option,
+[data-radix-popper-content-wrapper],
+[data-radix-select-content],
+[data-radix-menu-content],
+[data-radix-dropdown-menu-content],
+[role="listbox"],
+[role="menu"],
+[role="dialog"],
+div[cmdk-list],
+[cmdk-root],
+[data-part="content"],
+[data-state="open"] div,
+.shadcn-select-content,
+.shadcn-popover-content,
+.data-[state=open],
+.select-content,
+.popover-content,
+.dropdown-content,
+.command-dialog,
+.command-menu {
+  background-color: #0A0A0A !important;
+  background: #0A0A0A !important;
+  border-color: #1a1a1c !important;
+  color: #a0a0a0 !important;
+}
+
+/* Label styling */
+.roadmap-editor .field-label {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #a0a0a0;
+  margin-right: 0.25rem;
+  text-transform: none;
+}
+
+/* Make dropdown text match field labels */
+.roadmap-editor [data-slot="select-trigger"] {
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  color: #a0a0a0 !important;
+}
+
+/* Target radix component viewports directly */
+.radix-select-viewport,
+.radix-dropdown-menu-viewport,
+.radix-popper-content-viewport,
+.select-viewport,
+.popover-viewport,
+.dropdown-viewport,
+[data-radix-select-viewport],
+[data-radix-dropdown-menu-viewport],
+[data-radix-menu-viewport] {
+  background-color: #0A0A0A !important;
+}

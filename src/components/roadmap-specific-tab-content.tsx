@@ -3,11 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useRoadmapsQuery } from '@/hooks/use-roadmaps-query';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Map, Pencil, Save, X, Trash2, Check } from 'lucide-react';
-import { RoadmapFeaturesTable } from './roadmap/roadmap-features-table';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Map, MoreHorizontal, Trash2 } from 'lucide-react';
+import { SimpleEditor } from './simple-editor';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -17,6 +23,12 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface RoadmapSpecificTabContentProps {
   roadmapId: string;
@@ -29,410 +41,355 @@ export function RoadmapSpecificTabContent({
   tabId,
   isNew = false
 }: RoadmapSpecificTabContentProps) {
-  // Tabs query hook
-  const { updateTabTitle, closeTab, updateNewTabToSavedItem, tabs } = useTabsQuery();
-  
-  // State hooks
-  const [isEditing, setIsEditing] = useState(isNew);
-  const [nameValue, setNameValue] = useState('');
-  const [descriptionValue, setDescriptionValue] = useState('');
-  const [isDefaultValue, setIsDefaultValue] = useState(false);
-  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-
-  // For form validation
-  const [nameError, setNameError] = useState('');
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
-  // React Query hooks
+  // Hooks
+  const { updateTabTitle, closeTab } = useTabsQuery();
+  const { currentTenant } = useAuth();
   const { 
     roadmaps, 
     getRoadmapById, 
-    addRoadmap, 
     updateRoadmap, 
     deleteRoadmap,
     isLoading
   } = useRoadmapsQuery();
   
+  // State
+  const [nameValue, setNameValue] = useState('');
+  const [documentContent, setDocumentContent] = useState('');
+  const [status, setStatus] = useState('Planning');
+  const [team, setTeam] = useState('Product');
+  const [period, setPeriod] = useState('Q1 2025');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  
   // Get roadmap data
-  const roadmap = !isNew ? getRoadmapById(roadmapId) : null;
+  const roadmap = getRoadmapById(roadmapId);
   
-  // Initialize from roadmap data on component mount
+  // Initialize data on component mount
   useEffect(() => {
-    // Initialize values from roadmap when we have a roadmap
-    if (roadmap && !isEditing) {
-      setNameValue(roadmap.name || '');
-      setDescriptionValue(roadmap.description || '');
-      setIsDefaultValue(roadmap.is_default === 1);
-    }
-  }, [roadmap, isEditing, roadmapId]);
-  
-  // Event handlers
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNameValue(value);
-
-    // Clear validation error if value is now valid
-    if (value.trim()) {
-      setNameError('');
-    }
-  };
-  
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescriptionValue(e.target.value);
-  };
-  
-  const handleSaveRoadmap = async () => {
-    if (!isNew && roadmap) {
+    if (!roadmap) return;
+    
+    // Set name
+    setNameValue(roadmap.name || '');
+    
+    // Set content
+    if (roadmap.description) {
       try {
-        const updates: {
-          name?: string;
-          description?: string;
-          is_default?: boolean;
-        } = {};
-        
-        if (nameValue !== roadmap.name) {
-          updates.name = nameValue;
-        }
-        
-        if (descriptionValue !== roadmap.description) {
-          updates.description = descriptionValue;
-        }
-        
-        if (isDefaultValue !== (roadmap.is_default === 1)) {
-          updates.is_default = isDefaultValue;
-        }
-        
-        if (Object.keys(updates).length > 0) {
-          await updateRoadmap(roadmapId, updates);
-          
-          // Update tab title if name changed
-          if (updates.name) {
-            updateTabTitle(roadmapId, 'roadmap', nameValue);
+        // Try to parse as JSON first
+        JSON.parse(roadmap.description);
+        setDocumentContent(roadmap.description);
+      } catch (e) {
+        // If it's not JSON, create a document with the description
+        const initialContent = {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: roadmap.description || '' }]
+            }
+          ]
+        };
+        setDocumentContent(JSON.stringify(initialContent));
+      }
+    } else {
+      // Initialize with a table structure for a new roadmap
+      const initialContent = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: roadmap.name }]
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: '' }]
+          },
+          {
+            type: 'table',
+            content: [
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Initiative' }] }]
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Feature Name' }] }]
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Status' }] }]
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Priority' }] }]
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Owner' }] }]
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Goal' }] }]
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Dependencies' }] }]
+                  }
+                ]
+              },
+              {
+                type: 'tableRow',
+                content: Array(7).fill({
+                  type: 'tableCell',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: '' }] }]
+                })
+              }
+            ]
           }
-        }
-        
-        setShowSaveSuccess(true);
-        setTimeout(() => setShowSaveSuccess(false), 3000);
-        setIsEditing(false);
-      } catch (error) {
-        console.error('Failed to save roadmap:', error);
-        toast.error('Failed to save roadmap');
-      }
-    }
-  };
-  
-  const handleDeleteRoadmap = async () => {
-    if (!isNew && roadmap) {
-      try {
-        await deleteRoadmap(roadmapId);
-        toast.success('Roadmap deleted successfully');
-        closeTab(tabId);
-      } catch (error) {
-        console.error('Error deleting roadmap:', error);
-        toast.error('Failed to delete roadmap');
-      }
-      setIsDeleteDialogOpen(false);
-    }
-  };
-  
-  const handleSaveNewRoadmap = async () => {
-    // Reset validation errors
-    setNameError('');
-
-    // Validate form values
-    if (!nameValue || !nameValue.trim()) {
-      setNameError('Name is required');
-      toast.error('Name is required');
-      return;
-    }
-
-    try {
-      // Prepare the data with minimal fields and explicit types
-      const newRoadmapData = {
-        name: nameValue.trim(),
-        description: '', // Start with empty string
-        is_default: false // Default value
+        ]
       };
-
-      // Only add non-empty description
-      if (descriptionValue && typeof descriptionValue === 'string') {
-        newRoadmapData.description = descriptionValue;
-      }
-
-      // Only add is_default if it's true
-      if (isDefaultValue === true) {
-        newRoadmapData.is_default = true;
-      }
-
-      // Debug logging
-      console.log('Saving roadmap data:', JSON.stringify(newRoadmapData));
-
-      try {
-        // Call the API
-        const savedRoadmap = await addRoadmap(newRoadmapData);
-        console.log('API response:', savedRoadmap);
-
-        if (savedRoadmap && savedRoadmap.id) {
-          // Find the current tab (temporary tab)
-          const currentTab = tabs.find(tab => tab.id === tabId);
-
-          if (currentTab) {
-            console.log('[RoadmapSpecificTabContent] Found current tab:', currentTab);
-            updateNewTabToSavedItem(currentTab.id, savedRoadmap.id, nameValue.trim(), 'roadmap');
-            console.log('New Roadmap saved successfully. Tab updated to ID:', savedRoadmap.id);
-
-            setShowSaveSuccess(true);
-            setTimeout(() => setShowSaveSuccess(false), 3000);
-            setIsEditing(false);
-          } else {
-            console.error('Current tab not found:', tabId);
-          }
-        } else {
-          console.error('Failed to get new roadmap details after saving.');
-          toast.error('Failed to create roadmap');
-        }
-      } catch (error) {
-        console.error('API error:', error);
-        toast.error('Failed to save roadmap');
-      }
+      setDocumentContent(JSON.stringify(initialContent));
+    }
+  }, [roadmap]);
+  
+  // Handle name changes and sync with tab title
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setNameValue(newName);
+    updateTabTitle(tabId, 'roadmap', newName);
+  };
+  
+  // Handle content changes
+  const handleContentChange = (content: string) => {
+    setDocumentContent(content);
+    handleSaveChanges();
+  };
+  
+  // Auto-save function
+  const handleSaveChanges = async () => {
+    if (!roadmapId || !nameValue) return;
+    
+    try {
+      await updateRoadmap(roadmapId, {
+        name: nameValue,
+        description: documentContent
+      });
+      
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 3000);
     } catch (error) {
-      console.error('Error in save handler:', error);
+      console.error('Failed to save roadmap:', error);
       toast.error('Failed to save roadmap');
     }
   };
   
-  const handleToggleEditMode = () => {
-    if (isEditing) {
-      // Save changes when exiting edit mode
-      if (!isNew && roadmap) {
-        handleSaveRoadmap();
-      }
-    } else {
-      // Enter edit mode - reset form values to current roadmap values
-      if (roadmap) {
-        setNameValue(roadmap.name);
-        setDescriptionValue(roadmap.description || '');
-        setIsDefaultValue(roadmap.is_default === 1);
-      }
-      setIsEditing(true);
-    }
-  };
-  
-  const handleCancelNewRoadmap = () => {
-    if (isNew) {
+  // Delete roadmap handler
+  const handleDeleteRoadmap = async () => {
+    try {
+      await deleteRoadmap(roadmapId);
+      toast.success('Roadmap deleted successfully');
       closeTab(tabId);
-    } else {
-      // Reset to roadmap values and exit edit mode
-      if (roadmap) {
-        setNameValue(roadmap.name);
-        setDescriptionValue(roadmap.description || '');
-        setIsDefaultValue(roadmap.is_default === 1);
-      }
-      setIsEditing(false);
+    } catch (error) {
+      console.error('Error deleting roadmap:', error);
+      toast.error('Failed to delete roadmap');
     }
+    setIsDeleteDialogOpen(false);
   };
   
   // Loading state
-  if (isLoading && !isNew) {
+  if (isLoading && !roadmap) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mr-3"></div>
-        Loading roadmap...
+      <div className="flex flex-col items-center justify-center h-full bg-[#0A0A0A] text-[#a0a0a0] gap-4 roadmap-editor">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-t-transparent border-white"></div>
+        <p className="text-base font-medium text-white/70">Loading roadmap...</p>
       </div>
     );
   }
   
-  // Show "not found" for non-existent roadmaps
-  if (!isNew && !roadmap) {
+  // "Not found" state
+  if (!roadmap) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#1e1e20] text-[#a0a0a0]">
-        Roadmap not found or not loaded yet.
+      <div className="flex flex-col items-center justify-center h-full bg-[#0A0A0A] text-[#a0a0a0] gap-4 roadmap-editor">
+        <Map className="h-16 w-16 text-[#232326]" />
+        <p className="text-base font-medium text-white/70">Roadmap not found or not loaded yet.</p>
       </div>
     );
   }
   
   return (
-    <div className="flex flex-col h-full bg-[#1e1e20]">
-      {/* Header section with roadmap name and action buttons */}
-      <div className="px-6 py-4 border-b border-[#232326] grid grid-cols-2">
-        {/* Column 1: Roadmap name */}
-        <div className="flex items-center">
-          <Map className="h-5 w-5 mr-2 text-muted-foreground" />
-          {isEditing ? (
-            <div className="flex flex-col w-full max-w-lg">
-              <Input
-                value={nameValue}
-                onChange={handleNameChange}
-                autoFocus
-                className={`text-xl font-medium text-white bg-[#232326] border-[#2a2a2c] ${nameError ? 'border-red-500' : ''}`}
-                placeholder="Enter roadmap name"
-              />
-              {nameError && <p className="text-sm text-red-500 mt-1">{nameError}</p>}
-            </div>
-          ) : (
-            <h1 className="text-xl font-medium text-white">
-              {nameValue}
-              {!isNew && roadmap?.is_default === 1 && (
-                <span className="ml-2 bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full">
-                  Default
-                </span>
-              )}
-            </h1>
-          )}
+    <div className="flex flex-col h-full bg-[#0A0A0A] roadmap-editor">
+      {/* Header section */}
+      <header className="px-6 py-5 border-b border-[#1a1a1c] relative">
+        {/* Document name and icon */}
+        <div className="flex items-center gap-2 mb-5">
+          <Map className="h-6 w-6 text-[#a0a0a0] flex-shrink-0 roadmap-editor-icon" />
+          <input
+            value={nameValue}
+            onChange={handleNameChange}
+            className="title-input"
+            placeholder="Untitled Roadmap"
+            spellCheck={false}
+          />
         </div>
         
-        {/* Column 2: Action buttons */}
-        <div className="flex items-center justify-end space-x-2">
-          {!isNew && !isEditing && (
-            <>
-              {!roadmap?.is_default && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                  onClick={async () => {
-                    try {
-                      await updateRoadmap(roadmapId, { is_default: true });
-                      setIsDefaultValue(true);
-                      toast.success('Set as default roadmap');
-                    } catch (error) {
-                      console.error('Error setting default roadmap:', error);
-                      toast.error('Failed to set as default');
-                    }
-                  }}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Set as Default
+        {/* Dropdown controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusSelect value={status} onChange={setStatus} />
+          <TeamSelect value={team} onChange={setTeam} />
+          <PeriodSelect value={period} onChange={setPeriod} />
+          
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#a0a0a0] hover:bg-[rgba(147,51,234,0.1)] hover:text-[#9333EA] border-0">
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
-              )}
-              
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                onClick={handleToggleEditMode}
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-              
-              {!roadmap?.is_default && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="!bg-[#0A0A0A] !border-[#1a1a1c] shadow-lg" style={{backgroundColor: '#0A0A0A', borderColor: '#1a1a1c'}}>
+                <DropdownMenuItem
+                  className="text-[#a0a0a0] hover:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:text-[#9333EA] focus:bg-[rgba(147,51,234,0.1)] cursor-pointer text-red-400 focus:text-red-400"
                   onClick={() => setIsDeleteDialogOpen(true)}
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
-              )}
-            </>
-          )}
-          
-          {(isNew || isEditing) && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c]"
-                onClick={handleCancelNewRoadmap}
-              >
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </Button>
-              
-              <Button
-                size="sm"
-                onClick={isNew ? handleSaveNewRoadmap : handleToggleEditMode}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!nameValue.trim() || nameError !== ''}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                {isNew ? 'Create Roadmap' : 'Save'}
-              </Button>
-            </>
-          )}
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Roadmap
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         
         {showSaveSuccess && (
-          <div className="col-span-2 text-sm text-green-500 mt-1 transition-opacity duration-300">
-            Saved successfully!
+          <div className={`save-indicator visible`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            Saved
           </div>
         )}
-      </div>
+      </header>
       
-      {/* Main content area with description and features */}
-      <div className="space-y-4 p-4 pt-0 flex flex-col flex-grow h-full overflow-auto">
-        {/* Description */}
-        <div className="flex-shrink-0 mb-4">
-          {isEditing ? (
-            <div className="space-y-2">
-              <p className="text-[#a0a0a0] text-sm mb-1">Description</p>
-              <Textarea
-                value={descriptionValue}
-                onChange={handleDescriptionChange}
-                className="bg-[#232326] border-[#2a2a2c] text-white min-h-24"
-                placeholder="Enter roadmap description"
-              />
-              {!isNew && (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_default"
-                    checked={isDefaultValue}
-                    onChange={(e) => setIsDefaultValue(e.target.checked)}
-                    className="rounded bg-[#232326] border-[#2a2a2c]"
-                  />
-                  <label htmlFor="is_default" className="text-sm">Set as default roadmap</label>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <p className="text-[#a0a0a0] text-sm mb-1">Description</p>
-              <div className="p-3 bg-[#232326] rounded-md">
-                {descriptionValue || <span className="text-[#a0a0a0]">No description</span>}
-              </div>
-            </div>
-          )}
+      {/* Editor */}
+      <main className="flex-grow px-6 py-4 overflow-auto bg-[#0A0A0A] roadmap-editor-document">
+        <div className="roadmap-editor-container">
+          <SimpleEditor
+            initialContent={documentContent}
+            onChange={handleContentChange}
+            placeholder="Start editing your roadmap..."
+            className="h-full bg-[#0A0A0A] rounded-md"
+            persistenceKey={`roadmap-${roadmapId}`}
+            onBlur={handleSaveChanges}
+            saveDocument={handleSaveChanges}
+          />
         </div>
-        
-        {/* Features - only show if not in edit mode and not a new roadmap */}
-        {!isEditing && !isNew && (
-          <div className="w-full flex-grow">
-            <h3 className="text-lg font-medium mb-4">Features</h3>
-            <RoadmapFeaturesTable roadmapId={roadmapId} />
-          </div>
-        )}
-      </div>
+      </main>
       
       {/* Delete confirmation dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-[#1e1e20] border-[#2a2a2c] text-white max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Roadmap</DialogTitle>
-            <DialogDescription className="text-[#a0a0a0]">
-              Are you sure? This cannot be undone. Features on this roadmap will no longer be associated with it.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-              className="bg-[#232326] border-[#2a2a2c] hover:bg-[#2a2a2c] text-white"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeleteRoadmap}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteDialog 
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onDelete={handleDeleteRoadmap}
+      />
     </div>
+  );
+}
+
+// Extracted sub-components to reduce nesting and improve readability
+
+function StatusSelect({ value, onChange }: { value: string, onChange: (value: string) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="field-label">Status:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="bg-transparent border-0 hover:bg-[#1a1a1c] hover:text-white focus:ring-0 h-7 pl-2 pr-1">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent className="!bg-[#0A0A0A] !border-[#1a1a1c] shadow-lg rounded-md overflow-hidden" style={{backgroundColor: '#0A0A0A', borderColor: '#1a1a1c'}}>
+          <SelectItem value="Planning" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Planning</SelectItem>
+          <SelectItem value="InProgress" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">In Progress</SelectItem>
+          <SelectItem value="Completed" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Completed</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function TeamSelect({ value, onChange }: { value: string, onChange: (value: string) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="field-label">Team:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="bg-transparent border-0 hover:bg-[#1a1a1c] hover:text-white focus:ring-0 h-7 pl-2 pr-1">
+          <SelectValue placeholder="Team" />
+        </SelectTrigger>
+        <SelectContent className="!bg-[#0A0A0A] !border-[#1a1a1c] shadow-lg rounded-md overflow-hidden" style={{backgroundColor: '#0A0A0A', borderColor: '#1a1a1c'}}>
+          <SelectItem value="Product" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Product</SelectItem>
+          <SelectItem value="Engineering" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Engineering</SelectItem>
+          <SelectItem value="Design" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Design</SelectItem>
+          <SelectItem value="Marketing" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Marketing</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function PeriodSelect({ value, onChange }: { value: string, onChange: (value: string) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="field-label">Period:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="bg-transparent border-0 hover:bg-[#1a1a1c] hover:text-white focus:ring-0 h-7 pl-2 pr-1">
+          <SelectValue placeholder="Period" />
+        </SelectTrigger>
+        <SelectContent className="!bg-[#0A0A0A] !border-[#1a1a1c] shadow-lg rounded-md overflow-hidden" style={{backgroundColor: '#0A0A0A', borderColor: '#1a1a1c'}}>
+          <SelectItem value="Q1 2025" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Q1 2025</SelectItem>
+          <SelectItem value="Q2 2025" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Q2 2025</SelectItem>
+          <SelectItem value="Q3 2025" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Q3 2025</SelectItem>
+          <SelectItem value="Q4 2025" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">Q4 2025</SelectItem>
+          <SelectItem value="2025" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">2025</SelectItem>
+          <SelectItem value="2026" className="hover:text-[#9333EA] focus:text-[#9333EA] hover:bg-[rgba(147,51,234,0.1)] focus:bg-[rgba(147,51,234,0.1)]">2026</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function DeleteDialog({ 
+  isOpen, 
+  onOpenChange, 
+  onDelete 
+}: { 
+  isOpen: boolean, 
+  onOpenChange: (open: boolean) => void, 
+  onDelete: () => void 
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="!bg-[#0A0A0A] !border-[#1a1a1c] text-white max-w-md" style={{backgroundColor: '#0A0A0A', borderColor: '#1a1a1c'}}>
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">Delete Roadmap</DialogTitle>
+          <DialogDescription className="text-[#a0a0a0] mt-2">
+            Are you sure? This cannot be undone. Features on this roadmap will no longer be associated with it.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex justify-end gap-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="bg-[#0A0A0A] border-[#1a1a1c] hover:bg-[rgba(147,51,234,0.1)] text-[#a0a0a0] hover:text-[#9333EA]"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={onDelete}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

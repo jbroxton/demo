@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Roadmap, Feature } from '@/types/models'
 import { api } from '@/utils/api-client'
+import { useAuth } from '@/hooks/use-auth'
 
 // Query key for roadmaps
 const ROADMAPS_QUERY_KEY = 'roadmaps'
@@ -13,6 +14,7 @@ const ROADMAP_FEATURES_KEY = 'roadmap-features'
  */
 export function useRoadmapsQuery() {
   const queryClient = useQueryClient()
+  const { currentTenant } = useAuth()
 
   // Get all roadmaps
   const {
@@ -24,7 +26,14 @@ export function useRoadmapsQuery() {
     queryKey: [ROADMAPS_QUERY_KEY],
     queryFn: async () => {
       try {
-        return await api.get('/api/roadmaps-db')
+        const response = await fetch(`/api/roadmaps-db?tenantId=${currentTenant}`)
+        if (!response.ok) {
+          throw new Error(`API responded with status: ${response.status}`)
+        }
+        const result = await response.json();
+        // Extract the data array from the response
+        const roadmapsData = result.data || [];
+        return roadmapsData;
       } catch (error) {
         console.error('Error fetching roadmaps:', error)
         // Provide a more user-friendly error message
@@ -52,7 +61,8 @@ export function useRoadmapsQuery() {
     try {
       const params: Record<string, string> = {
         roadmapId,
-        includeFeatures: 'true'
+        includeFeatures: 'true',
+        tenantId: currentTenant
       }
       if (status) {
         params.status = status
@@ -98,16 +108,12 @@ export function useRoadmapsQuery() {
       // Set timeout to avoid long hanging requests
       gcTime: 5 * 60 * 1000, // 5 minutes
       staleTime: 30 * 1000, // 30 seconds
-      // Handle errors more gracefully
-      onError: (error) => {
-        console.error('Error in roadmap features query:', error);
-        // You could trigger a toast notification here if needed
-      }
     });
 
     // Additional error logging for debugging
     if (query.error) {
       console.error('Error in roadmap features query:', query.error);
+      // You could trigger a toast notification here if needed
     }
 
     return query;
@@ -125,7 +131,8 @@ export function useRoadmapsQuery() {
         body: JSON.stringify({
           id: featureId,
           action: 'add',
-          roadmapId
+          roadmapId,
+          tenantId: currentTenant
         }),
       })
 
@@ -154,7 +161,8 @@ export function useRoadmapsQuery() {
         credentials: 'include',
         body: JSON.stringify({
           id: featureId,
-          action: 'remove'
+          action: 'remove',
+          tenantId: currentTenant
         }),
       })
 
@@ -180,10 +188,9 @@ export function useRoadmapsQuery() {
         const apiData = {
           name: data.name,
           description: data.description || '',
-          is_default: typeof data.is_default === 'boolean' ? data.is_default : false
+          is_default: typeof data.is_default === 'boolean' ? data.is_default : false,
+          tenantId: currentTenant
         };
-
-        console.log('Sending API data:', JSON.stringify(apiData));
 
         const response = await fetch('/api/roadmaps-db', {
           method: 'POST',
@@ -195,12 +202,12 @@ export function useRoadmapsQuery() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('API error response:', errorData);
           throw new Error(`API responded with status: ${response.status}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        // Extract the data from the response
+        return result.data;
       } catch (error) {
         console.error('Error in addRoadmapMutation:', error);
         throw error;
@@ -209,7 +216,8 @@ export function useRoadmapsQuery() {
     onSuccess: (newRoadmap) => {
       // Update cache with the new roadmap
       queryClient.setQueryData<Roadmap[]>([ROADMAPS_QUERY_KEY], (oldData = []) => {
-        return [...oldData, newRoadmap];
+        const updatedData = [...oldData, newRoadmap];
+        return updatedData;
       });
     },
   });
@@ -241,7 +249,8 @@ export function useRoadmapsQuery() {
       const apiData = {
         ...updateData,
         // Only include is_default if it's defined in the update data
-        ...(updateData.is_default !== undefined ? { is_default: updateData.is_default ? 1 : 0 } : {})
+        ...(updateData.is_default !== undefined ? { is_default: updateData.is_default ? 1 : 0 } : {}),
+        tenantId: currentTenant
       };
 
       const response = await fetch('/api/roadmaps-db', {
@@ -277,7 +286,10 @@ export function useRoadmapsQuery() {
     },
     onSuccess: (data) => {
       // Update cache with the updated roadmap
-      queryClient.setQueryData<Roadmap[]>([ROADMAPS_QUERY_KEY], (oldData = []) => {
+      queryClient.setQueryData<Roadmap[]>([ROADMAPS_QUERY_KEY], (oldData) => {
+        if (!oldData || !Array.isArray(oldData)) {
+          return oldData || [];
+        }
         return oldData.map(roadmap =>
           roadmap.id === data.id
             ? { ...roadmap, ...data }
@@ -290,7 +302,7 @@ export function useRoadmapsQuery() {
   // Delete roadmap mutation
   const deleteRoadmapMutation = useMutation({
     mutationFn: async (roadmapId: string) => {
-      const response = await fetch(`/api/roadmaps-db?id=${roadmapId}`, {
+      const response = await fetch(`/api/roadmaps-db?id=${roadmapId}&tenantId=${currentTenant}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -303,7 +315,10 @@ export function useRoadmapsQuery() {
     },
     onSuccess: (roadmapId) => {
       // Remove the deleted roadmap from cache
-      queryClient.setQueryData<Roadmap[]>([ROADMAPS_QUERY_KEY], (oldData = []) => {
+      queryClient.setQueryData<Roadmap[]>([ROADMAPS_QUERY_KEY], (oldData) => {
+        if (!oldData || !Array.isArray(oldData)) {
+          return oldData || [];
+        }
         return oldData.filter(roadmap => roadmap.id !== roadmapId);
       });
     },
@@ -354,6 +369,11 @@ export function useRoadmapsQuery() {
     refetch: () => queryClient.invalidateQueries({ queryKey: [ROADMAPS_QUERY_KEY] }),
 
     // Direct refetch function from useQuery
-    roadmapsRefetch: refetch
+    roadmapsRefetch: refetch,
+    
+    // Invalidate queries helper
+    invalidateQueries: async () => {
+      await queryClient.invalidateQueries({ queryKey: [ROADMAPS_QUERY_KEY] });
+    }
   }
 }

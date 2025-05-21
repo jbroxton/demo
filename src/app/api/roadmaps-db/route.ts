@@ -18,6 +18,8 @@ import { authenticatedHandler } from '@/utils/api-authenticated-handler';
 
 // GET handler
 export const GET = authenticatedHandler(async (request, { tenantId, searchParams }) => {
+  console.log('[ROADMAPS API] GET request with tenantId:', tenantId);
+  
   const id = searchParams.get('id');
   const roadmapId = searchParams.get('roadmapId');
   const includeFeatures = searchParams.get('includeFeatures') === 'true';
@@ -49,7 +51,14 @@ export const GET = authenticatedHandler(async (request, { tenantId, searchParams
   }
 
   // Default: get all roadmaps
+  console.log('[ROADMAPS API] Fetching all roadmaps for tenant:', tenantId);
   const result = await getRoadmaps(tenantId);
+  
+  console.log('[ROADMAPS API] Got roadmaps result:', {
+    success: result.success,
+    count: result.data ? result.data.length : 0,
+    error: result.error
+  });
 
   if (!result.success) {
     return apiResponse.error(result.error!);

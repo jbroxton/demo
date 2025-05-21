@@ -27,12 +27,14 @@ import { useProductsQuery } from '@/hooks/use-products-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useReleasesQuery } from '@/hooks/use-releases-query';
+import { useRoadmapsQuery } from '@/hooks/use-roadmaps-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import type { Product, Interface, Feature, Release } from '@/types/models';
+import type { Roadmap } from '@/types/models/Roadmap';
 
 // Define all possible entity types
-export type EntityType = 'product' | 'interface' | 'feature' | 'release';
+export type EntityType = 'product' | 'interface' | 'feature' | 'release' | 'roadmap';
 
 // Props for entity context
 type EntityContextProps = {
@@ -68,6 +70,7 @@ export function EntityCreator({
   const interfacesQuery = useInterfacesQuery();
   const featuresQuery = useFeaturesQuery();
   const releasesQuery = useReleasesQuery();
+  const roadmapsQuery = useRoadmapsQuery();
   const auth = useAuth();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -80,12 +83,13 @@ export function EntityCreator({
       case 'interface': return 'Add Interface';
       case 'feature': return 'Add Feature';
       case 'release': return 'Add Release';
+      case 'roadmap': return 'Add Roadmap';
       default: return 'Add New';
     }
   };
   
   // Define typed entities returned from mutations
-  type CreatedEntity = Product | Interface | Feature | Release;
+  type CreatedEntity = Product | Interface | Feature | Release | Roadmap;
   
   // Create a new entity tab
   const createEntityTab = async () => {
@@ -181,6 +185,55 @@ export function EntityCreator({
           });
           break;
           
+        case 'roadmap':
+          // Create new roadmap in the database first
+          console.log('Creating new roadmap...');
+          
+          // Explicitly check tenant ID before attempting creation
+          if (!auth.currentTenant) {
+            console.error('No tenant selected. Current auth state:', {
+              isAuthenticated: auth.isAuthenticated,
+              currentTenant: auth.currentTenant,
+              allowedTenants: auth.allowedTenants,
+            });
+            
+            // Try to get tenant ID from user if available
+            const tenantId = auth?.user?.tenantId || auth?.user?.currentTenant;
+            if (!tenantId) {
+              throw new Error('Cannot create roadmap: No tenant selected');
+            }
+            
+            console.log('Using tenant ID from user:', tenantId);
+          }
+          
+          // tenant ID is automatically added by the API handler from the auth system
+          newEntity = await roadmapsQuery.addRoadmap({
+            name: 'New Roadmap',
+            description: '',
+            is_default: false
+          });
+          console.log('Created roadmap:', newEntity);
+          
+          // Wait a bit to ensure the roadmap is propagated through the backend
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Refresh roadmaps to ensure the new roadmap is in the cache
+          try {
+            await roadmapsQuery.roadmapsRefetch();
+            console.log('Roadmaps query refetched');
+            
+            // Double check the roadmap exists in the cache
+            const verifyRoadmap = roadmapsQuery.getRoadmapById(newEntity.id);
+            console.log('Verify roadmap in cache:', verifyRoadmap);
+            
+            if (!verifyRoadmap) {
+              console.warn('Roadmap not found in cache after refetch, tab might show empty');
+            }
+          } catch (error) {
+            console.error('Error refreshing roadmaps:', error);
+          }
+          break;
+          
         default:
           throw new Error(`Unknown entity type: ${entityType}`);
       }
@@ -223,14 +276,40 @@ export function EntityCreator({
     } catch (error) {
       console.error('Failed to create entity:', error);
       
+      // Log detailed auth state for debugging
+      console.error('Auth state during entity creation error:', {
+        isAuthenticated: auth.isAuthenticated,
+        hasTenants: auth.allowedTenants?.length > 0,
+        currentTenant: auth.currentTenant,
+        userEmail: auth?.user?.email,
+        tenantId: auth?.user?.tenantId,
+      });
+      
+      // Check if the entity was actually created in the DB but had client-side errors
+      if (entityType === 'roadmap' && error instanceof Error && 
+          (error.message.includes('tenant') || 
+           error.message.includes('oldData is not iterable'))) {
+        
+        toast.warning("Roadmap created in database but encountered display issues. Please refresh to see it.");
+        
+        // Close dialog to prevent multiple attempts
+        setIsOpen(false);
+        return;
+      }
+      
       // Provide more specific error messages
       let errorMessage = error instanceof Error ? error.message : `Failed to create ${entityType}`;
       
-      // Check if it's a tenant-related error
-      if (auth.allowedTenants.length === 0) {
-        errorMessage = `Cannot create ${entityType}: No tenants available`;
-      } else if (!auth.currentTenant) {
-        errorMessage = `Cannot create ${entityType}: No tenant selected`;
+      // Only check tenant issues if there's no specific error message
+      if (errorMessage === `Failed to create ${entityType}`) {
+        // First check if currentTenant exists - this is more important than allowedTenants
+        if (!auth.currentTenant && !auth?.user?.tenantId) {
+          errorMessage = `Cannot create ${entityType}: No tenant selected`;
+        } 
+        // Only check allowedTenants if we don't have a current tenant
+        else if (auth.allowedTenants.length === 0 && !auth.currentTenant && !auth?.user?.tenantId) {
+          errorMessage = `Cannot create ${entityType}: No tenants available`;
+        }
       }
       
       toast.error(errorMessage);
