@@ -72,6 +72,7 @@
     "framer-motion": "^12.7.4",
     "highlight.js": "^11.11.1",
     "immer": "^10.1.1",
+    "lottie-react": "^2.4.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.503.0",
     "material-react-table": "^3.2.1",

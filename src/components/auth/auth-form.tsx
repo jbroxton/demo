@@ -188,6 +188,14 @@ export function AuthForm({
     );
   }
 
+  // Add function to handle enter key in password field
+  const handlePasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      form.handleSubmit(onSubmit)();
+    }
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="bg-[#0A0A0A] border-0 shadow-none">
@@ -202,6 +210,7 @@ export function AuthForm({
                 {effectiveError}
                 {error && (
                   <Button 
+                    type="button"
                     variant="link" 
                     className="p-0 h-auto text-xs text-destructive underline"
                     onClick={() => clearError()}
@@ -235,6 +244,7 @@ export function AuthForm({
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                   <Button
+                    type="button"
                     variant="link"
                     className="ml-auto p-0 h-auto text-xs"
                     onClick={(e) => {
@@ -251,6 +261,7 @@ export function AuthForm({
                   required
                   className="bg-transparent border-white/80 text-white focus-visible:ring-[#4f46e5]/30 focus-visible:border-white"
                   {...form.register("password")}
+                  onKeyDown={handlePasswordKeyDown}
                 />
                 {form.formState.errors.password && (
                   <p className="text-sm text-destructive">
@@ -288,6 +299,7 @@ export function AuthForm({
               <div className="text-center text-sm">
                 Don't have an account?{" "}
                 <Button
+                  type="button"
                   variant="link"
                   className="p-0 h-auto text-[#9333EA] hover:text-[#8327d9]"
                   onClick={() => router.push('/signup')}
