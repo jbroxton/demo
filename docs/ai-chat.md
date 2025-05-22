@@ -1,5 +1,46 @@
 # AI Chat for Speqq
 
+## Implementation Background
+
+This document provides a comprehensive guide for implementing the AI Chat feature in Speqq, a product management platform. The implementation follows a Retrieval-Augmented Generation (RAG) architecture using OpenAI embeddings, Supabase with pgvector, and the Vercel AI SDK.
+
+### RAG Architecture Overview
+
+RAG (Retrieval-Augmented Generation) combines the knowledge retrieval capabilities of vector databases with the generative capabilities of large language models (LLMs). This architecture:
+
+1. **Indexes data**: Converts product data (features, releases) into vector embeddings
+2. **Performs vector search**: Matches user queries against stored embeddings
+3. **Enhances context**: Feeds relevant retrieved context to the LLM
+4. **Generates responses**: Uses the LLM to generate accurate responses with the retrieved context
+
+This approach enables the AI to access specific product data that otherwise wouldn't be in its general knowledge.
+
+### Key Technologies
+
+- **OpenAI embeddings**: text-embedding-3-small provides high-quality 1536-dimension embeddings
+- **Supabase pgvector**: Stores and queries vector embeddings using PostgreSQL
+- **Vercel AI SDK**: Provides streaming, function calling, and UI components 
+- **Next.js API Routes**: Implements API endpoints with tenant isolation
+- **Function Calling**: Enables agent capabilities for feature updates
+
+### Multi-tenancy Implementation
+
+This feature operates in a multi-tenant environment where:
+- Each tenant has access only to their own data
+- Embeddings are segregated by tenant_id
+- Row-Level Security (RLS) in Supabase enforces tenant isolation
+- Authentication headers pass tenant context to all operations
+
+### Agent Capabilities Flow
+
+The feature update workflow follows this pattern:
+1. User requests a feature update via natural language
+2. LLM calls `getFeatureDetails` to retrieve current state
+3. LLM calls `proposeFeatureUpdate` to show a preview
+4. User confirms or rejects the proposed changes
+5. If confirmed, LLM calls `applyFeatureUpdate` to execute
+6. After update, feature is re-indexed to update embeddings
+
 ## Objective
 
 Add an Prototype AI Chat assistant to Speqq that understands product management context and provides intelligent responses based on the user's product data.

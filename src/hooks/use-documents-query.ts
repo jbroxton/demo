@@ -403,13 +403,12 @@ async function updateDocument(id: string, updates: Partial<Omit<Document, 'id' |
         } catch (parseError) {
           console.error('Failed to parse error response as JSON:', parseError);
           errorData = { 
-            error: errorText || `HTTP ${response.status} ${response.statusText}`,
-            parseError: String(parseError) 
+            error: errorText || `HTTP ${response.status} ${response.statusText}`
           };
         }
       } catch (textError) {
         console.error('Failed to read error response text:', textError);
-        errorData.readError = String(textError);
+        errorData = { error: 'Failed to read error response' };
       }
       
       console.error(`Error updating document ${id}:`, errorData);

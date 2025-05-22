@@ -46,37 +46,75 @@ export function AIChatComponent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Index data for AI search
+  // Simplified indexing function for debugging
   const handleIndexing = async () => {
     setIsIndexing(true);
     try {
+      // Show toast
+      toast.info('Starting indexing process...');
+      
+      console.log('Indexing started with tenant:', currentTenant || 'default');
+      
+      // Simple fetch with text response
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-tenant-id': currentTenant || 'default'
         },
-        credentials: 'include', // Include cookies for authentication
+        credentials: 'include',
         body: JSON.stringify({
           action: 'index',
           tenantId: currentTenant || 'default'
         })
       });
-
-      const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to index data');
+      // Log raw response info for debugging
+      console.log('Response status:', response.status);
+      console.log('Response headers:', {
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      });
+      
+      // Get response as text first for debugging
+      const textResponse = await response.text();
+      console.log('Raw response:', textResponse.substring(0, 1000)); // Show first 1000 chars
+      
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(textResponse);
+        console.log('Parsed response data:', data);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        toast.error('Could not parse server response');
+        return;
       }
-
-      if (data.success) {
-        toast.success(`Indexed ${data.indexed} documents successfully!`);
+      
+      // Handle success or failure
+      if (response.ok && data.success) {
+        toast.success(`Successfully indexed ${data.indexed || 0} items`);
+        
+        if (data.errors?.length > 0) {
+          console.warn('Some items failed to index:', data.errors);
+          toast.warning(`Note: ${data.errors.length} items had errors`);
+        }
       } else {
-        toast.error(`Indexing failed: ${data.errors?.join(', ') || 'Unknown error'}`);
+        const errorMessage = data.error || 'Unknown error occurred';
+        console.error('Indexing failed:', errorMessage);
+        toast.error(`Indexing failed: ${errorMessage}`);
       }
     } catch (error) {
+      // Show the complete error
       console.error('Indexing error:', error);
-      toast.error(`Indexing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        toast.error(`Indexing error: ${error.message}`);
+      } else {
+        toast.error(`Indexing error: ${String(error)}`);
+      }
     } finally {
       setIsIndexing(false);
     }
