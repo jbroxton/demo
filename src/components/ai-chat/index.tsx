@@ -3,9 +3,9 @@
 import { useChat } from 'ai/react';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Database } from 'lucide-react';
+import { Send, Loader2, Database, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+// Removed Card import - using custom dark styling instead
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -121,31 +121,36 @@ export function AIChatComponent() {
   };
 
   return (
-    <Card className="h-full flex flex-col border-gray-700">
-      <div className="border-b border-gray-700 p-4 flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-white">AI Assistant</h3>
-        <Button
-          onClick={handleIndexing}
-          disabled={isIndexing}
-          size="sm"
-          variant="outline"
-          className="text-gray-300 border-gray-600 hover:bg-gray-700"
-        >
-          {isIndexing ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Indexing...
-            </>
-          ) : (
-            <>
-              <Database className="w-4 h-4 mr-2" />
-              Index Data
-            </>
-          )}
-        </Button>
+    <div className="h-full w-full flex flex-col bg-[#0A0A0A]">
+      {/* Clean Header */}
+      <div className="sticky top-0 z-10 backdrop-blur-md bg-[#0A0A0A]/80 p-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span className="text-xs text-white/60">Online</span>
+          </div>
+          <Button
+            onClick={handleIndexing}
+            disabled={isIndexing}
+            size="sm"
+            className="h-8 px-3 bg-[#1A1A1A] hover:bg-[#232326] border border-[#232326] text-white/70 hover:text-white/90 text-xs"
+          >
+            {isIndexing ? (
+              <>
+                <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                Indexing
+              </>
+            ) : (
+              <>
+                <Database className="w-3 h-3 mr-1.5" />
+                Sync
+              </>
+            )}
+          </Button>
+        </div>
       </div>
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 w-full px-4 py-6">
+        <div className="space-y-4 w-full">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -154,10 +159,10 @@ export function AIChatComponent() {
             }`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
+              className={`max-w-[75%] rounded-2xl px-4 py-3 message-bubble ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-white/90'
+                  ? 'bg-gradient-to-br from-[#2a2a2c] to-[#232326] text-white/90 rounded-br-md'
+                  : 'bg-gradient-to-br from-[#1A1A1A] to-[#161618] text-white/85 rounded-bl-md'
               }`}
             >
               <div className="text-sm whitespace-pre-wrap break-words">
@@ -168,18 +173,18 @@ export function AIChatComponent() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-700 text-white/90 rounded-lg px-4 py-2">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce delay-100" />
-                <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce delay-200" />
+            <div className="max-w-[75%] rounded-2xl rounded-bl-md px-4 py-3 bg-gradient-to-br from-[#1A1A1A] to-[#161618] shadow-sm">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 bg-white/30 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-white/30 rounded-full animate-pulse delay-75" />
+                <div className="w-2 h-2 bg-white/30 rounded-full animate-pulse delay-150" />
               </div>
             </div>
           </div>
         )}
         {error && (
           <div className="flex justify-center">
-            <div className="bg-red-500/20 text-red-400 rounded-lg px-4 py-2 text-sm">
+            <div className="bg-red-500/10 text-red-400/80 rounded-xl px-4 py-3 text-sm shadow-sm">
               Error: {error.message || 'Failed to get response from AI'}
             </div>
           </div>
@@ -188,21 +193,22 @@ export function AIChatComponent() {
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
-        <div className="flex gap-2">
+      {/* Clean Software-style Input */}
+      <form onSubmit={handleSubmit} className="w-full p-4">
+        <div className="relative">
           <Input
             type="text"
             value={input}
             onChange={handleInputChange}
             placeholder="Ask about your products, features, or get PM advice..."
-            className="flex-1 bg-gray-800 text-white"
+            className="w-full bg-black/30 backdrop-blur-sm border border-white/20 text-white/90 placeholder:text-white/40 hover:bg-black/20 hover:border hover:border-white/20 focus:border-white/30 focus:ring-0 rounded-full pl-4 pr-12 py-3 h-12 transition-all duration-200"
             disabled={isLoading}
             autoFocus
           />
           <Button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="absolute right-1 top-1 bottom-1 bg-black/60 hover:bg-black/80 border border-white/30 text-white/90 rounded-full w-10 h-10 p-0 flex items-center justify-center transition-all duration-200"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -212,6 +218,6 @@ export function AIChatComponent() {
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

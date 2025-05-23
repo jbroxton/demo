@@ -1,63 +1,29 @@
 'use client';
 
-import { ChevronRight, MessageSquare, CheckSquare } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useUIState } from '@/providers/ui-state-provider';
 import { AIChatComponent } from '@/components/ai-chat';
+import { ResizeHandle } from './resize-handle';
+import { TabNavigation } from './tab-navigation';
 
 export function RightSidebar() {
-  const { rightSidebarOpen, toggleRightSidebar, activeRightTab, setActiveRightTab, setRightSidebarOpen } = useUIState();
+  const { rightSidebarOpen, toggleRightSidebar, activeRightTab } = useUIState();
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden relative group">
       {/* Tab Navigation */}
-      <div className="border-b border-[#232326] p-3 flex flex-row lg:flex-col items-center gap-4">
-        <button
-          className={`flex items-center gap-2 p-2 rounded-md ${
-            activeRightTab === 'chat' ? 'bg-[#121218] text-white' : 'text-white/50 hover:text-white/70 hover:bg-[#0F0F0F]'
-          }`}
-          onClick={() => {
-            setActiveRightTab('chat');
-            if (!rightSidebarOpen) setRightSidebarOpen(true);
-          }}
-        >
-          {rightSidebarOpen ? (
-            <>
-              <MessageSquare className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Chat</span>
-            </>
-          ) : (
-            <MessageSquare className="h-5 w-5" />
-          )}
-        </button>
-
-        <button
-          className={`flex items-center gap-2 p-2 rounded-md ${
-            activeRightTab === 'todo' ? 'bg-[#121218] text-white' : 'text-white/50 hover:text-white/70 hover:bg-[#0F0F0F]'
-          }`}
-          onClick={() => {
-            setActiveRightTab('todo');
-            if (!rightSidebarOpen) setRightSidebarOpen(true);
-          }}
-        >
-          {rightSidebarOpen ? (
-            <>
-              <CheckSquare className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">TODO</span>
-            </>
-          ) : (
-            <CheckSquare className="h-5 w-5" />
-          )}
-        </button>
-      </div>
+      <TabNavigation />
 
       {/* Content Panel */}
-      <div className={`flex-grow overflow-hidden ${rightSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`flex-grow overflow-hidden w-full ${rightSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
         {activeRightTab === 'chat' && (
-          <AIChatComponent />
+          <div className="w-full h-full">
+            <AIChatComponent />
+          </div>
         )}
 
         {activeRightTab === 'todo' && (
-          <div className="space-y-4">
+          <div className="space-y-4 p-4">
             <h2 className="text-lg font-semibold text-white/90 truncate">TODO</h2>
             <p className="text-white/70 text-sm break-words">
               TODO list placeholder. This text demonstrates proper wrapping behavior in the sidebar.
@@ -65,6 +31,9 @@ export function RightSidebar() {
           </div>
         )}
       </div>
+
+      {/* Resize Handle - only show when sidebar is open */}
+      {rightSidebarOpen && <ResizeHandle />}
 
       {/* Close Button */}
       {rightSidebarOpen && (

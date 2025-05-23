@@ -13,7 +13,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 export default function WorkspaceLayout() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { rightSidebarOpen, leftSidebarCollapsed, toggleLeftSidebar } = useUIState();
+  const { 
+    rightSidebarOpen, 
+    leftSidebarCollapsed, 
+    toggleLeftSidebar, 
+    rightSidebarWidth 
+  } = useUIState();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -28,9 +33,43 @@ export default function WorkspaceLayout() {
   }
 
   return (
-    <div
-      className={`workspace-grid ${leftSidebarCollapsed ? 'navigator-collapsed' : ''} ${rightSidebarOpen ? 'utility-expanded' : ''}`}
-      data-component="workspace"
+    <>
+      {/* 
+        RESIZABLE SIDEBAR ARCHITECTURE:
+        
+        This component implements a 3-column CSS Grid layout:
+        - Column 1: Left navigation (collapsible)
+        - Column 2: Canvas/main content (responsive, takes remaining space)
+        - Column 3: Right sidebar (resizable 280px-600px)
+        
+        The resize functionality works by:
+        1. ResizeHandle component captures drag events
+        2. Updates rightSidebarWidth state in UIStateProvider
+        3. This component re-renders with new gridTemplateColumns
+        4. CSS Grid automatically constrains all columns properly
+        5. Canvas resizes without overlap, chat interface scales
+        
+        Critical: We use inline gridTemplateColumns style instead of CSS variables
+        due to inheritance/specificity issues that prevented grid updates.
+      */}
+      <div
+        className={`workspace-grid ${leftSidebarCollapsed ? 'navigator-collapsed' : ''} ${rightSidebarOpen ? 'utility-expanded' : ''}`}
+        data-component="workspace"
+      style={{
+        // CSS variable for backward compatibility (kept for reference)
+        '--dynamic-right-sidebar-width': rightSidebarOpen ? `${rightSidebarWidth}px` : '48px',
+        
+        // CRITICAL FIX: Direct gridTemplateColumns override
+        // Issue: CSS variable inheritance/specificity problems prevented grid columns from updating
+        // Solution: Bypass CSS variables by setting gridTemplateColumns directly with React state values
+        // This ensures the CSS Grid properly constrains all three columns:
+        // 1. Left nav (collapsible): var(--left-sidebar-width-*)
+        // 2. Canvas (responsive): 1fr (takes remaining space)  
+        // 3. Right sidebar (resizable): ${rightSidebarWidth}px (280-600px range)
+        gridTemplateColumns: rightSidebarOpen 
+          ? `var(--left-sidebar-width-${leftSidebarCollapsed ? 'collapsed' : 'expanded'}) 1fr ${rightSidebarWidth}px`
+          : `var(--left-sidebar-width-${leftSidebarCollapsed ? 'collapsed' : 'expanded'}) 1fr 48px`
+      } as React.CSSProperties}
     >
       {/* Navigator - left sidebar */}
       <div
@@ -39,20 +78,14 @@ export default function WorkspaceLayout() {
         data-section="navigator"
       >
         <style jsx>{`
-          /* Custom scrollbar */
+          /* Hidden scrollbar */
           .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
+            width: 0px;
             background: transparent;
           }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: rgba(80, 80, 80, 0.3);
-            border-radius: 4px;
-            border: 2px solid transparent;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(100, 100, 100, 0.5);
+          .custom-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
           }
         `}</style>
 
@@ -60,7 +93,7 @@ export default function WorkspaceLayout() {
 
         {/* Navigator toggle button */}
         <button
-          className="absolute top-4 right-[-12px] z-40 p-1 rounded-full bg-[#232326] hover:bg-[#2a2a2c] text-white/70 hover:text-white/90 transition-colors duration-200"
+          className="absolute top-4 right-[-10px] z-40 p-1.5 rounded-md bg-[#0F0F0F] hover:bg-[#1A1A1A] text-white/70 hover:text-white/90 transition-colors duration-200 flex items-center justify-center"
           onClick={toggleLeftSidebar}
           aria-label={leftSidebarCollapsed ? "Expand navigator" : "Collapse navigator"}
           data-action="toggle-navigator"
@@ -86,26 +119,11 @@ export default function WorkspaceLayout() {
         </div>
       </div>
 
-      {/* Utility panel - right sidebar */}
-      <div
-        className="utility-panel"
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: rightSidebarOpen ? '300px' : '48px',
-          height: '100vh',
-          zIndex: 30,
-          transition: 'width var(--transition-speed) var(--transition-timing)',
-          backgroundColor: '#0A0A0A',
-          borderLeft: '1px solid #232326',
-          overflow: 'hidden',
-          boxSizing: 'border-box'
-        }}
-        data-section="utility-panel"
-      >
+      {/* Utility panel - right sidebar (CSS Grid) */}
+      <div className="utility-panel" data-section="utility-panel">
         <RightSidebar />
       </div>
     </div>
+    </>
   );
 }

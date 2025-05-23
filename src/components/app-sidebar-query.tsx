@@ -152,25 +152,20 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
               className="w-6 h-6"
             />
             {!collapsed && (
-              <Image
-                src="/text-logo.svg"
-                alt="Speqq"
-                width={80}
-                height={24}
-                priority
-                className="h-6 transition-opacity duration-200"
-              />
+              <span className="text-xl font-bold text-white transition-opacity duration-200">
+                Speqq
+              </span>
             )}
           </div>
         </div>
       </div>
 
       {/* User greeting */}
-      <div className={`p-3 flex ${collapsed ? 'justify-center' : 'justify-between'} items-center border-b border-[#232326]`}
+      <div className={`p-3 flex ${collapsed ? 'justify-center' : 'justify-between'} items-center`}
         data-section="user-greeting">
         {!collapsed && <span className="text-xs text-[#a0a0a0]">Welcome, {user?.name || 'User'}</span>}
         <button
-          className="p-1.5 rounded-md text-[#a0a0a0] hover:bg-[#232326] hover:text-white"
+          className="p-1.5 rounded-md text-white/60 hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200"
           onClick={logout}
           aria-label="Logout"
           data-action="logout"
@@ -186,7 +181,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
             <li key={item.name} data-nav-item={item.name.toLowerCase()}>
               {item.name === 'Roadmap' ? (
                 <button
-                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
+                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200 ${collapsed ? 'px-1' : 'text-left'}`}
                   onClick={async () => {
                     console.log('Roadmap button clicked directly');
                     try {
@@ -210,7 +205,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                 </button>
               ) : (
                 <button
-                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326] ${collapsed ? 'px-1' : 'text-left'}`}
+                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200 ${collapsed ? 'px-1' : 'text-left'}`}
                   title={item.name}
                   data-action="navigate"
                   data-nav-target={item.name.toLowerCase()}
@@ -226,14 +221,14 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
       
       {/* Products header */}
       <div
-        className="flex items-center px-4 py-2 border-t border-b border-[#232326]"
+        className="flex items-center px-4 py-2"
         data-section="products-header">
         {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow">Products</span>}
         <EntityCreator
           entityType="product"
           buttonVariant="ghost"
           buttonSize="icon"
-          buttonClassName={`${collapsed ? 'mx-auto' : ''} h-5 w-5 rounded-sm hover:bg-[#232326] flex items-center justify-center`}
+          buttonClassName={`${collapsed ? 'mx-auto' : ''} h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 flex items-center justify-center`}
           iconOnly={true}
         />
       </div>
@@ -264,7 +259,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                       {!collapsed && (
                         <CollapsibleTrigger asChild>
                           <button
-                            className="p-1 hover:bg-[#232326] rounded-sm"
+                            className="p-1 hover:bg-black/20 hover:border hover:border-white/20 rounded-sm transition-all duration-200"
                             data-action="toggle"
                             aria-label={isExpanded ? "Collapse" : "Expand"}>
                             {hasInterfaces ?
@@ -278,7 +273,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
 
                       {/* Product button */}
                       <button
-                        className={`flex flex-1 items-center ${collapsed ? 'justify-center' : 'gap-2'} rounded-md p-2 text-sm hover:bg-[#232326]`}
+                        className={`flex flex-1 items-center ${collapsed ? 'justify-center' : 'gap-2'} border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200`}
                         onClick={() => openTab({
                           title: product.name,
                           type: 'product',
@@ -298,7 +293,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                         <EntityCreator
                           entityType="interface"
                           iconOnly={true}
-                          buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
+                          buttonClassName="h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 opacity-0 group-hover:opacity-100"
                           buttonVariant="ghost"
                           context={{
                             parentId: product.id,
@@ -332,7 +327,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                     {/* Expand/collapse button */}
                                     <CollapsibleTrigger asChild>
                                       <button
-                            className="p-1 hover:bg-[#232326] rounded-sm"
+                            className="p-1 hover:bg-black/20 hover:border hover:border-white/20 rounded-sm"
                             data-action="toggle"
                             aria-label={isExpanded ? "Collapse" : "Expand"}>
                                         {hasFeatures ?
@@ -345,7 +340,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
 
                                     {/* Interface button */}
                                     <button
-                                      className="flex flex-1 items-center gap-2 rounded-md p-2 text-sm hover:bg-[#232326]"
+                                      className="flex flex-1 items-center gap-2 border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20"
                                       data-action="open-tab"
                                       data-entity-name={interface_.name}
                                       onClick={() => openTab({
@@ -363,7 +358,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                     <EntityCreator
                                       entityType="feature"
                                       iconOnly={true}
-                                      buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
+                                      buttonClassName="h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 opacity-0 group-hover:opacity-100"
                                       buttonVariant="ghost"
                                       context={{
                                         parentId: interface_.id,
@@ -390,7 +385,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                   {/* Expand/collapse button */}
                                                   <CollapsibleTrigger asChild>
                                                     <button
-                            className="p-1 hover:bg-[#232326] rounded-sm"
+                            className="p-1 hover:bg-black/20 hover:border hover:border-white/20 rounded-sm"
                             data-action="toggle"
                             aria-label={isExpanded ? "Collapse" : "Expand"}>
                                                       {hasReleases ?
@@ -403,7 +398,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
 
                                                   {/* Feature button */}
                                                   <button
-                                                    className="flex flex-1 items-center gap-2 rounded-md p-2 text-sm hover:bg-[#232326]"
+                                                    className="flex flex-1 items-center gap-2 border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20"
                                                     onClick={() => openTab({
                                                       title: feature.name,
                                                       type: 'feature',
@@ -419,7 +414,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                   <EntityCreator
                                                     entityType="release"
                                                     iconOnly={true}
-                                                    buttonClassName="h-5 w-5 rounded-sm hover:bg-[#232326] opacity-0 group-hover:opacity-100"
+                                                    buttonClassName="h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 opacity-0 group-hover:opacity-100"
                                                     buttonVariant="ghost"
                                                     context={{
                                                       parentId: feature.id,
@@ -437,7 +432,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                         <li key={release.id} className="group">
                                                           {/* Release button */}
                                                           <button
-                                                            className="flex w-full items-center gap-2 rounded-md p-2 text-sm hover:bg-[#232326]"
+                                                            className="flex w-full items-center gap-2 border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20"
                                                             onClick={() => openTab({
                                                               title: release.name,
                                                               type: 'release',

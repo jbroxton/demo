@@ -11,9 +11,7 @@
  */
 
 import { ProductContext } from './product-context-analyzer';
-import { getRelevantFrameworks, getFrameworkDetails } from './pm-frameworks';
-import { generatePMResponseGuidance } from './pm-query-patterns';
-import { analyzeQueryContext, getContextualPromptModification } from './query-context-detector';
+import { analyzeQueryContext } from './query-context-detector';
 
 /**
  * Context for generating system prompts
@@ -39,31 +37,22 @@ export function generateContextualSystemPrompt(context: PromptContext): string {
   const queryContext = analyzeQueryContext(context.userMessage);
   
   const basePrompt = getBaseSystemPrompt();
-  const queryContextModification = getContextualPromptModification(queryContext);
   
   // Only include product-specific sections if the query needs product data
   if (queryContext.useProductData) {
     const productContextPrompt = generateProductContextPrompt(context.productContext);
-    const dataContextPrompt = generateDataContextPrompt(context.dataCount);
     const responseStylePrompt = generateResponseStylePrompt(context.productContext, context.userMessage);
-    const pmFrameworksPrompt = generatePMFrameworksPrompt(context.userMessage, context.productContext.maturityStage);
-    const pmResponseGuidance = generatePMResponseGuidance(context.userMessage);
 
     return [
       basePrompt,
-      queryContextModification,
       productContextPrompt,
-      dataContextPrompt,
       responseStylePrompt,
-      pmFrameworksPrompt,
-      pmResponseGuidance,
       getConversationGuidelines()
     ].join('\n\n');
   } else {
     // For general knowledge queries, use minimal context
     return [
       basePrompt,
-      queryContextModification,
       getGeneralKnowledgeGuidelines()
     ].join('\n\n');
   }
@@ -199,35 +188,6 @@ function getIndustryGuidance(industry: ProductContext['industry']): string {
   return guidance[industry as keyof typeof guidance] || '';
 }
 
-/**
- * Generates context about available data
- */
-function generateDataContextPrompt(dataCount: PromptContext['dataCount']): string {
-  const totalItems = Object.values(dataCount).reduce((sum, count) => sum + count, 0);
-  
-  if (totalItems === 0) {
-    return `## Data Context\nThe user's workspace is currently empty. Help them get started by suggesting how to create their first features, requirements, or releases.`;
-  }
-
-  let prompt = `## Data Context\nThe user's workspace contains:\n`;
-  
-  if (dataCount.features > 0) {
-    prompt += `- ${dataCount.features} feature${dataCount.features === 1 ? '' : 's'}\n`;
-  }
-  if (dataCount.releases > 0) {
-    prompt += `- ${dataCount.releases} release${dataCount.releases === 1 ? '' : 's'}\n`;
-  }
-  if (dataCount.requirements > 0) {
-    prompt += `- ${dataCount.requirements} requirement${dataCount.requirements === 1 ? '' : 's'}\n`;
-  }
-  if (dataCount.roadmaps > 0) {
-    prompt += `- ${dataCount.roadmaps} roadmap${dataCount.roadmaps === 1 ? '' : 's'}\n`;
-  }
-
-  prompt += `\nUse this data to provide specific, accurate answers about their product.`;
-
-  return prompt;
-}
 
 /**
  * Generates response style guidance based on context
@@ -263,50 +223,16 @@ function generateResponseStylePrompt(productContext: ProductContext, userMessage
   return prompt;
 }
 
-/**
- * Generates PM framework recommendations based on user query
- */
-function generatePMFrameworksPrompt(userMessage: string, maturityStage: string): string {
-  const relevantFrameworks = getRelevantFrameworks(userMessage, maturityStage);
-  
-  if (relevantFrameworks.length === 0) {
-    return `## Product Management Approach
-When appropriate, suggest relevant PM frameworks like RICE prioritization, User Story Mapping, HEART metrics, or North Star framework to help structure their thinking.`;
-  }
-
-  let prompt = `## Recommended PM Frameworks
-Based on your query, consider these frameworks:\n`;
-
-  relevantFrameworks.forEach(frameworkName => {
-    const framework = getFrameworkDetails(frameworkName);
-    if (framework) {
-      prompt += `\n**${framework.name}**: ${framework.description}`;
-      if (framework.whenToUse) {
-        prompt += ` (Best for: ${framework.whenToUse})`;
-      }
-    }
-  });
-
-  prompt += `\n\nWhen providing advice, reference these frameworks and help the user apply them to their specific situation.`;
-  
-  return prompt;
-}
 
 /**
  * Provides general conversation guidelines for product-specific queries
  */
 function getConversationGuidelines(): string {
-  return `## Product Management Guidelines
-- **Think like a PM**: Focus on user outcomes, business impact, and strategic alignment
-- **Data-driven decisions**: Always check the provided context data before answering
-- **Actionable advice**: Suggest specific actions they can take in their product management platform
-- **Framework-driven**: When relevant, suggest PM frameworks (RICE, MoSCoW, HEART, etc.) to structure thinking
-- **Prioritization focus**: Help them prioritize features based on impact, effort, and strategic goals
-- **User-centric**: Keep the focus on solving real user problems and delivering value
-- **Business context**: Consider their industry, product stage, and business model in recommendations
-- **Stakeholder alignment**: Help them communicate decisions and rationale clearly
-- **Iterative mindset**: Encourage experimentation, measurement, and continuous improvement
-- **Reference actual data**: When discussing features or requirements, reference their specific data`;
+  return `## Guidelines
+- Use the provided context data to give specific, personalized advice about their features, releases, and roadmaps
+- Focus on actionable PM recommendations rather than generic advice
+- When relevant, suggest PM frameworks (RICE prioritization, User Story Mapping, HEART metrics)
+- Keep responses focused on their actual product challenges and goals`;
 }
 
 /**

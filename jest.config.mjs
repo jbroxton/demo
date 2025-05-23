@@ -3,7 +3,7 @@ const require = createRequire(import.meta.url);
 
 /** @type {import('jest').Config} */
 const config = {
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',
@@ -38,14 +38,8 @@ const config = {
       statements: 70
     }
   },
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        jsx: 'react',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-      }
-    }
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons']
   }
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useState, useContext, useCallback, useMemo, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, useCallback, useMemo, ReactNode, useEffect } from 'react';
 
 // Define the type for right sidebar tab
 type RightSidebarTab = 'chat' | 'todo';
@@ -13,6 +13,14 @@ interface UIStateContextType {
   setRightSidebarOpen: (open: boolean) => void;
   activeRightTab: RightSidebarTab;
   setActiveRightTab: (tab: RightSidebarTab) => void;
+
+  // Right sidebar resize state
+  rightSidebarWidth: number;
+  setRightSidebarWidth: (width: number) => void;
+  isResizing: boolean;
+  setIsResizing: (resizing: boolean) => void;
+  rightSidebarMinWidth: number;
+  rightSidebarMaxWidth: number;
 
   // Left sidebar state
   leftSidebarCollapsed: boolean;
@@ -28,9 +36,18 @@ export interface UIStateProviderProps {
 }
 
 export function UIStateProvider({ children }: UIStateProviderProps) {
+  // Constants for sidebar sizing
+  const rightSidebarMinWidth = 280;
+  const rightSidebarMaxWidth = 600;
+  const defaultRightSidebarWidth = 400;
+
   // State for right sidebar
   const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(false);
   const [activeRightTab, setActiveRightTab] = useState<RightSidebarTab>('chat');
+
+  // State for right sidebar resizing
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(defaultRightSidebarWidth);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
 
   // State for left sidebar
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState<boolean>(false);
@@ -51,6 +68,15 @@ export function UIStateProvider({ children }: UIStateProviderProps) {
           setActiveRightTab(savedActiveTab);
         }
 
+        // Right sidebar width
+        const savedRightSidebarWidth = localStorage.getItem('rightSidebarWidth');
+        if (savedRightSidebarWidth !== null) {
+          const width = parseInt(savedRightSidebarWidth, 10);
+          if (width >= rightSidebarMinWidth && width <= rightSidebarMaxWidth) {
+            setRightSidebarWidth(width);
+          }
+        }
+
         // Left sidebar state
         const savedLeftSidebarState = localStorage.getItem('leftSidebarCollapsed');
         if (savedLeftSidebarState !== null) {
@@ -68,12 +94,13 @@ export function UIStateProvider({ children }: UIStateProviderProps) {
       try {
         localStorage.setItem('rightSidebarOpen', rightSidebarOpen.toString());
         localStorage.setItem('activeRightTab', activeRightTab);
+        localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
         localStorage.setItem('leftSidebarCollapsed', leftSidebarCollapsed.toString());
       } catch (error) {
         console.error('Failed to save UI state to localStorage:', error);
       }
     }
-  }, [rightSidebarOpen, activeRightTab, leftSidebarCollapsed]);
+  }, [rightSidebarOpen, activeRightTab, rightSidebarWidth, leftSidebarCollapsed]);
 
   // Toggle function for right sidebar
   const toggleRightSidebar = useCallback(() => {
@@ -95,12 +122,20 @@ export function UIStateProvider({ children }: UIStateProviderProps) {
       activeRightTab,
       setActiveRightTab,
 
+      // Right sidebar resize
+      rightSidebarWidth,
+      setRightSidebarWidth,
+      isResizing,
+      setIsResizing,
+      rightSidebarMinWidth,
+      rightSidebarMaxWidth,
+
       // Left sidebar
       leftSidebarCollapsed,
       toggleLeftSidebar,
       setLeftSidebarCollapsed
     }),
-    [rightSidebarOpen, toggleRightSidebar, activeRightTab, leftSidebarCollapsed, toggleLeftSidebar]
+    [rightSidebarOpen, toggleRightSidebar, activeRightTab, rightSidebarWidth, isResizing, leftSidebarCollapsed, toggleLeftSidebar]
   );
 
   return (

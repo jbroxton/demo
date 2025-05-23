@@ -92,7 +92,7 @@ export function TabsContainer() {
   };
 
   return (
-    <div className="bg-transparent relative z-10 rounded-t-lg pt-1 w-full" data-component="tabs-container">
+    <div className="bg-transparent relative rounded-t-lg pt-1 w-full" data-component="tabs-container">
       <Tabs
         value={activeTabId || ''}
         onValueChange={(value) => {
@@ -100,7 +100,7 @@ export function TabsContainer() {
         }}
         className="w-full"
       >
-        <TabsList className="flex h-14 w-full rounded-none bg-transparent px-6 py-2 items-center" data-section="tabs-list">
+        <TabsList className="flex h-14 w-full rounded-none bg-transparent px-6 py-2 items-center overflow-x-auto scrollbar-hide" data-section="tabs-list">
           {tabs.map((tab) => (
             <div
               key={tab.id}
@@ -123,7 +123,7 @@ export function TabsContainer() {
               ) : (
                 <TabsTrigger
                   value={String(tab.id)}
-                  className="w-full px-3 flex items-center justify-start text-[13px] tracking-[-0.006em] leading-[1.4] hover:bg-[rgba(147,51,234,0.1)] hover:text-[#9333EA] data-[state=active]:bg-[rgba(147,51,234,0.15)] data-[state=active]:text-[#9333EA] transition-all duration-150 rounded-[10px] py-1.5"
+                  className="w-full px-3 flex items-center justify-start text-[13px] tracking-[-0.006em] leading-[1.4] border border-transparent hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 data-[state=active]:bg-black/30 data-[state=active]:border data-[state=active]:border-white/30 data-[state=active]:text-white transition-all duration-200 rounded-[10px] py-1.5"
                   data-action="activate-tab"
                 >
                   {getTabIcon(tab.type)}
@@ -138,7 +138,7 @@ export function TabsContainer() {
               {editingTabId !== tab.id && (
                 <button
                   onClick={(e) => handleEditStart(e, tab)}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-[rgba(147,51,234,0.1)] opacity-0 hover:opacity-100 group-hover:opacity-70 transition-opacity duration-150"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 rounded-full p-1 border border-transparent hover:bg-black/20 hover:border hover:border-white/20 opacity-0 hover:opacity-100 group-hover:opacity-70 transition-all duration-200"
                   aria-label={`Edit ${tab.title} name`}
                   data-action="edit-tab"
                 >
@@ -148,7 +148,7 @@ export function TabsContainer() {
 
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-[rgba(147,51,234,0.1)] opacity-0 group-hover:opacity-100 transition-opacity duration-150 focus:outline-none focus:ring-1 focus:ring-[#9333EA]/30"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 border border-transparent hover:bg-black/20 hover:border hover:border-white/20 opacity-0 group-hover:opacity-100 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-white/30"
                 aria-label={`Close ${tab.title} tab`}
                 data-action="close-tab"
               >

@@ -954,8 +954,9 @@ div[class*='MRT_TopToolbar'],
   grid-template-columns:
     [navigator-start] var(--left-sidebar-width-expanded)
     [navigator-end canvas-start] 1fr
-    [canvas-end utility-start] var(--right-sidebar-width-collapsed)
+    [canvas-end utility-start] var(--dynamic-right-sidebar-width, 48px)
     [utility-end];
+  /* NOTE: CSS variable approach had inheritance issues - overridden by inline styles in dashboard-layout-query.tsx */
   grid-template-areas:
     "navigator canvas utility";
   transition: all var(--transition-speed) var(--transition-timing);
@@ -968,7 +969,7 @@ div[class*='MRT_TopToolbar'],
   grid-template-columns:
     [navigator-start] var(--left-sidebar-width-collapsed)
     [navigator-end canvas-start] 1fr
-    [canvas-end utility-start] var(--right-sidebar-width-collapsed)
+    [canvas-end utility-start] var(--dynamic-right-sidebar-width, 48px)
     [utility-end];
 }
 
@@ -978,28 +979,11 @@ div[class*='MRT_TopToolbar'],
   padding: 0;
 }
 
-/* Expanded utility panel state */
-.workspace-grid.utility-expanded {
-  grid-template-columns:
-    [navigator-start] var(--left-sidebar-width-expanded)
-    [navigator-end canvas-start] 1fr
-    [canvas-end utility-start] 280px
-    [utility-end];
-}
-
-/* Combined state: navigator collapsed, utility expanded */
-.workspace-grid.navigator-collapsed.utility-expanded {
-  grid-template-columns:
-    [navigator-start] var(--left-sidebar-width-collapsed)
-    [navigator-end canvas-start] 1fr
-    [canvas-end utility-start] 280px
-    [utility-end];
-}
+/* Utility panel states are now handled by the dynamic width variable in base grid */
 
 /* Grid area assignments */
 .canvas-tabs {
   grid-area: canvas-tabs;
-  border-bottom: 1px solid var(--grid-border-color, var(--sidebar-border));
   background-color: var(--header-bg, var(--sidebar));
   z-index: 20;
   width: 100%;
@@ -1012,9 +996,9 @@ div[class*='MRT_TopToolbar'],
   border-right: 1px solid var(--grid-border-color, var(--sidebar-border));
   background-color: var(--sidebar-bg, var(--sidebar));
   overflow-y: auto;
-  z-index: 30;
   width: 100%;
   position: relative;
+  /* Removed z-index: 30 to keep all grid items on same z-plane */
 }
 
 /* Explicit widths for collapsed and expanded states */
@@ -1042,8 +1026,9 @@ div[class*='MRT_TopToolbar'],
   grid-area: canvas-tabs;
   height: var(--header-height);
   width: 100%;
-  border-bottom: 1px solid var(--grid-border-color, var(--sidebar-border));
-  z-index: 20;
+  /* Debug border removed - z-index issue fixed in tabs-container.tsx */
+  box-sizing: border-box;
+  /* Removed z-index: 20 to keep all grid items on same z-plane */
 }
 
 .canvas-editor {
@@ -1057,6 +1042,11 @@ div[class*='MRT_TopToolbar'],
   min-width: 0; /* Prevents grid items from overflowing */
 }
 
+/* Remove borders from cards in canvas area */
+.canvas-editor [data-slot="card"] {
+  border: none;
+}
+
 /* Ensure canvas adapts to sidebar states */
 .workspace-grid.navigator-collapsed .canvas-editor {
   flex-grow: 1;
@@ -1066,34 +1056,34 @@ div[class*='MRT_TopToolbar'],
 .utility-panel {
   grid-area: utility;
   border-left: 1px solid var(--grid-border-color, var(--sidebar-border));
-  background-color: var(--sidebar-bg, var(--sidebar));
+  background-color: #0A0A0A;
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 30;
-  transition: width var(--transition-speed) var(--transition-timing);
-  width: 100%;
-  max-width: var(--right-sidebar-width-expanded);
   height: 100%;
-  grid-row: 1 / span 2; /* Span both rows from top to bottom */
   box-sizing: border-box;
+  position: relative;
+  
+  /* IMPORTANT: No explicit width properties here!
+   * Width is controlled by CSS Grid column sizing set in dashboard-layout-query.tsx
+   * Any explicit width would break out of grid constraints and cause overlay issues
+   * The resize handle updates React state, which updates gridTemplateColumns inline style
+   */
 }
 
-/* Explicit widths for collapsed and expanded utility panel states */
-.workspace-grid:not(.utility-expanded) .utility-panel {
-  width: var(--right-sidebar-width-collapsed);
-}
-
-.workspace-grid.utility-expanded .utility-panel {
-  width: var(--right-sidebar-width-expanded);
-}
+/* Width is controlled by CSS Grid columns - no explicit width overrides needed */
 
 /* Hardware accelerated transitions */
 .navigator-panel,
-.utility-panel,
 .canvas-editor {
   will-change: transform, width;
   transform: translateZ(0);
   transition: width var(--transition-speed) var(--transition-timing);
+}
+
+.utility-panel {
+  will-change: transform;
+  transform: translateZ(0);
+  /* No width transition needed - grid handles sizing */
 }
 
 /* Container for canvas editor content */
@@ -1112,6 +1102,71 @@ div[class*='MRT_TopToolbar'],
   max-width: 100%;
   margin: 0;
   width: 100%;
+}
+
+/* Hide scrollbars utility class */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Messaging app floating bubble effects */
+.message-bubble {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  animation: messageAppear 0.3s ease-out;
+}
+
+.message-bubble:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+@keyframes messageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Clean software-style toggle */
+.software-toggle {
+  transition: all 0.2s ease-out;
+}
+
+.software-toggle:hover {
+  backdrop-filter: blur(8px);
+}
+
+.status-indicator {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Smooth transitions for toggle states */
+.mode-selector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-selector:hover {
+  transform: translateY(-1px);
 }
 
 /* Roadmap editor custom styles */
