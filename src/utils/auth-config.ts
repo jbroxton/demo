@@ -30,7 +30,7 @@ export function getAuthUrl() {
   }
   
   // 4. Fallback to localhost with proper port
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
   return `http://localhost:${port}`;
 }
 

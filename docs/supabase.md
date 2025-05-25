@@ -1,5 +1,7 @@
 # Supabase Migration
 
+password: GixjFCTf36MUJD7l
+
 ## Objective
 Migrate database from SQLite to Supabase PostgreSQL while maintaining existing NextAuth authentication
 
@@ -722,6 +724,9 @@ For each route file in `/src/app/api/*/route.ts`:
   // - /src/services/grid-settings.ts
    //- /src/services/ai-db.ts - SQLite vector database for AI features (optional for initial migration)
 
+acac31b2-1ff2-4792-b2dc-2b7f4164f53a
+
+cb1e1373-da6e-4167-86b9-3f08f81e3315
 
   4. Configuration Files
 
@@ -745,6 +750,16 @@ For each route file in `/src/app/api/*/route.ts`:
   - /src/app/page.tsx - Has SQLite import reference
   - /src/app/prototype/document-editor/instruction.tsx - Has SQLite import reference
   - Any components that might have hardcoded TEXT ID assumptions
+
+
+  Create mapProductFromDb function in products-db.ts to convert snake_case to camelCase
+     ☐ Create mapProductToDb function in products-db.ts to convert camelCase to snake_case
+     ☐ Update getProductsFromDb to use mapProductFromDb for all returned products
+     ☐ Update createProductInDb to use mapProductToDb for input and mapProductFromDb for output
+     ☐ Update updateProductInDb to use mapProductToDb for input and mapProductFromDb for output
+     ☐ Test creating a new product and verify it has camelCase fields
+     ☐ Test opening a product tab and verify the edit page loads correctly
+     ☐ Test updating product fields and verify changes persist
 
 ```
 

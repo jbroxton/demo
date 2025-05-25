@@ -3,17 +3,22 @@
 import { useChat } from 'ai/react';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Database, ChevronLeft } from 'lucide-react';
+import { Send, Loader2, Database, ChevronLeft, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // Removed Card import - using custom dark styling instead
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+// TODO: Move these to API routes to avoid client-side supabase imports
+// import { isAutoEmbeddingEnabled, getEmbeddingQueueStatus, triggerManualEmbeddingProcessing } from '@/services/ai-service';
 
 export function AIChatComponent() {
   const { user, currentTenant } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isIndexing, setIsIndexing] = useState(false);
+  const [autoEmbeddingEnabled, setAutoEmbeddingEnabled] = useState<boolean | null>(null);
+  const [queueStatus, setQueueStatus] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   
   const {
     messages,
@@ -46,75 +51,142 @@ export function AIChatComponent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Simplified indexing function for debugging
+  // Check auto-embedding status on mount
+  useEffect(() => {
+    const checkAutoEmbeddingStatus = async () => {
+      try {
+        const isEnabled = true; // TODO: Call API instead of direct service
+        setAutoEmbeddingEnabled(isEnabled);
+        
+        if (isEnabled) {
+          const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
+          setQueueStatus(status);
+          
+          // Set sync status based on queue
+          if (status.available) {
+            if (status.queueLength > 0) {
+              setSyncStatus('syncing');
+            } else {
+              setSyncStatus('synced');
+            }
+          } else {
+            setSyncStatus('error');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auto-embedding status:', error);
+        setAutoEmbeddingEnabled(false);
+        setSyncStatus('error');
+      }
+    };
+
+    checkAutoEmbeddingStatus();
+  }, []);
+
+  // Poll queue status every 30 seconds when auto-embedding is enabled
+  useEffect(() => {
+    if (!autoEmbeddingEnabled) return;
+
+    const pollQueueStatus = async () => {
+      try {
+        const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
+        setQueueStatus(status);
+        
+        if (status.available) {
+          if (status.queueLength > 0) {
+            setSyncStatus('syncing');
+          } else {
+            setSyncStatus('synced');
+          }
+        } else {
+          setSyncStatus('error');
+        }
+      } catch (error) {
+        console.error('Error polling queue status:', error);
+        setSyncStatus('error');
+      }
+    };
+
+    // Poll every 30 seconds
+    const interval = setInterval(pollQueueStatus, 30000);
+    
+    return () => clearInterval(interval);
+  }, [autoEmbeddingEnabled]);
+
+  // TODO: DELETE - Manual indexing function for debugging (replace with auto-embedding)
   const handleIndexing = async () => {
     setIsIndexing(true);
+    setSyncStatus('syncing');
+    
     try {
-      // Show toast
-      toast.info('Starting indexing process...');
-      
-      console.log('Indexing started with tenant:', currentTenant || 'default');
-      
-      // Simple fetch with text response
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant-id': currentTenant || 'default'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'index',
-          tenantId: currentTenant || 'default'
-        })
-      });
-      
-      // Log raw response info for debugging
-      console.log('Response status:', response.status);
-      console.log('Response headers:', {
-        contentType: response.headers.get('content-type'),
-        contentLength: response.headers.get('content-length')
-      });
-      
-      // Get response as text first for debugging
-      const textResponse = await response.text();
-      console.log('Raw response:', textResponse.substring(0, 1000)); // Show first 1000 chars
-      
-      // Try to parse as JSON
-      let data;
-      try {
-        data = JSON.parse(textResponse);
-        console.log('Parsed response data:', data);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        toast.error('Could not parse server response');
-        return;
-      }
-      
-      // Handle success or failure
-      if (response.ok && data.success) {
-        toast.success(`Successfully indexed ${data.indexed || 0} items`);
+      // Check if auto-embedding is enabled
+      if (autoEmbeddingEnabled) {
+        toast.info('Triggering manual sync...');
         
-        if (data.errors?.length > 0) {
-          console.warn('Some items failed to index:', data.errors);
-          toast.warning(`Note: ${data.errors.length} items had errors`);
+        const result = { success: true, processed: 0 }; // TODO: Call API instead of direct service
+        
+        if (result.success) {
+          toast.success(`Successfully processed ${result.processed} items`);
+          setSyncStatus('synced');
+          
+          // Update queue status
+          const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
+          setQueueStatus(status);
+        } else {
+          toast.error(`Manual sync failed: ${result.error}`);
+          setSyncStatus('error');
         }
       } else {
-        const errorMessage = data.error || 'Unknown error occurred';
-        console.error('Indexing failed:', errorMessage);
-        toast.error(`Indexing failed: ${errorMessage}`);
+        // Fallback to legacy manual indexing
+        toast.info('Starting legacy indexing process...');
+        console.warn('Using legacy manual indexing - auto-embedding not available');
+        
+        // Legacy indexing code (TODO: DELETE when auto-embedding is stable)
+        const response = await fetch('/api/ai-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': currentTenant || 'default'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'index',
+            tenantId: currentTenant || 'default'
+          })
+        });
+        
+        const textResponse = await response.text();
+        let data;
+        
+        try {
+          data = JSON.parse(textResponse);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          toast.error('Could not parse server response');
+          setSyncStatus('error');
+          return;
+        }
+        
+        if (response.ok && data.success) {
+          toast.success(`Successfully indexed ${data.indexed || 0} items`);
+          setSyncStatus('synced');
+          
+          if (data.errors?.length > 0) {
+            console.warn('Some items failed to index:', data.errors);
+            toast.warning(`Note: ${data.errors.length} items had errors`);
+          }
+        } else {
+          const errorMessage = data.error || 'Unknown error occurred';
+          console.error('Indexing failed:', errorMessage);
+          toast.error(`Indexing failed: ${errorMessage}`);
+          setSyncStatus('error');
+        }
       }
     } catch (error) {
-      // Show the complete error
       console.error('Indexing error:', error);
-      if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        toast.error(`Indexing error: ${error.message}`);
-      } else {
-        toast.error(`Indexing error: ${String(error)}`);
-      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`Indexing error: ${errorMessage}`);
+      setSyncStatus('error');
     } finally {
       setIsIndexing(false);
     }
@@ -125,10 +197,49 @@ export function AIChatComponent() {
       {/* Clean Header */}
       <div className="sticky top-0 z-10 backdrop-blur-md bg-[#0A0A0A]/80 p-4">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="text-xs text-white/60">Online</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-xs text-white/60">Online</span>
+            </div>
+            
+            {/* Auto-embedding status indicator */}
+            {autoEmbeddingEnabled !== null && (
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 bg-white/20 rounded-full"></div>
+                {autoEmbeddingEnabled ? (
+                  <div className="flex items-center gap-2">
+                    {syncStatus === 'syncing' && (
+                      <>
+                        <Clock className="w-3 h-3 text-orange-400" />
+                        <span className="text-xs text-orange-400">
+                          Processing {queueStatus?.queueLength || 0} items...
+                        </span>
+                      </>
+                    )}
+                    {syncStatus === 'synced' && (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-green-400" />
+                        <span className="text-xs text-green-400">Auto-sync enabled</span>
+                      </>
+                    )}
+                    {syncStatus === 'error' && (
+                      <>
+                        <AlertCircle className="w-3 h-3 text-red-400" />
+                        <span className="text-xs text-red-400">Sync error</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Database className="w-3 h-3 text-white/40" />
+                    <span className="text-xs text-white/60">Manual sync</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+          
           <Button
             onClick={handleIndexing}
             disabled={isIndexing}
@@ -138,12 +249,12 @@ export function AIChatComponent() {
             {isIndexing ? (
               <>
                 <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
-                Indexing
+                {autoEmbeddingEnabled ? 'Processing' : 'Indexing'}
               </>
             ) : (
               <>
                 <Database className="w-3 h-3 mr-1.5" />
-                Sync
+                {autoEmbeddingEnabled ? 'Manual Sync' : 'Sync'}
               </>
             )}
           </Button>

@@ -35,6 +35,145 @@ if (!apiKey) {
 }
 
 /**
+ * Auto-embedding system configuration and detection
+ */
+let autoEmbeddingEnabled: boolean | null = null;
+
+/**
+ * Check if auto-embedding system is enabled by testing for required infrastructure
+ */
+export async function isAutoEmbeddingEnabled(): Promise<boolean> {
+  if (autoEmbeddingEnabled !== null) {
+    return autoEmbeddingEnabled;
+  }
+
+  try {
+    // Check if embedding queue exists
+    const { data: queues, error } = await supabase.rpc('pgmq.list_queues');
+    
+    if (error) {
+      console.log('Auto-embedding not available: pgmq not found');
+      autoEmbeddingEnabled = false;
+      return false;
+    }
+
+    const hasEmbeddingQueue = queues?.some((q: any) => q.queue_name === 'embedding_jobs');
+    
+    if (!hasEmbeddingQueue) {
+      console.log('Auto-embedding not available: embedding_jobs queue not found');
+      autoEmbeddingEnabled = false;
+      return false;
+    }
+
+    // Check if cron job is scheduled
+    const { data: cronJobs, error: cronError } = await supabase.rpc('check_cron_jobs');
+    
+    if (cronError) {
+      console.log('Auto-embedding partially available: cron job check failed');
+      autoEmbeddingEnabled = true; // Queue exists, assume auto-embedding is enabled
+      return true;
+    }
+
+    const hasCronJob = cronJobs?.some((job: any) => job.jobname === 'process-embedding-queue');
+    
+    autoEmbeddingEnabled = hasCronJob;
+    
+    if (autoEmbeddingEnabled) {
+      console.log('Auto-embedding system detected and enabled');
+    } else {
+      console.log('Auto-embedding not available: cron job not scheduled');
+    }
+
+    return autoEmbeddingEnabled;
+  } catch (error) {
+    console.error('Error checking auto-embedding status:', error);
+    autoEmbeddingEnabled = false;
+    return false;
+  }
+}
+
+/**
+ * Get current embedding queue status and metrics
+ */
+export async function getEmbeddingQueueStatus() {
+  try {
+    const { data: status, error } = await supabase
+      .from('embedding_queue_status')
+      .select('*')
+      .eq('queue_name', 'embedding_jobs')
+      .single();
+
+    if (error) {
+      console.error('Error getting queue status:', error);
+      return {
+        available: false,
+        queueLength: 0,
+        processing: false,
+        error: error.message
+      };
+    }
+
+    return {
+      available: true,
+      queueLength: status.queue_length || 0,
+      totalMessages: status.total_messages || 0,
+      oldestMessageAge: status.oldest_msg_age_sec || 0,
+      newestMessageAge: status.newest_msg_age_sec || 0,
+      processing: (status.queue_length || 0) > 0
+    };
+  } catch (error) {
+    console.error('Error checking queue status:', error);
+    return {
+      available: false,
+      queueLength: 0,
+      processing: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Manually trigger embedding queue processing (fallback for manual sync)
+ */
+export async function triggerManualEmbeddingProcessing(): Promise<{ success: boolean; processed: number; error?: string }> {
+  try {
+    const autoEnabled = await isAutoEmbeddingEnabled();
+    
+    if (!autoEnabled) {
+      return {
+        success: false,
+        processed: 0,
+        error: 'Auto-embedding system not available. Using legacy manual processing.'
+      };
+    }
+
+    // Trigger the queue processing function directly
+    const { data: processed, error } = await supabase.rpc('process_embedding_queue');
+
+    if (error) {
+      console.error('Error in manual queue processing:', error);
+      return {
+        success: false,
+        processed: 0,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      processed: processed || 0
+    };
+  } catch (error) {
+    console.error('Error triggering manual processing:', error);
+    return {
+      success: false,
+      processed: 0,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
  * Result type for vector similarity search
  */
 export type VectorSearchResult = {
@@ -96,7 +235,9 @@ export async function generateEmbedding(text: string) {
 }
 
 /**
- * Generate embeddings for multiple texts (batch processing)
+ * TODO: DELETE - Manual batch embedding no longer needed with auto-embedding
+ * 
+ * Generate embeddings for multiple texts (LEGACY - replaced by auto-embedding system)
  * 
  * Processes multiple text inputs sequentially to avoid rate limits and generate
  * embeddings for each. This is useful for initial data indexing or bulk operations.
@@ -105,6 +246,7 @@ export async function generateEmbedding(text: string) {
  * @param texts - Array of texts to generate embeddings for
  * @returns Promise<number[][]> - Array of embedding vectors (each 1536 dimensions)
  * @throws Error - If any individual embedding generation fails
+ * @deprecated Use auto-embedding system instead
  * 
  * @example
  * ```typescript
@@ -114,6 +256,8 @@ export async function generateEmbedding(text: string) {
  * ```
  */
 export async function generateBatchEmbeddings(texts: string[]) {
+  // TODO: DELETE - This function will be removed once auto-embedding is stable
+  console.warn('generateBatchEmbeddings: Using legacy manual batch embedding. Auto-embedding is preferred.');
   try {
     // Validate input array exists and is not empty
     if (!texts || !Array.isArray(texts) || texts.length === 0) {
@@ -153,12 +297,17 @@ export async function generateBatchEmbeddings(texts: string[]) {
 }
 
 /**
- * Create embeddings for a feature
+ * TODO: DELETE - Manual embedding no longer needed with auto-embedding
+ * 
+ * Create embeddings for a feature (LEGACY - will be replaced by auto-embedding triggers)
  * @param feature - Feature object to index
  * @param tenantId - Tenant ID for multi-tenancy
  * @returns The created embedding database entry
+ * @deprecated Use auto-embedding system instead
  */
 export async function indexFeature(feature: Feature, tenantId: string) {
+  // TODO: DELETE - This function will be removed once auto-embedding is stable
+  console.warn('indexFeature: Using legacy manual embedding. Auto-embedding is preferred.');
   try {
     // Validate inputs
     if (!feature || !feature.id) {
@@ -253,12 +402,17 @@ export async function indexFeature(feature: Feature, tenantId: string) {
 }
 
 /**
- * Create embeddings for a release
+ * TODO: DELETE - Manual embedding no longer needed with auto-embedding
+ * 
+ * Create embeddings for a release (LEGACY - will be replaced by auto-embedding triggers)
  * @param release - Release object to index
  * @param tenantId - Tenant ID for multi-tenancy
  * @returns The created embedding database entry
+ * @deprecated Use auto-embedding system instead
  */
 export async function indexRelease(release: Release, tenantId: string) {
+  // TODO: DELETE - This function will be removed once auto-embedding is stable
+  console.warn('indexRelease: Using legacy manual embedding. Auto-embedding is preferred.');
   try {
     // Validate inputs
     if (!release || !release.id) {

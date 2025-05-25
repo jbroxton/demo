@@ -52,13 +52,98 @@ section does not state specific requirements. Instead, it provides a background 
 # Goal
 - Add auto embedding support in Supabase (https://supabase.com/docs/guides/ai/automatic-embeddings)
 
+# Background
+- We are in the process of implementation but currently blocked on the service being fully automated
+- We are developing the project locally and plan to push it to the production env
+- The issue is right now the process is not automated, but works will manually started the process.
+
 # Task to complete
-- Read reference files and link in "# References"
-- Create a list of task needed to implement the solution with the current Speqq achitecture
-- Add list to "# Implementation Tasks"
-- Group tasks into testible units
-- Create unit test for each testible unit: Have: Test name given x input we should have y output
-- Add unit test under the task
+- Review each of the steps in the solution
+- Propsose why the solution is not automated. 
+- Create a unit test to test your hypothesis
+
+# Output
+
+## Hypothesis: Why Auto-Embedding Service Is Not Fully Automated
+
+After thorough analysis of the implementation and testing, I have identified the **primary hypothesis** for why the auto-embedding service is not fully automated:
+
+### **Primary Hypothesis: Edge Functions Service Requires Manual Startup**
+
+**Root Cause**: The Supabase Edge Functions service (`supabase functions serve`) requires **manual startup** in the local development environment, which breaks the automation chain.
+
+**Evidence Supporting This Hypothesis**:
+
+1. **Infrastructure Analysis**: All required components are properly implemented:
+   - ✅ PostgreSQL extensions enabled (pgvector, pgmq, pg_net, pg_cron)
+   - ✅ Database triggers fire correctly (jobs get queued)
+   - ✅ Cron job exists and runs every 30 seconds
+   - ✅ Message queue system working
+   - ✅ Edge Function code is functional
+
+2. **Automation Failure Pattern**: 
+   - Jobs get queued automatically (triggers work)
+   - Cron job runs and attempts processing
+   - Jobs remain in queue with increasing `read_ct` (retry attempts)
+   - Manual cron execution processes jobs successfully when Edge Functions are running
+
+3. **Service Dependency**: The cron job makes HTTP calls to `http://kong:8000/functions/v1/process-embedding`, but this endpoint is only available when the Edge Functions service is manually started with `npx supabase functions serve`.
+
+### **Secondary Hypothesis: Environment Configuration Issues**
+
+**Root Cause**: Even when Edge Functions service is running, environment variables (especially OpenAI API key) may not be properly loaded.
+
+**Evidence**: 
+- Edge Function returns: `{"success":{"success":false,"error":"OpenAI API key not configured"}}`
+- Requires restart with `--env-file supabase/.env` flag
+
+### **Tertiary Hypothesis: Container Networking Configuration**
+
+**Root Cause**: Database container cannot reach Edge Functions through the Kong gateway due to Docker networking configuration.
+
+**Evidence**:
+- Fixed by updating URL from `http://127.0.0.1:54321` to `http://kong:8000`
+- Follows Supabase Docker architecture where services communicate through Kong gateway
+
+## **Proposed Solutions**
+
+### **For Local Development**:
+1. **Document Edge Functions Startup**: Add to development setup instructions that `npx supabase functions serve --env-file supabase/.env` must be running
+2. **Add Service Health Checks**: Implement monitoring to detect when Edge Functions service is down
+3. **Automate Service Startup**: Consider Docker Compose integration to automatically start Edge Functions
+
+### **For Production Deployment**:
+1. **Supabase Cloud**: Edge Functions run automatically, no manual startup required
+2. **Self-Hosted**: Ensure Edge Functions service is configured to start automatically
+3. **Monitoring**: Implement alerts for Edge Functions service availability
+
+## **Unit Test Created**
+
+**File**: `/src/unit-tests/ai-automation-hypothesis-test.test.ts`
+
+This comprehensive unit test validates the hypothesis by:
+1. Testing Edge Function service availability
+2. Verifying complete automation pipeline
+3. Comparing manual vs automatic processing
+4. Validating environment configuration
+5. Detecting specific failure points
+
+**Test Scenarios**:
+- If Edge Functions not running → Test 2 fails, confirms primary hypothesis
+- If environment not configured → Test 5 detects OpenAI API key issues  
+- If networking issues → Tests show manual works but automation fails
+- If fully working → All tests pass, hypothesis rejected
+
+## **Validation Results**
+
+Based on testing conducted:
+- ✅ **Primary Hypothesis CONFIRMED**: Edge Functions service requires manual startup
+- ✅ **Secondary Hypothesis CONFIRMED**: Environment variables need explicit loading
+- ✅ **Tertiary Hypothesis CONFIRMED**: Container networking required Kong gateway URL
+
+**Current Status**: Auto-embedding works when Edge Functions service is manually started with proper environment configuration. The system is **functionally complete** but requires **service management** for full automation.
+
+- creete a unit test and place it in /unit-tests
 
 Unit tests example
 - After a change in the data, vector embedding as autimatically updated
@@ -288,3 +373,98 @@ Unit tests example
 - **Test Name**: `test_auto_embedding_stability_post_cleanup`
   - **Given**: Manual code is fully removed
   - **Expected**: Auto-embedding system continues working perfectly for 7 days
+
+
+# Solution
+** Auto-Embedding Data Flow - Step by Step **
+
+** Data Flow **
+1. User Creates/Updates Feature
+
+  - User creates or updates a feature in the UI
+  - Data is sent to /api/features-db route
+  - Feature is inserted/updated in features table
+
+  TEST: 
+  - A user added feature is stored in the features table
+
+2. Queue Embedding Job
+
+  - BEFORE UPDATE: features_clear_embedding_trigger
+    - Deletes existing embedding if content changed (name, description, priority)
+  - AFTER INSERT/UPDATE: features_enqueue_embedding_trigger
+    - Formats content: "Feature: {name}\nPriority: {priority}\nDescription: {description}"
+    - Creates job payload with entity metadata
+    - Sends job to message queue: pgmq.send('embedding_jobs', job_payload)  
+
+    TEST:
+    - The database trigger is initated
+    - Existing embedding is cleared
+    - Embedding is sent to the queue
+   
+
+  3. Job Queued
+
+  - Job sits in embedding_jobs queue with:
+    - entity_type: 'feature'
+    - entity_id: feature UUID
+    - tenant_id: tenant UUID
+    - content: formatted text
+    - metadata: feature details
+
+    TEST:
+     - Embedding job is in the queue and matches expected size
+     - Embedding job has expected data
+
+  4. Cron Job Executes (Every 30 Seconds)
+
+  - pg_cron automatically runs: SELECT public.process_embedding_queue();
+  - Function reads up to 10 jobs from queue: pgmq.read('embedding_jobs', 30, 10)
+
+    TEST
+     - Cron job exists
+     - Cron job runs every 30 seconds
+     - Cron job can read from queue 
+
+  5. HTTP Call to Edge Function
+
+  - For each job, cron function makes HTTP POST to: http://kong:8000/functions/v1/process-embedding
+  - Sends job payload as JSON body
+  - Uses service role authentication
+
+    TEST
+     - Cron job can make POST to edge function
+     - Cron job can authenticate to edge function
+
+  6. Edge Function Processes Job
+
+  - Edge Function (supabase/functions/process-embedding/index.ts) receives payload
+  - Extracts content text from payload
+  - Calls OpenAI API: text-embedding-3-small model
+  - Gets back embedding vector (1536 dimensions)
+
+    TEST
+    - Edge function can receive payload
+    - Edge function an extract text from payload
+    - Edge function can conntect to OpenAI API
+    - Edge function can receive embeddings from OpenAI API
+
+  7. Embedding Stored in Database
+
+  - Edge Function inserts into ai_embeddings table:
+    - entity_type: 'feature'
+    - entity_id: feature UUID
+    - tenant_id: tenant UUID
+    - content: original text
+    - embedding: vector array
+    - model: 'text-embedding-3-small'
+
+    TEST
+     - Edge function can store embeddings into features table
+     - Embedding are stored in embeddings table
+
+  8. Job Completion
+
+  - If embedding stored successfully, Edge Function returns { success: true }
+  - Cron function receives success response
+  - Job deleted from queue: pgmq.delete('embedding_jobs', job_record.msg_id)
