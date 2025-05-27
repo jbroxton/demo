@@ -77,15 +77,15 @@ export function TabsContainer() {
   const getTabIcon = (tabType: string) => {
     switch (tabType) {
       case 'product':
-        return <Package className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
+        return <Package className="h-4 w-4 flex-shrink-0 my-auto" />;
       case 'interface':
-        return <Layers className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
+        return <Layers className="h-4 w-4 flex-shrink-0 my-auto" />;
       case 'feature':
-        return <Puzzle className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
+        return <Puzzle className="h-4 w-4 flex-shrink-0 my-auto" />;
       case 'release':
-        return <Calendar className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
+        return <Calendar className="h-4 w-4 flex-shrink-0 my-auto" />;
       case 'roadmap':
-        return <Map className="h-4 w-4 mr-1.5 flex-shrink-0 my-auto" />;
+        return <Map className="h-4 w-4 flex-shrink-0 my-auto" />;
       default:
         return null;
     }
@@ -100,7 +100,7 @@ export function TabsContainer() {
         }}
         className="w-full"
       >
-        <TabsList className="flex h-14 w-full rounded-none bg-transparent px-6 py-2 items-center overflow-x-auto scrollbar-hide" data-section="tabs-list">
+        <TabsList className="flex h-12 w-full rounded-none bg-transparent px-6 py-1.5 items-center overflow-x-auto scrollbar-hide" data-section="tabs-list">
           {tabs.map((tab) => (
             <div
               key={tab.id}
@@ -117,17 +117,17 @@ export function TabsContainer() {
                   onKeyDown={(e) => handleKeyDown(e, tab)}
                   onClick={handleInputClick}
                   autoFocus
-                  className="text-[13px] tracking-[-0.006em] leading-[1.4] text-white bg-[#232326] border-[#2a2a2c] h-7 w-full px-3"
+                  className="text-xs tracking-[-0.006em] leading-[1.4] text-white bg-[#232326] border-[#2a2a2c] h-7 w-full px-3"
                   data-action="edit-tab-name"
                 />
               ) : (
                 <TabsTrigger
                   value={String(tab.id)}
-                  className="w-full px-3 flex items-center justify-start text-[13px] tracking-[-0.006em] leading-[1.4] border border-transparent hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 data-[state=active]:bg-black/30 data-[state=active]:border data-[state=active]:border-white/30 data-[state=active]:text-white transition-all duration-200 rounded-[10px] py-1.5"
+                  className="w-full px-2 flex items-center justify-start text-xs tracking-[-0.006em] leading-[1.4] border border-transparent hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 data-[state=active]:bg-black/30 data-[state=active]:border data-[state=active]:border-white/30 data-[state=active]:text-white transition-all duration-200 rounded-[10px] py-1"
                   data-action="activate-tab"
                 >
                   {getTabIcon(tab.type)}
-                  <span className="truncate ml-1.5">{tab.title}</span>
+                  <span className="truncate ml-1">{tab.title}</span>
                   {tab.hasChanges && (
                     <span className="inline-block w-1.5 h-1.5 bg-[#9333EA] rounded-full ml-1.5" aria-label="Unsaved changes" />
                   )}

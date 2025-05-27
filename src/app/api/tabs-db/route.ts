@@ -25,6 +25,14 @@ export const GET = authenticatedHandler(async (request, { tenantId, userId, sear
 
 // POST handler
 export const POST = authenticatedHandler(async (request, { tenantId, userId, body }) => {
+  console.log('🔥 DEBUG [Tabs API POST] Handler called with:', {
+    tenantId,
+    userId,
+    body,
+    url: request.url,
+    method: request.method
+  });
+  
   // Handle different operations
   if (body.operation === 'activate') {
     console.log('API activate tab - body:', JSON.stringify(body));

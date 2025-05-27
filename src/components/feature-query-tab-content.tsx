@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil, Puzzle, Save, X, Plus, FileText, Trash2, Paperclip, Calendar, ClipboardCheck, ChevronRight, ChevronLeft, ChevronDown, Info } from 'lucide-react';
+import { Pencil, Puzzle, Save, X, Plus, FileText, Trash2, Paperclip, Calendar, ClipboardCheck, ChevronRight, ChevronLeft, ChevronDown, Info, MoreHorizontal } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SimpleEditor } from './simple-editor';
 import { FeatureRequirementsSectionQuery } from './feature-requirements-section-query';
@@ -466,7 +466,7 @@ export function FeatureQueryTabContent({
   return (
     <div className="flex flex-col h-full bg-[#0A0A0A] relative">
       {/* Floating Notion-like header with feature name and action buttons - full width */}
-      <div className="px-4 py-6 flex justify-between items-center">
+      <div className="px-4 py-1 flex justify-between items-center">
         {/* Feature name */}
         <div className="flex items-center">
           <Puzzle className="h-7 w-7 mr-3 text-white/50" />
@@ -551,11 +551,11 @@ export function FeatureQueryTabContent({
         </div>
       )}
 
-      {/* Metadata header - closer to title style */}
-      <div className="px-6 py-1 bg-[#0A0A0A] flex items-center">
-        {/* Metadata toggle and title */}
+      {/* Metadata header - sub-heading style */}
+      <div className="ml-7 mt-1 !bg-[#0A0A0A] flex items-center">
+        {/* Metadata toggle */}
         <button
-          className="text-white/50 hover:text-white/90 transition-colors mr-2"
+          className="text-white/50 hover:text-white/90 transition-colors p-0"
           onClick={() => setIsMetadataExpanded(!isMetadataExpanded)}
         >
           {isMetadataExpanded ?
@@ -563,21 +563,20 @@ export function FeatureQueryTabContent({
             <ChevronRight className="h-4 w-4" />
           }
         </button>
-        <span className="text-white/50 text-xs font-medium tracking-wide">Metadata</span>
       </div>
 
       {/* Expandable metadata fields */}
       {isMetadataExpanded && (
-        <div className="px-6 py-3 bg-[#0A0A0A] border-t border-[#1a1a1a]/10 flex flex-wrap items-center gap-4">
+        <div className="ml-7 !bg-[#0A0A0A] flex flex-wrap items-center gap-1">
           {/* Priority */}
           <div className="flex items-center">
-            <span className="text-white/50 text-xs mr-2">Priority:</span>
+            <span className="text-white/50 text-xs mr-1">Priority:</span>
             <Select
               value={priorityValue}
               onValueChange={handlePriorityChange}
               disabled={isSaving}
             >
-              <SelectTrigger className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 h-[1.75rem] w-24 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20">
+              <SelectTrigger className="!bg-transparent text-white/70 py-0 px-1 pr-1 rounded text-xs font-medium border-0 transition-all duration-150 hover:!bg-white/10 hover:text-white/80 h-6 w-14 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 [&>svg]:ml-1 [&>svg]:h-3 [&>svg]:w-3">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent className="bg-[#0F0F0F] border border-white/[0.03] text-white rounded-md">
@@ -590,12 +589,12 @@ export function FeatureQueryTabContent({
 
           {/* Owner */}
           <div className="flex items-center">
-            <span className="text-white/50 text-xs mr-2">Owner:</span>
+            <span className="text-white/50 text-xs mr-1">Owner:</span>
             <Select
               value={"teamMember1"}
               disabled={isSaving}
             >
-              <SelectTrigger className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 h-[1.75rem] w-36 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20">
+              <SelectTrigger className="!bg-transparent text-white/70 py-0 px-1 pr-1 rounded text-xs font-medium border-0 transition-all duration-150 hover:!bg-white/10 hover:text-white/80 h-6 w-28 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 [&>svg]:ml-1 [&>svg]:h-3 [&>svg]:w-3">
                 <SelectValue placeholder="Select Owner" />
               </SelectTrigger>
               <SelectContent className="bg-[#0F0F0F] border border-white/[0.03] text-white rounded-md">
@@ -608,8 +607,8 @@ export function FeatureQueryTabContent({
 
           {/* Status */}
           <div className="flex items-center">
-            <span className="text-white/50 text-xs mr-2">Status:</span>
-            <div className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] h-[1.75rem] flex items-center gap-2">
+            <span className="text-white/50 text-xs mr-1">Status:</span>
+            <div className="!bg-transparent text-white/70 py-0 px-2 rounded text-xs font-medium h-6 flex items-center gap-1">
               <div className="rounded-full h-2 w-2 bg-green-500 shrink-0"></div>
               <span>Active</span>
             </div>
@@ -617,37 +616,29 @@ export function FeatureQueryTabContent({
 
           {/* Updated */}
           <div className="flex items-center">
-            <span className="text-white/50 text-xs mr-2">Updated:</span>
-            <div className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] h-[1.75rem] flex items-center">
+            <span className="text-white/50 text-xs mr-1">Updated:</span>
+            <div className="!bg-transparent text-white/70 py-0 px-2 rounded text-xs font-medium h-6 flex items-center">
               <span>{new Date().toLocaleDateString()}</span>
             </div>
           </div>
 
-          {/* Action buttons - no margin between, just use gap from parent */}
+          {/* Details button - three dots */}
           <button
-            className="bg-[#0C0C0C] text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] transition-all duration-150 hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80 flex items-center gap-2 h-[1.75rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
-            onClick={handleAttachments}
-          >
-            <Paperclip className="h-3.5 w-3.5 shrink-0" />
-            <span>Attachments ({attachments?.length || 0})</span>
-          </button>
-
-          <button
-            className={`py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium border transition-all duration-150 flex items-center gap-2 h-[1.75rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 ${
+            className={`py-0 px-0 rounded text-xs font-medium transition-all duration-150 flex items-center justify-center h-6 w-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 ${
               isDetailsDrawerOpen
-                ? 'bg-[#232326] text-white border-[#3b82f6]/30 shadow-[inset_0_0.5px_0_0_rgba(59,130,246,0.1)]'
-                : 'bg-[#0C0C0C] text-white/70 border-white/[0.02] shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.03)] hover:bg-[#121218] hover:border-white/[0.04] hover:text-white/80'
+                ? '!bg-white/10 text-white'
+                : '!bg-transparent text-white/70 hover:!bg-white/10 hover:text-white/80'
             }`}
             onClick={toggleDetailsDrawer}
+            title="Details"
           >
-            <Info className="h-3.5 w-3.5 shrink-0" />
-            <span>Details</span>
+            <MoreHorizontal className="h-4 w-4 shrink-0" />
           </button>
         </div>
       )}
 
       {/* Main content area with editor - adjust padding based on drawer state */}
-      <div className="flex-1 flex mt-6">
+      <div className="flex-1 flex mt-3">
         <div className="flex-1 flex flex-col h-full overflow-visible transition-all duration-300">
           <div className="flex-1 flex flex-col relative">
             <SimpleEditor
@@ -735,10 +726,45 @@ export function FeatureQueryTabContent({
             </p>
           </div>
           <div className="p-4 flex-grow overflow-y-auto">
-            {/* The drawer is intentionally empty as requested */}
-            {/* Will be populated with additional metadata and controls later */}
+            {/* Attachments section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-white text-sm font-medium">Attachments</h4>
+                <button
+                  className="!bg-transparent text-white/70 py-[0.4rem] px-[0.875rem] rounded-[0.25rem] text-[0.8125rem] font-medium transition-all duration-150 hover:!bg-white/10 hover:text-white/80 flex items-center gap-2 h-[1.75rem] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+                  onClick={handleAttachments}
+                >
+                  <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                  <span>Add Attachment</span>
+                </button>
+              </div>
+              
+              {/* Attachments list */}
+              {attachments && attachments.length > 0 ? (
+                <div className="space-y-2">
+                  {attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Paperclip className="h-3 w-3 text-white/50 shrink-0" />
+                        <span className="text-white/70 text-sm truncate">{attachment.title || attachment.url}</span>
+                      </div>
+                      <button
+                        onClick={() => removeAttachment(attachment.id)}
+                        className="text-white/40 hover:text-red-400 transition-colors p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[#a0a0a0] text-sm">No attachments yet.</p>
+              )}
+            </div>
+            
+            {/* Additional details content */}
             <div className="text-[#a0a0a0] text-sm">
-              <p>Details drawer content will be added here.</p>
+              <p>Additional details content will be added here.</p>
               <p className="mt-4">You can continue editing the document while this drawer is open.</p>
             </div>
           </div>

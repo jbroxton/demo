@@ -261,12 +261,18 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA pgmq TO postgres;
 DO $$
 BEGIN
   IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ai_embeddings') THEN
+    -- Create standard B-tree indexes (memory efficient)
     CREATE INDEX IF NOT EXISTS idx_ai_embeddings_tenant_entity 
     ON public.ai_embeddings(tenant_id, entity_type, entity_id);
 
-    CREATE INDEX IF NOT EXISTS idx_ai_embeddings_search 
-    ON public.ai_embeddings USING ivfflat (embedding extensions.vector_cosine_ops) 
-    WITH (lists = 100);
+    CREATE INDEX IF NOT EXISTS idx_ai_embeddings_entity_type
+    ON public.ai_embeddings(entity_type);
+    
+    -- Vector index creation deferred per Supabase production best practices
+    -- Create manually in production after data is populated using external connection:
+    -- CREATE INDEX CONCURRENTLY idx_ai_embeddings_search 
+    -- ON ai_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 1000);
+    RAISE NOTICE 'Standard indexes created. Vector index should be created manually in production after embeddings are populated.';
   ELSE
     RAISE NOTICE 'ai_embeddings table not found, skipping index creation';
   END IF;

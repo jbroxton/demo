@@ -84,7 +84,7 @@ export async function isAutoEmbeddingEnabled(): Promise<boolean> {
       console.log('Auto-embedding not available: cron job not scheduled');
     }
 
-    return autoEmbeddingEnabled;
+    return autoEmbeddingEnabled ?? false;
   } catch (error) {
     console.error('Error checking auto-embedding status:', error);
     autoEmbeddingEnabled = false;
@@ -564,8 +564,8 @@ export async function searchVectors(
       throw new Error('Invalid tenant ID provided for vector search');
     }
     
-    // Ensure we have a valid UUID for tenant_id, generate one if invalid
-    const tenantUuid = isValidUuid(tenantId) ? tenantId : uuidv4();
+    // Use tenant ID directly - don't generate random UUIDs that break tenant isolation
+    const tenantUuid = tenantId;
     
     console.log(`Performing vector search for query: "${query.substring(0, 50)}${query.length > 50 ? '...' : ''}"`);
     
@@ -573,9 +573,18 @@ export async function searchVectors(
     // Convert the search query into a vector embedding for similarity comparison
     let embedding;
     try {
+      console.log('API key available:', !!apiKey, 'Length:', apiKey.length);
+      // Write debug info to file for inspection
+      require('fs').appendFileSync('/Users/delaghetto/Documents/Projects/demo/vector-debug.log', 
+        `[${new Date().toISOString()}] API key available: ${!!apiKey}, Length: ${apiKey.length}\n`);
+      
       embedding = await generateEmbedding(query);
+      console.log('Embedding generated successfully, length:', embedding.length);
+      require('fs').appendFileSync('/Users/delaghetto/Documents/Projects/demo/vector-debug.log', 
+        `[${new Date().toISOString()}] Embedding generated: ${embedding.length} dimensions\n`);
     } catch (embeddingError) {
       console.error('Error generating embedding for search query:', embeddingError);
+      console.error('API key status:', { hasKey: !!apiKey, keyLength: apiKey?.length || 0 });
       throw new Error(`Search failed: ${embeddingError instanceof Error ? embeddingError.message : 'Failed to generate query embedding'}`);
     }
     
@@ -596,20 +605,45 @@ export async function searchVectors(
     
     // === VECTOR SIMILARITY SEARCH ===
     // Use Supabase's custom match_documents function for optimized vector search
+    console.log('RPC Parameters:', {
+      embedding_type: typeof embedding,
+      embedding_length: embedding.length,
+      embedding_sample: embedding.slice(0, 3),
+      match_threshold: 0.0,
+      match_count: searchCount,
+      tenant_filter: tenantUuid
+    });
+    
     const { data, error } = await supabase.rpc('match_documents', {
-      query_embedding: embedding,            // The query vector to match against
-      match_threshold: 0.3,                 // Minimum similarity score (0.3 = 70% similar)
-      match_count: searchCount,             // Number of candidates to retrieve
-      tenant_filter: tenantUuid             // Multi-tenant isolation
+      query_embedding: embedding,                   // Plain array format that worked in unit test
+      match_threshold: 0.0,                         // No threshold - accept any similarity for debugging 
+      match_count: searchCount,                     // Number of candidates to retrieve
+      tenant_filter: tenantUuid                     // Multi-tenant isolation
     });
     
     // Handle database errors
     if (error) {
       console.error('Supabase vector search error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Query parameters:', { 
+        embedding_length: embedding.length, 
+        match_threshold: 0.3, 
+        match_count: searchCount, 
+        tenant_filter: tenantUuid 
+      });
       throw new Error(`Vector search failed: ${error.message}`);
     }
     
     console.log(`Found ${data?.length || 0} initial matches`);
+    if (data && data.length > 0) {
+      console.log('Sample result:', {
+        id: data[0].id,
+        similarity: data[0].similarity,
+        content_preview: data[0].content?.substring(0, 100)
+      });
+    } else {
+      console.log('No matches found - this suggests vector search is not finding similar content');
+    }
     
     // === METADATA FILTERING ===
     // Apply optional filters to narrow down results based on metadata

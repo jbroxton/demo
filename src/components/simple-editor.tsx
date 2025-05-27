@@ -511,11 +511,11 @@ export function SimpleEditor({
     <div className={`flex flex-col h-full w-full bg-[#0A0A0A] rounded-[12px] ${className}`}>
       {/* Clean Software-style Toolbar */}
       <div
-        className="px-3 py-2.5 mx-4 mt-0 mb-3 bg-black/30 backdrop-blur-sm border border-white/20 rounded-[12px] flex flex-wrap items-center gap-2 transition-all duration-200"
+        className="px-3 py-1 mx-4 mt-0 mb-1 bg-transparent border-0 rounded-[12px] flex flex-wrap items-center gap-1 transition-all duration-200"
       >
         <TooltipProvider>
           {/* Text Formatting */}
-          <div className="flex items-center space-x-1 mr-2">
+          <div className="flex items-center gap-1 mr-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -588,7 +588,7 @@ export function SimpleEditor({
           </div>
 
           {/* Headings */}
-          <div className="flex items-center space-x-1 mr-2">
+          <div className="flex items-center gap-1 mr-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -633,7 +633,7 @@ export function SimpleEditor({
           </div>
 
           {/* Lists and Blockquote */}
-          <div className="flex items-center space-x-1 mr-2">
+          <div className="flex items-center gap-1 mr-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -692,7 +692,7 @@ export function SimpleEditor({
           </div>
 
           {/* Alignment */}
-          <div className="flex items-center space-x-1 mr-2">
+          <div className="flex items-center gap-1 mr-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -751,7 +751,7 @@ export function SimpleEditor({
           </div>
 
           {/* Media, Links, Tables, and Code */}
-          <div className="flex items-center space-x-1 mr-2">
+          <div className="flex items-center gap-1 mr-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -813,7 +813,7 @@ export function SimpleEditor({
           </div>
 
           {/* History */}
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

@@ -15,7 +15,9 @@ import {
   Map,
   LogOut,
   Puzzle,
-  Plus
+  Plus,
+  Settings,
+  Trash2
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { EntityCreator } from "@/components/entity-creator"
@@ -176,12 +178,12 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
 
       {/* Navigation menu */}
       <div className="px-2 py-3" data-section="navigation-menu">
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-0.5">
           {goalsData.map((item) => (
             <li key={item.name} data-nav-item={item.name.toLowerCase()}>
               {item.name === 'Roadmap' ? (
                 <button
-                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200 ${collapsed ? 'px-1' : 'text-left'}`}
+                  className={`flex w-full items-center ${collapsed ? 'justify-center p-2' : 'gap-1.5 px-2 py-1.5 text-left'} rounded text-sm text-[#e5e5e5] hover:text-white hover:bg-white/10 transition-colors`}
                   onClick={async () => {
                     console.log('Roadmap button clicked directly');
                     try {
@@ -200,18 +202,18 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                   data-action="navigate"
                   data-nav-target={item.name.toLowerCase()}
                 >
-                  <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
-                  {!collapsed && <span>{item.name}</span>}
+                  <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+                  {!collapsed && <span className="truncate">{item.name}</span>}
                 </button>
               ) : (
                 <button
-                  className={`flex w-full items-center ${collapsed ? 'justify-center' : 'gap-2'} border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200 ${collapsed ? 'px-1' : 'text-left'}`}
+                  className={`flex w-full items-center ${collapsed ? 'justify-center p-2' : 'gap-1.5 px-2 py-1.5 text-left'} rounded text-sm text-[#e5e5e5] hover:text-white hover:bg-white/10 transition-colors`}
                   title={item.name}
                   data-action="navigate"
                   data-nav-target={item.name.toLowerCase()}
                 >
-                  <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
-                  {!collapsed && <span>{item.name}</span>}
+                  <item.icon className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+                  {!collapsed && <span className="truncate">{item.name}</span>}
                 </button>
               )}
             </li>
@@ -221,14 +223,14 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
       
       {/* Products header */}
       <div
-        className="flex items-center px-4 py-2"
+        className="flex items-center px-3 py-2"
         data-section="products-header">
-        {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow">Products</span>}
+        {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow uppercase tracking-wide">Products</span>}
         <EntityCreator
           entityType="product"
           buttonVariant="ghost"
           buttonSize="icon"
-          buttonClassName={`${collapsed ? 'mx-auto' : ''} h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 flex items-center justify-center`}
+          buttonClassName={`${collapsed ? 'mx-auto' : ''} w-4 h-4 p-0 rounded hover:bg-white/10 flex items-center justify-center transition-colors`}
           iconOnly={true}
         />
       </div>
@@ -238,7 +240,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
         className="px-2 py-2 overflow-y-auto flex-grow"
         data-section="products-tree">
         {productsQuery.products && productsQuery.products.length > 0 ? (
-          <ul className="space-y-1" data-list="products">
+          <ul className="space-y-0.5" data-list="products">
             {productsQuery.products.map(product => {
               // Get interfaces for this product
               const productInterfaces = interfacesQuery.getInterfacesByProductId(product.id);
@@ -254,18 +256,18 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                   data-expanded={isExpanded ? "true" : "false"}>
                   <Collapsible open={isExpanded} onOpenChange={() => toggleProductExpansion(product.id)}>
                     {/* Product row */}
-                    <div className="flex items-center" data-row="product">
+                    <div className={`flex items-center ${collapsed ? 'justify-center p-2' : 'h-8'}`} data-row="product">
                       {/* Expand/collapse button - only show when not collapsed */}
                       {!collapsed && (
                         <CollapsibleTrigger asChild>
                           <button
-                            className="p-1 hover:bg-black/20 hover:border hover:border-white/20 rounded-sm transition-all duration-200"
+                            className="flex items-center justify-center w-4 h-4 p-0 mr-0 hover:bg-white/10 rounded-sm transition-colors"
                             data-action="toggle"
                             aria-label={isExpanded ? "Collapse" : "Expand"}>
                             {hasInterfaces ?
-                              isExpanded ? <ChevronDown className="h-4 w-4 text-[#a0a0a0]" /> :
-                                          <ChevronRight className="h-4 w-4 text-[#a0a0a0]" /> :
-                              <div className="w-4" />
+                              isExpanded ? <ChevronDown className="h-3 w-3 text-[#a0a0a0]" /> :
+                                          <ChevronRight className="h-3 w-3 text-[#a0a0a0]" /> :
+                              <div className="w-3 h-3" />
                             }
                           </button>
                         </CollapsibleTrigger>
@@ -273,7 +275,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
 
                       {/* Product button */}
                       <button
-                        className={`flex flex-1 items-center ${collapsed ? 'justify-center' : 'gap-2'} border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 transition-all duration-200`}
+                        className={`flex flex-1 items-center ${collapsed ? 'justify-center' : 'gap-1 pl-0 pr-2 py-1 text-left rounded hover:bg-white/10 transition-colors min-w-0'} text-sm text-[#e5e5e5] hover:text-white`}
                         onClick={() => openTab({
                           title: product.name,
                           type: 'product',
@@ -284,8 +286,8 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                         data-action="open-tab"
                         data-entity-name={product.name}
                       >
-                        <Package className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
-                        {!collapsed && <span>{product.name}</span>}
+                        <Package className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+                        {!collapsed && <span className="truncate font-medium">{product.name}</span>}
                       </button>
 
                       {/* Interface creator - only show when not collapsed */}
@@ -293,7 +295,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                         <EntityCreator
                           entityType="interface"
                           iconOnly={true}
-                          buttonClassName="h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 opacity-0 group-hover:opacity-100"
+                          buttonClassName="w-4 h-4 p-0 ml-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                           buttonVariant="ghost"
                           context={{
                             parentId: product.id,
@@ -307,7 +309,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                     {/* Interface list */}
                     {hasInterfaces && !collapsed && (
                       <CollapsibleContent>
-                        <ul className="pl-6 mt-1 space-y-1" data-list="interfaces">
+                        <ul className="ml-4 mt-0.5 space-y-0.5" data-list="interfaces">
                           {productInterfaces.map(interface_ => {
                             const interfaceFeatures = featuresQuery.getFeaturesByInterfaceId(interface_.id);
                             const hasFeatures = interfaceFeatures && interfaceFeatures.length > 0;
@@ -323,24 +325,24 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                 data-expanded={isInterfaceExpanded ? "true" : "false"}>
                                 <Collapsible open={isInterfaceExpanded} onOpenChange={() => toggleInterfaceExpansion(interface_.id)}>
                                   {/* Interface row */}
-                                  <div className="flex items-center" data-row="interface">
+                                  <div className="flex items-center h-7" data-row="interface">
                                     {/* Expand/collapse button */}
                                     <CollapsibleTrigger asChild>
                                       <button
-                            className="p-1 hover:bg-black/20 hover:border hover:border-white/20 rounded-sm"
-                            data-action="toggle"
-                            aria-label={isExpanded ? "Collapse" : "Expand"}>
+                                        className="flex items-center justify-center w-4 h-4 p-0 mr-0 hover:bg-white/10 rounded-sm transition-colors"
+                                        data-action="toggle"
+                                        aria-label={isInterfaceExpanded ? "Collapse" : "Expand"}>
                                         {hasFeatures ?
-                                          isInterfaceExpanded ? <ChevronDown className="h-4 w-4 text-[#a0a0a0]" /> :
-                                                              <ChevronRight className="h-4 w-4 text-[#a0a0a0]" /> :
-                                          <div className="w-4" />
+                                          isInterfaceExpanded ? <ChevronDown className="h-3 w-3 text-[#a0a0a0]" /> :
+                                                              <ChevronRight className="h-3 w-3 text-[#a0a0a0]" /> :
+                                          <div className="w-3 h-3" />
                                         }
                                       </button>
                                     </CollapsibleTrigger>
 
                                     {/* Interface button */}
                                     <button
-                                      className="flex flex-1 items-center gap-2 border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20"
+                                      className="flex flex-1 items-center gap-1 pl-0 pr-1.5 py-0.5 text-sm text-left rounded hover:bg-white/10 transition-colors min-w-0 text-[#e5e5e5] hover:text-white"
                                       data-action="open-tab"
                                       data-entity-name={interface_.name}
                                       onClick={() => openTab({
@@ -350,15 +352,15 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                         hasChanges: false
                                       })}
                                     >
-                                      <Layers className="h-4 w-4 text-muted-foreground" />
-                                      <span>{interface_.name}</span>
+                                      <Layers className="h-3.5 w-3.5 text-[#a0a0a0] flex-shrink-0" />
+                                      <span className="truncate text-sm">{interface_.name}</span>
                                     </button>
 
                                     {/* Feature creator */}
                                     <EntityCreator
                                       entityType="feature"
                                       iconOnly={true}
-                                      buttonClassName="h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 opacity-0 group-hover:opacity-100"
+                                      buttonClassName="w-4 h-4 p-0 ml-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                                       buttonVariant="ghost"
                                       context={{
                                         parentId: interface_.id,
@@ -371,7 +373,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                   {/* Feature list */}
                                   {hasFeatures && (
                                     <CollapsibleContent>
-                                      <ul className="pl-6 mt-1 space-y-1">
+                                      <ul className="ml-4 mt-0.5 space-y-0.5">
                                         {interfaceFeatures.map(feature => {
                                           const featureReleases = releasesQuery.getReleasesByFeatureId(feature.id);
                                           const hasReleases = featureReleases && featureReleases.length > 0;
@@ -381,24 +383,24 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                             <li key={feature.id} className="group">
                                               <Collapsible open={isFeatureExpanded} onOpenChange={() => toggleFeatureExpansion(feature.id)}>
                                                 {/* Feature row */}
-                                                <div className="flex items-center">
+                                                <div className="flex items-center h-7">
                                                   {/* Expand/collapse button */}
                                                   <CollapsibleTrigger asChild>
                                                     <button
-                            className="p-1 hover:bg-black/20 hover:border hover:border-white/20 rounded-sm"
-                            data-action="toggle"
-                            aria-label={isExpanded ? "Collapse" : "Expand"}>
+                                                      className="flex items-center justify-center w-4 h-4 p-0 mr-0.5 hover:bg-white/10 rounded-sm transition-colors"
+                                                      data-action="toggle"
+                                                      aria-label={isFeatureExpanded ? "Collapse" : "Expand"}>
                                                       {hasReleases ?
-                                                        isFeatureExpanded ? <ChevronDown className="h-4 w-4 text-[#a0a0a0]" /> :
-                                                                          <ChevronRight className="h-4 w-4 text-[#a0a0a0]" /> :
-                                                        <div className="w-4" />
+                                                        isFeatureExpanded ? <ChevronDown className="h-3 w-3 text-[#a0a0a0]" /> :
+                                                                          <ChevronRight className="h-3 w-3 text-[#a0a0a0]" /> :
+                                                        <div className="w-3 h-3" />
                                                       }
                                                     </button>
                                                   </CollapsibleTrigger>
 
                                                   {/* Feature button */}
                                                   <button
-                                                    className="flex flex-1 items-center gap-2 border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20"
+                                                    className="flex flex-1 items-center gap-1 pl-0 pr-1.5 py-0.5 text-sm text-left rounded hover:bg-white/10 transition-colors min-w-0 text-[#e5e5e5] hover:text-white"
                                                     onClick={() => openTab({
                                                       title: feature.name,
                                                       type: 'feature',
@@ -406,15 +408,15 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                       hasChanges: false
                                                     })}
                                                   >
-                                                    <Puzzle className="h-4 w-4 text-muted-foreground" />
-                                                    <span>{feature.name}</span>
+                                                    <Puzzle className="h-3.5 w-3.5 text-[#a0a0a0] flex-shrink-0" />
+                                                    <span className="truncate text-sm">{feature.name}</span>
                                                   </button>
 
                                                   {/* Release creator */}
                                                   <EntityCreator
                                                     entityType="release"
                                                     iconOnly={true}
-                                                    buttonClassName="h-5 w-5 border border-transparent rounded-sm hover:bg-black/20 hover:border-white/20 opacity-0 group-hover:opacity-100"
+                                                    buttonClassName="w-4 h-4 p-0 ml-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                                                     buttonVariant="ghost"
                                                     context={{
                                                       parentId: feature.id,
@@ -427,22 +429,27 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                                                 {/* Release list */}
                                                 {hasReleases && (
                                                   <CollapsibleContent>
-                                                    <ul className="pl-6 mt-1 space-y-1">
+                                                    <ul className="ml-4 mt-0.5 space-y-0.5">
                                                       {featureReleases.map(release => (
                                                         <li key={release.id} className="group">
-                                                          {/* Release button */}
-                                                          <button
-                                                            className="flex w-full items-center gap-2 border border-transparent rounded-md p-2 text-sm hover:bg-black/20 hover:border hover:border-white/20"
-                                                            onClick={() => openTab({
-                                                              title: release.name,
-                                                              type: 'release',
-                                                              itemId: release.id,
-                                                              hasChanges: false
-                                                            })}
-                                                          >
-                                                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                            <span>{release.name}</span>
-                                                          </button>
+                                                          <div className="flex items-center h-7">
+                                                            {/* Release spacer */}
+                                                            <div className="w-4 mr-0" />
+                                                            
+                                                            {/* Release button */}
+                                                            <button
+                                                              className="flex flex-1 items-center gap-1 pl-0 pr-1.5 py-0.5 text-sm text-left rounded hover:bg-white/10 transition-colors min-w-0 text-[#e5e5e5] hover:text-white"
+                                                              onClick={() => openTab({
+                                                                title: release.name,
+                                                                type: 'release',
+                                                                itemId: release.id,
+                                                                hasChanges: false
+                                                              })}
+                                                            >
+                                                              <Calendar className="h-3.5 w-3.5 text-[#a0a0a0] flex-shrink-0" />
+                                                              <span className="truncate text-sm">{release.name}</span>
+                                                            </button>
+                                                          </div>
                                                         </li>
                                                       ))}
                                                     </ul>
@@ -482,6 +489,43 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
             />
           </div>
         )}
+      </div>
+
+      {/* Settings and Trash Section */}
+      <div className="px-2 py-2 border-t border-white/10" data-section="settings-actions">
+        <div className="space-y-1">
+          {/* Settings Button */}
+          <button
+            className={`flex w-full items-center ${collapsed ? 'justify-center p-2' : 'gap-2 px-2 py-2 text-left'} rounded text-sm text-[#e5e5e5] hover:text-white hover:bg-white/10 transition-colors`}
+            title="Settings"
+            data-action="open-settings"
+            onClick={async () => {
+              try {
+                await openTab({
+                  title: 'Settings',
+                  type: 'settings',
+                  itemId: '00000000-0000-0000-0000-000000000000', // Fixed ID for settings
+                  hasChanges: false
+                });
+              } catch (error) {
+                console.error('Error opening Settings tab:', error);
+              }
+            }}
+          >
+            <Settings className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+            {!collapsed && <span className="truncate">Settings</span>}
+          </button>
+
+          {/* Trash Button */}
+          <button
+            className={`flex w-full items-center ${collapsed ? 'justify-center p-2' : 'gap-2 px-2 py-2 text-left'} rounded text-sm text-[#e5e5e5] hover:text-white hover:bg-white/10 transition-colors`}
+            title="Trash"
+            data-action="open-trash"
+          >
+            <Trash2 className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+            {!collapsed && <span className="truncate">Trash</span>}
+          </button>
+        </div>
       </div>
     </div>
   )

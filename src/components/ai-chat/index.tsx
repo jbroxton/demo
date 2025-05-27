@@ -3,12 +3,15 @@
 import { useChat } from 'ai/react';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Database, ChevronLeft, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Send, Loader2, Database, ChevronLeft, CheckCircle2, Clock, AlertCircle, Bot, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // Removed Card import - using custom dark styling instead
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useAiChatFullyManaged } from '@/hooks/use-ai-chat-fully-managed';
 // TODO: Move these to API routes to avoid client-side supabase imports
 // import { isAutoEmbeddingEnabled, getEmbeddingQueueStatus, triggerManualEmbeddingProcessing } from '@/services/ai-service';
 
@@ -20,14 +23,12 @@ export function AIChatComponent() {
   const [queueStatus, setQueueStatus] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    error
-  } = useChat({
+  // Toggle between RAG and OpenAI fully managed modes
+  const [useOpenAI, setUseOpenAI] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  
+  // RAG-based chat (existing)
+  const ragChat = useChat({
     api: '/api/ai-chat',
     headers: {
       'x-tenant-id': currentTenant || 'default'
@@ -46,10 +47,43 @@ export function AIChatComponent() {
     ],
   });
 
+  // OpenAI fully managed chat (new)
+  const openAIChat = useAiChatFullyManaged({
+    onSuccess: (response) => {
+      toast.success('Message sent successfully');
+    },
+    onError: (error) => {
+      toast.error(`Chat error: ${error.message}`);
+    }
+  });
+
+  // Unified interface based on selected mode
+  const activeChat = useOpenAI ? {
+    messages: openAIChat.messages,
+    input: inputValue,
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value),
+    handleSubmit: async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        await openAIChat.sendMessage(inputValue);
+        setInputValue('');
+      }
+    },
+    isLoading: openAIChat.isLoading,
+    error: openAIChat.error
+  } : {
+    messages: ragChat.messages,
+    input: ragChat.input,
+    handleInputChange: ragChat.handleInputChange,
+    handleSubmit: ragChat.handleSubmit,
+    isLoading: ragChat.isLoading,
+    error: ragChat.error
+  };
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [activeChat.messages]);
 
   // Check auto-embedding status on mount
   useEffect(() => {
@@ -133,7 +167,7 @@ export function AIChatComponent() {
           const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
           setQueueStatus(status);
         } else {
-          toast.error(`Manual sync failed: ${result.error}`);
+          toast.error(`Manual sync failed: ${(result as any).error || 'Unknown error'}`);
           setSyncStatus('error');
         }
       } else {
@@ -203,6 +237,23 @@ export function AIChatComponent() {
               <span className="text-xs text-white/60">Online</span>
             </div>
             
+            {/* AI Mode Toggle */}
+            <div className="flex items-center gap-3 px-3 py-1.5 bg-[#1A1A1A] rounded-md border border-[#232326]">
+              <div className="flex items-center gap-2">
+                <Search className="w-3 h-3 text-white/60" />
+                <span className="text-xs text-white/60">RAG</span>
+              </div>
+              <Switch 
+                checked={useOpenAI} 
+                onCheckedChange={setUseOpenAI}
+                className="scale-75"
+              />
+              <div className="flex items-center gap-2">
+                <Bot className="w-3 h-3 text-white/60" />
+                <span className="text-xs text-white/60">OpenAI</span>
+              </div>
+            </div>
+            
             {/* Auto-embedding status indicator */}
             {autoEmbeddingEnabled !== null && (
               <div className="flex items-center gap-2">
@@ -260,9 +311,9 @@ export function AIChatComponent() {
           </Button>
         </div>
       </div>
-      <ScrollArea className="flex-1 w-full px-4 py-6">
+      <ScrollArea className="flex-1 w-full px-4 py-6 h-0 overflow-y-auto">
         <div className="space-y-4 w-full">
-        {messages.map((message) => (
+        {activeChat.messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${
@@ -282,7 +333,7 @@ export function AIChatComponent() {
             </div>
           </div>
         ))}
-        {isLoading && (
+        {activeChat.isLoading && (
           <div className="flex justify-start">
             <div className="max-w-[75%] rounded-2xl rounded-bl-md px-4 py-3 bg-gradient-to-br from-[#1A1A1A] to-[#161618] shadow-sm">
               <div className="flex gap-1.5">
@@ -293,10 +344,10 @@ export function AIChatComponent() {
             </div>
           </div>
         )}
-        {error && (
+        {activeChat.error && (
           <div className="flex justify-center">
             <div className="bg-red-500/10 text-red-400/80 rounded-xl px-4 py-3 text-sm shadow-sm">
-              Error: {error.message || 'Failed to get response from AI'}
+              Error: {activeChat.error.message || 'Failed to get response from AI'}
             </div>
           </div>
         )}
@@ -305,23 +356,26 @@ export function AIChatComponent() {
       </ScrollArea>
 
       {/* Clean Software-style Input */}
-      <form onSubmit={handleSubmit} className="w-full p-4">
+      <form onSubmit={activeChat.handleSubmit} className="w-full p-4">
         <div className="relative">
           <Input
             type="text"
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Ask about your products, features, or get PM advice..."
+            value={activeChat.input}
+            onChange={activeChat.handleInputChange}
+            placeholder={useOpenAI 
+              ? "Ask about your products with OpenAI Assistants..." 
+              : "Ask about your products, features, or get PM advice..."
+            }
             className="w-full bg-black/30 backdrop-blur-sm border border-white/20 text-white/90 placeholder:text-white/40 hover:bg-black/20 hover:border hover:border-white/20 focus:border-white/30 focus:ring-0 rounded-full pl-4 pr-12 py-3 h-12 transition-all duration-200"
-            disabled={isLoading}
+            disabled={activeChat.isLoading}
             autoFocus
           />
           <Button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={activeChat.isLoading || !activeChat.input.trim()}
             className="absolute right-1 top-1 bottom-1 bg-black/60 hover:bg-black/80 border border-white/30 text-white/90 rounded-full w-10 h-10 p-0 flex items-center justify-center transition-all duration-200"
           >
-            {isLoading ? (
+            {activeChat.isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />

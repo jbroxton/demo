@@ -7,6 +7,7 @@ import { InterfaceQueryTabContent } from './interface-query-tab-content';
 import { ReleaseQueryTabContent } from './release-query-tab-content';
 import { RoadmapQueryTabContent } from './roadmap-query-tab-content';
 import { RoadmapSpecificTabContent } from './roadmap-specific-tab-content';
+import { SettingsTabContent } from './settings-tab-content';
 
 export function TabQueryContent() {
   const { tabs, activeTabId, isLoading } = useTabsQuery();
@@ -81,6 +82,10 @@ export function TabQueryContent() {
           isNew={isNew}
         />;
       }
+      break;
+    }
+    case 'settings': {
+      content = <SettingsTabContent tabId={activeTab.id} />;
       break;
     }
     default:

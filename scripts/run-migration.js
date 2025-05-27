@@ -18,10 +18,10 @@ async function runMigration() {
 
   try {
     // Read the migration file
-    const migrationPath = path.join(__dirname, '..', 'migrations', 'add-is-active-to-tabs.sql');
+    const migrationPath = path.join(__dirname, '..', 'migrations', 'tenant-settings.sql');
     const sql = fs.readFileSync(migrationPath, 'utf8');
 
-    console.log('Running migration: add-is-active-to-tabs.sql');
+    console.log('Running migration: tenant-settings.sql');
     console.log('SQL:', sql);
 
     // Execute the migration

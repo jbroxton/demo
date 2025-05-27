@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/debug-auth") || // Debug endpoint
+    pathname.startsWith("/api/ai-chat") || // AI chat API for testing
     pathname === "/signin" ||
     pathname === "/signup" || // Explicitly allow signup page
     pathname === "/error" ||

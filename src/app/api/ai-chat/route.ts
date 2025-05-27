@@ -38,11 +38,12 @@ import { getFeaturesFromDb } from '@/services/features-db';
 import { getReleasesFromDb } from '@/services/releases-db';
 import { getRequirementsFromDb } from '@/services/requirements-db';
 import { getRoadmaps } from '@/services/roadmaps-db';
-import { 
-  analyzeProductContext, 
-  generateContextualSystemPrompt,
-  generateBriefSystemPrompt 
-} from '@/system-prompts';
+// BYPASSED: Complex system prompts causing issues with context usage
+// import { 
+//   analyzeProductContext, 
+//   generateContextualSystemPrompt,
+//   generateBriefSystemPrompt 
+// } from '@/system-prompts';
 
 // Verify API key is available
 const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
@@ -180,14 +181,31 @@ export const POST = asyncHandler(async (request: NextRequest) => {
     
     try {
       const formattedQuery = lastMessage.content.trim();
-      console.log('Attempting vector search for query:', formattedQuery.substring(0, 50));
+      console.log('=== VECTOR SEARCH DEBUG ===');
+      console.log('Query:', formattedQuery);
+      console.log('Tenant ID:', tenantId);
+      console.log('Attempting vector search...');
       
       // Use our intelligent vector search with dynamic limits
       searchResults = await searchVectors(formattedQuery, tenantId);
-      contextAvailable = true;
-      console.log(`Vector search successful, found ${searchResults.length} results`);
+      contextAvailable = searchResults.length > 0;
+      
+      console.log('=== VECTOR SEARCH RESULTS ===');
+      console.log('Results found:', searchResults.length);
+      console.log('Context available:', contextAvailable);
+      if (searchResults.length > 0) {
+        console.log('Sample result:', {
+          id: searchResults[0].id,
+          similarity: searchResults[0].similarity,
+          content_preview: searchResults[0].content?.substring(0, 100)
+        });
+      }
+      console.log('=========================');
     } catch (error) {
-      console.error('Vector search error:', error);
+      console.error('=== VECTOR SEARCH ERROR ===');
+      console.error('Error details:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : String(error));
+      console.error('========================');
       searchResults = []; // Continue without context if search fails
     }
     
@@ -201,47 +219,14 @@ export const POST = asyncHandler(async (request: NextRequest) => {
     
     const context = contextBlocks.join('\n\n');
     
-    // === PRODUCT CONTEXT ANALYSIS ===
-    // Get user's data for product context analysis
-    const [featuresResult, releasesResult, requirementsResult, roadmapsResult] = await Promise.allSettled([
-      getFeaturesFromDb(tenantId),
-      getReleasesFromDb(tenantId),
-      getRequirementsFromDb(tenantId),
-      getRoadmaps(tenantId)
-    ]);
-    
-    const features = featuresResult.status === 'fulfilled' && featuresResult.value.success ? featuresResult.value.data || [] : [];
-    const releases = releasesResult.status === 'fulfilled' && releasesResult.value.success ? releasesResult.value.data || [] : [];
-    const requirements = requirementsResult.status === 'fulfilled' && requirementsResult.value.success ? requirementsResult.value.data || [] : [];
-    const roadmaps = roadmapsResult.status === 'fulfilled' && roadmapsResult.value.success ? roadmapsResult.value.data || [] : [];
-    
-    // Analyze user's product context for intelligent system prompts
-    const productContext = await analyzeProductContext(features, releases, requirements);
-    console.log('Product context analysis:', {
-      type: productContext.productType,
-      industry: productContext.industry,
-      confidence: productContext.confidence,
-      technicalFocus: productContext.technicalFocus
-    });
-    
-    // === ENHANCED SYSTEM PROMPT GENERATION ===
-    // Create intelligent, context-aware system prompts based on user's actual product data
-    const promptContext = {
-      productContext,
-      userMessage: lastMessage.content,
-      tenantId,
-      availableDataTypes: ['features', 'releases', 'requirements', 'roadmaps'],
-      dataCount: {
-        features: features.length,
-        releases: releases.length,
-        requirements: requirements.length,
-        roadmaps: roadmaps.length
-      }
-    };
-    
+    // === SIMPLE SYSTEM PROMPT ===
+    // Use only context data - no complex analysis that might confuse the AI
     const systemPrompt = contextAvailable 
-      ? generateContextualSystemPrompt(promptContext) + `\n\n## Context Data\n${context}`
-      : generateBriefSystemPrompt(productContext.productType, productContext.industry);
+      ? `You are a Product Management AI assistant. ONLY answer based on the context data provided below. If the context data contains relevant information, reference it specifically by name. If no relevant context data is found, say "I don't see relevant information about that in your product data."
+
+## Context Data
+${context}`
+      : `You are a Product Management AI assistant. I don't have specific context data about your product to reference for this query.`;
     
     // === AI RESPONSE GENERATION ===
     // Generate streaming response using OpenAI with retrieved context

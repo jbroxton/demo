@@ -43,7 +43,16 @@ export function useTabsQuery() {
   // Create and open tab mutation
   const openTabMutation = useMutation({
     mutationFn: async (tab: Omit<Tab, 'id'>): Promise<{ tab: Tab, isExisting: boolean }> => {
+      console.log('🔥 DEBUG: Starting tab creation with data:', tab);
+      
       try {
+        console.log('🔥 DEBUG: Making fetch request to /api/tabs-db');
+        console.log('🔥 DEBUG: Request details:', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tab)
+        });
+        
         const response = await fetch('/api/tabs-db', {
           method: 'POST',
           headers: {
@@ -52,17 +61,30 @@ export function useTabsQuery() {
           body: JSON.stringify(tab),
         })
         
+        console.log('🔥 DEBUG: Response received:', {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
         if (!response.ok) {
           const errorDetails = await response.text()
-          console.error('Tab creation failed:', response.status, errorDetails)
+          console.error('🔥 DEBUG: Tab creation failed:', response.status, errorDetails)
           throw new Error(`Tab creation failed: ${response.status} - ${errorDetails}`)
         }
         
         const result = await response.json()
+        console.log('🔥 DEBUG: Tab creation successful:', result);
         // The API returns { data: { tab, isExisting } }
         return result.data || result
       } catch (error) {
-        console.error('Error in tab creation:', error)
+        console.error('🔥 DEBUG: Network error in tab creation:', error)
+        console.error('🔥 DEBUG: Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          name: error instanceof Error ? error.name : undefined
+        });
         throw error
       }
     },

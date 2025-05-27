@@ -11,7 +11,6 @@
  */
 
 import { ProductContext } from './product-context-analyzer';
-import { analyzeQueryContext } from './query-context-detector';
 
 /**
  * Context for generating system prompts
@@ -33,29 +32,16 @@ export interface PromptContext {
  * Generates a contextual system prompt based on user's product and query
  */
 export function generateContextualSystemPrompt(context: PromptContext): string {
-  // Analyze query context to determine if it's general knowledge vs specific product advice
-  const queryContext = analyzeQueryContext(context.userMessage);
-  
-  const basePrompt = getBaseSystemPrompt();
-  
-  // Only include product-specific sections if the query needs product data
-  if (queryContext.useProductData) {
-    const productContextPrompt = generateProductContextPrompt(context.productContext);
-    const responseStylePrompt = generateResponseStylePrompt(context.productContext, context.userMessage);
+  return `You are a Product Management AI assistant that ONLY answers based on the user's actual product data.
 
-    return [
-      basePrompt,
-      productContextPrompt,
-      responseStylePrompt,
-      getConversationGuidelines()
-    ].join('\n\n');
-  } else {
-    // For general knowledge queries, use minimal context
-    return [
-      basePrompt,
-      getGeneralKnowledgeGuidelines()
-    ].join('\n\n');
-  }
+STRICT RULES:
+1. ONLY use information from the provided context data below
+2. If no relevant context data is found for the query, respond with: "I don't see any relevant information about that in your product data. Please ask about your specific features, releases, or requirements."
+3. Always reference specific feature names, release names, or requirement details from the context
+4. Never provide general knowledge or advice not based on the user's actual data
+5. Always start responses by referencing the specific context item you found
+
+The context data about the user's product is provided below this system message.`;
 }
 
 /**
@@ -229,10 +215,11 @@ function generateResponseStylePrompt(productContext: ProductContext, userMessage
  */
 function getConversationGuidelines(): string {
   return `## Guidelines
-- Use the provided context data to give specific, personalized advice about their features, releases, and roadmaps
-- Focus on actionable PM recommendations rather than generic advice
-- When relevant, suggest PM frameworks (RICE prioritization, User Story Mapping, HEART metrics)
-- Keep responses focused on their actual product challenges and goals`;
+- **ALWAYS use the provided context data first** to give specific, personalized advice about their features, releases, and roadmaps
+- If context data matches the query, reference their specific features by name and provide targeted recommendations
+- Focus on actionable PM recommendations based on their actual product data rather than generic advice
+- When relevant, suggest PM frameworks (RICE prioritization, User Story Mapping, HEART metrics) applied to their specific context
+- If no relevant context data is found, then provide general knowledge but mention that you don't see specific matching data in their product`;
 }
 
 /**
