@@ -30,6 +30,8 @@ interface ChatError {
 }
 
 interface UseChatOptions {
+  mode?: 'ask' | 'agent';
+  sessionId?: string;
   onSuccess?: (response: ChatResponse) => void;
   onError?: (error: ChatError) => void;
   maxRetries?: number;
@@ -61,6 +63,8 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
         body: JSON.stringify({
           message: message.trim(),
           tenantId,
+          mode: options.mode || 'ask',
+          sessionId: options.sessionId,
         }),
       });
 
@@ -71,6 +75,7 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
 
       const data = await response.json();
       console.log('OpenAI API Response:', data); // Debug logging
+      console.log('Request mode:', options.mode || 'ask'); // Debug mode
       return data;
     },
     onSuccess: (response) => {

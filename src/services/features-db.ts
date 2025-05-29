@@ -167,6 +167,111 @@ export async function createFeatureInDb(feature: Omit<Feature, 'id' | 'releases'
 }
 
 /**
+ * Update a feature with multiple fields
+ */
+export async function updateFeatureInDb(id: string, updates: any, tenantId?: string) {
+  try {
+    // Extract tenant_id from updates if not provided as separate parameter
+    const effectiveTenantId = tenantId || updates.tenant_id;
+    
+    if (!effectiveTenantId) {
+      return { 
+        success: false, 
+        error: 'Tenant ID is required for feature updates' 
+      };
+    }
+
+    // Map frontend priority values to database values if priority is being updated
+    const priorityMap: Record<string, string> = {
+      'High': 'high',
+      'Med': 'medium', 
+      'Low': 'low'
+    };
+
+    // Prepare update object with proper field mapping
+    const updateData: any = {};
+    
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.priority !== undefined) {
+      updateData.priority = priorityMap[updates.priority] || updates.priority;
+    }
+    if (updates.interface_id !== undefined) updateData.interface_id = updates.interface_id;
+    if (updates.interfaceId !== undefined) updateData.interface_id = updates.interfaceId;
+    if (updates.is_saved !== undefined) updateData.is_saved = updates.is_saved;
+    if (updates.saved_at !== undefined) updateData.saved_at = updates.saved_at;
+    // Note: updated_by column doesn't exist in features table
+    // if (updates.updated_by !== undefined) updateData.updated_by = updates.updated_by;
+    if (updates.updated_at !== undefined) updateData.updated_at = updates.updated_at;
+
+    console.log(`Updating feature ${id} with data:`, updateData);
+
+    const { data, error } = await supabase
+      .from('features')
+      .update(updateData)
+      .eq('id', id)
+      .eq('tenant_id', effectiveTenantId)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Feature not found or access denied' };
+      }
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: mapFeature(data) 
+    };
+  } catch (error) {
+    console.error(`Error updating feature ${id}:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Get a feature by ID (alias for compatibility)
+ */
+export async function getFeatureFromDb(id: string, tenantId?: string) {
+  // If tenantId is not provided, we'll need to get it from the current context
+  // For now, let's try without the tenant filter if not provided
+  if (tenantId) {
+    return getFeatureByIdFromDb(id, tenantId);
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('features')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Feature not found' };
+      }
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: mapFeature(data) 
+    };
+  } catch (error) {
+    console.error(`Error fetching feature ${id}:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
  * Update feature name
  */
 export async function updateFeatureNameInDb(id: string, name: string, tenantId: string) {

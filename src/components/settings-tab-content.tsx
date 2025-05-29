@@ -6,5 +6,13 @@ interface SettingsTabContentProps {
 }
 
 export function SettingsTabContent({ tabId }: SettingsTabContentProps) {
-  return <SettingsDocumentEditor tabId={tabId} />;
+  return (
+    <div className="flex flex-col h-full bg-[#0A0A0A] relative">
+      <div className="flex-1 flex flex-col h-full overflow-visible transition-all duration-300">
+        <div className="flex-1 flex flex-col relative">
+          <SettingsDocumentEditor tabId={tabId} />
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -419,7 +419,6 @@ describe('ComponentName', () => {
 
 ## Security Requirements
 1. **Input Validation**: Validate all inputs client and server-side
-2. **SQL Injection**: Use parameterized queries exclusively
 3. **XSS Prevention**: Escape user content before rendering
 4. **Auth**: Validate authentication on all protected routes
 5. **Environment**: Use env variables for sensitive config

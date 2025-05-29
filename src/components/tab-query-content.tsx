@@ -8,6 +8,8 @@ import { ReleaseQueryTabContent } from './release-query-tab-content';
 import { RoadmapQueryTabContent } from './roadmap-query-tab-content';
 import { RoadmapSpecificTabContent } from './roadmap-specific-tab-content';
 import { SettingsTabContent } from './settings-tab-content';
+import { UnifiedPageEditor } from './unified-page-editor';
+import { usePagesQuery } from '@/hooks/use-pages-query';
 
 export function TabQueryContent() {
   const { tabs, activeTabId, isLoading } = useTabsQuery();
@@ -31,7 +33,6 @@ export function TabQueryContent() {
 
   const activeTab = tabs.find(tab => tab.id === activeTabId);
   if (!activeTab) return null;
-
 
   let content;
   
@@ -88,6 +89,10 @@ export function TabQueryContent() {
       content = <SettingsTabContent tabId={activeTab.id} />;
       break;
     }
+    case 'page': {
+      content = <UnifiedPageEditorWrapper pageId={activeTab.itemId} />;
+      break;
+    }
     default:
       content = <div className="text-[#a0a0a0]">Unknown item type (DB Version)</div>;
   }
@@ -104,5 +109,57 @@ export function TabQueryContent() {
         {content}
       </div>
     </div>
+  );
+}
+
+// Wrapper component for UnifiedPageEditor that fetches page data
+function UnifiedPageEditorWrapper({ pageId }: { pageId: string }) {
+  const { usePageQuery, updatePage, deletePageMutation } = usePagesQuery();
+  const { data: page, isLoading, error } = usePageQuery(pageId);
+  const { updateTabTitle } = useTabsQuery();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-[#0A0A0A] rounded-lg">
+        <div className="text-white/60">Loading page...</div>
+      </div>
+    );
+  }
+
+  if (error || !page) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-[#0A0A0A] rounded-lg">
+        <div className="text-red-400">Failed to load page</div>
+      </div>
+    );
+  }
+
+  const handleSave = async () => {
+    // Save function will be called by the editor when content changes
+    // The editor handles its own content saving through onChange
+    console.log('Save triggered for page:', pageId);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deletePageMutation.mutateAsync(pageId);
+      // Note: Tab closing should be handled by the parent component
+      console.log('Page deleted:', pageId);
+    } catch (error) {
+      console.error('Failed to delete page:', error);
+    }
+  };
+
+  return (
+    <UnifiedPageEditor
+      pageId={page.id}
+      pageType={page.type}
+      initialTitle={page.title}
+      initialContent={page.blocks}
+      initialProperties={page.properties}
+      onSave={handleSave}
+      onDelete={handleDelete}
+      persistenceKey={pageId}
+    />
   );
 }

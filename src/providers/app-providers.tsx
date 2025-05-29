@@ -8,8 +8,10 @@ import { SessionProvider } from 'next-auth/react'
 import { TanstackQueryProvider } from '@/providers/query-provider'
 import { UnifiedStateProvider } from '@/providers/unified-state-provider'
 import { AuthProvider } from '@/providers/auth-provider'
+import { AgentProvider } from '@/providers/agent-provider'
 import { getBaseUrl } from '@/lib/env'
 import { StyleLoader } from '@/components/style-loader'
+import { SidebarProvider } from '@/components/ui/sidebar'
 // Theme providers removed
 
 type AppProvidersProps = {
@@ -58,9 +60,13 @@ export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
             <AuthProvider>
               <StyleLoader />
               {isHydrated ? (
-                <UnifiedStateProvider>
-                    {content}
-                </UnifiedStateProvider>
+                <SidebarProvider>
+                  <UnifiedStateProvider>
+                    <AgentProvider>
+                      {content}
+                    </AgentProvider>
+                  </UnifiedStateProvider>
+                </SidebarProvider>
               ) : (
                 // Render without the providers until hydration is complete
                 content

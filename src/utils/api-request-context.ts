@@ -63,42 +63,50 @@ export async function getRequestContext(request: NextRequest) {
     }
   }
   
-  // Extract tenant ID and user ID from session
+  // Extract tenant ID and user ID from session or test headers
   let tenantId: string | null = null;
   let userId: string | null = null;
-  try {
-    const session = await getServerSession(authOptions);
-    console.log('[Request Context] Full session object:', JSON.stringify(session, null, 2));
-    console.log('[Request Context] Session data:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      tenantId: session?.user?.tenantId,  // NEW: Check direct tenantId
-      currentTenant: session?.user?.currentTenant,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      allowedTenants: session?.user?.allowedTenants,
-    });
-    
-    // Primary: Use tenantId directly
-    if (session?.user?.tenantId) {
-      tenantId = session.user.tenantId;
-      console.log('[Request Context] Using tenantId:', tenantId);
-    } 
-    // Fallback: Use currentTenant for backwards compatibility
-    else if (session?.user?.currentTenant) {
-      tenantId = session.user.currentTenant;
-      console.log('[Request Context] Using currentTenant as fallback:', tenantId);
-    } else {
-      console.log('[Request Context] No tenant ID found in session');
+  
+  // Check for test headers first (for integration tests)
+  const testTenantId = request.headers.get('x-test-tenant-id');
+  const testUserId = request.headers.get('x-test-user-id');
+  
+  if (testTenantId && testUserId) {
+    tenantId = testTenantId;
+    userId = testUserId;
+    console.log('[Request Context] Using test headers:', { tenantId, userId });
+  } else {
+    // Extract from session for normal requests
+    try {
+      const session = await getServerSession(authOptions);
+      console.log('[Request Context] Session data:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        tenantId: session?.user?.tenantId,
+        currentTenant: session?.user?.currentTenant,
+        userId: session?.user?.id,
+        userEmail: session?.user?.email,
+        fullUser: session?.user
+      });
+      
+      // Extract tenant ID using the same logic as useAuth()
+      // Priority: tenantId > currentTenant
+      tenantId = session?.user?.tenantId || session?.user?.currentTenant || null;
+      
+      console.log('[Request Context] Tenant extraction:', {
+        sessionTenantId: session?.user?.tenantId,
+        sessionCurrentTenant: session?.user?.currentTenant,
+        extractedTenantId: tenantId
+      });
+      
+      if (session?.user?.id) {
+        userId = session.user.id;
+        console.log('[Request Context] Using userId:', userId);
+      }
+    } catch (error) {
+      console.error('[Request Context] Error getting session:', error);
+      // Continue without tenant ID, let route decide if it's required
     }
-    
-    if (session?.user?.id) {
-      userId = session.user.id;
-      console.log('[Request Context] Using userId:', userId);
-    }
-  } catch (error) {
-    console.error('[Request Context] Error getting session:', error);
-    // Continue without tenant ID, let route decide if it's required
   }
   
   return {

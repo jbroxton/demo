@@ -28,13 +28,15 @@ import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useReleasesQuery } from '@/hooks/use-releases-query';
 import { useRoadmapsQuery } from '@/hooks/use-roadmaps-query';
+import { usePagesQuery } from '@/hooks/use-pages-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
 import type { Product, Interface, Feature, Release } from '@/types/models';
 import type { Roadmap } from '@/types/models/Roadmap';
+import type { Page } from '@/types/models/Page';
 
 // Define all possible entity types
-export type EntityType = 'product' | 'interface' | 'feature' | 'release' | 'roadmap';
+export type EntityType = 'product' | 'interface' | 'feature' | 'release' | 'roadmap' | 'page';
 
 // Props for entity context
 type EntityContextProps = {
@@ -71,6 +73,7 @@ export function EntityCreator({
   const featuresQuery = useFeaturesQuery();
   const releasesQuery = useReleasesQuery();
   const roadmapsQuery = useRoadmapsQuery();
+  const pagesQuery = usePagesQuery();
   const auth = useAuth();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -84,12 +87,13 @@ export function EntityCreator({
       case 'feature': return 'Add Feature';
       case 'release': return 'Add Release';
       case 'roadmap': return 'Add Roadmap';
+      case 'page': return 'Add Page';
       default: return 'Add New';
     }
   };
   
   // Define typed entities returned from mutations
-  type CreatedEntity = Product | Interface | Feature | Release | Roadmap;
+  type CreatedEntity = Product | Interface | Feature | Release | Roadmap | Page;
   
   // Create a new entity tab
   const createEntityTab = async () => {
@@ -231,6 +235,51 @@ export function EntityCreator({
             }
           } catch (error) {
             console.error('Error refreshing roadmaps:', error);
+          }
+          break;
+
+        case 'page':
+          console.log('Creating new page...', context);
+          
+          // Determine page type based on context
+          let pageType: import('@/types/models/Page').PageType = 'feature'; // Default fallback
+          let title = 'New Page';
+          
+          if (context?.parentId && context?.parentType === 'page') {
+            // This is a child page, determine appropriate type
+            // For now, default to 'feature' for all child pages
+            // TODO: Could implement smart type selection based on parent type
+            pageType = 'feature';
+            title = 'New Feature';
+          }
+          
+          // Create new page in the database
+          newEntity = await pagesQuery.addPage({
+            type: pageType,
+            title,
+            parent_id: context?.parentId,
+            properties: {},
+            blocks: []
+          });
+          console.log('Created page:', newEntity);
+          
+          // Wait a bit to ensure the page is propagated through the backend
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Refresh pages to ensure the new page is in the cache
+          try {
+            await pagesQuery.refetch();
+            console.log('Pages query refetched');
+            
+            // Double check the page exists in the cache
+            const verifyPage = pagesQuery.getPageById(newEntity.id);
+            console.log('Verify page in cache:', verifyPage);
+            
+            if (!verifyPage) {
+              console.warn('Page not found in cache after refetch, tab might show empty');
+            }
+          } catch (error) {
+            console.error('Error refreshing pages:', error);
           }
           break;
           

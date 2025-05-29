@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/debug-auth") || // Debug endpoint
     pathname.startsWith("/api/ai-chat") || // AI chat API for testing
+    pathname.startsWith("/api/ai-chat-fully-managed") || // Agent AI chat API
     pathname === "/signin" ||
     pathname === "/signup" || // Explicitly allow signup page
     pathname === "/error" ||
@@ -62,6 +63,69 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Agent operation permission checks for API routes
+  if (pathname.startsWith("/api/") && isAgentOperation(pathname)) {
+    const hasAgentPermission = await validateAgentPermission(token, request);
+    
+    if (!hasAgentPermission) {
+      return new NextResponse(
+        JSON.stringify({ 
+          error: 'Insufficient permissions for agent operations',
+          code: 'AGENT_PERMISSION_DENIED'
+        }),
+        { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+  }
+
   // If authenticated with a tenant, allow access to all routes
   return NextResponse.next();
+}
+
+/**
+ * Check if the pathname is an agent operation
+ */
+function isAgentOperation(pathname: string): boolean {
+  return pathname.startsWith("/api/ai-chat-fully-managed") ||
+         pathname.includes("agent") ||
+         pathname.includes("confirmation");
+}
+
+/**
+ * Validate agent operation permissions
+ */
+async function validateAgentPermission(token: any, request: NextRequest): Promise<boolean> {
+  // Basic checks
+  if (!token?.sub || !token?.currentTenant) {
+    return false;
+  }
+
+  // For now, allow all authenticated users with valid tenants to use agent features
+  // In production, you might want more granular permissions
+  const hasBasicAuth = !!(token.sub && token.currentTenant);
+  
+  // Check if user has agent feature enabled (could be a user setting or tenant feature)
+  const agentEnabled = token.agentEnabled !== false; // Default to true unless explicitly disabled
+  
+  // Rate limiting check could be added here
+  const withinRateLimit = await checkAgentRateLimit(token.sub, token.currentTenant);
+  
+  return hasBasicAuth && agentEnabled && withinRateLimit;
+}
+
+/**
+ * Check rate limiting for agent operations
+ */
+async function checkAgentRateLimit(userId: string, tenantId: string): Promise<boolean> {
+  // Implement rate limiting logic here
+  // For now, return true (no rate limiting)
+  // In production, you might want to:
+  // - Check recent agent action count
+  // - Limit based on tenant plan
+  // - Implement sliding window rate limiting
+  
+  return true;
 }

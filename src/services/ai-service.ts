@@ -21,10 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Feature, Release } from '@/types/models';
 
 // Polyfill fetch for Node.js environments
-if (typeof global !== 'undefined' && !global.fetch) {
-  // @ts-ignore
-  global.fetch = require('node-fetch');
-}
+// Note: In production, Next.js should handle this automatically
 
 // Check for API key
 const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';

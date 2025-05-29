@@ -271,6 +271,79 @@ export async function updateProductDescriptionInDb(id: string, description: stri
 }
 
 /**
+ * Update product with multiple fields
+ */
+export async function updateProductInDb(updateData: any, tenantId: string) {
+  try {
+    console.log('updateProductInDb - input:', updateData, 'tenantId:', tenantId);
+    
+    if (!updateData.id) {
+      return { 
+        success: false, 
+        error: 'Product ID is required for update'
+      };
+    }
+
+    if (!tenantId) {
+      return { 
+        success: false, 
+        error: 'Tenant ID is required'
+      };
+    }
+
+    // Prepare update object (exclude id from update data)
+    const { id, ...fieldsToUpdate } = updateData;
+    
+    console.log('updateProductInDb - updating product', id, 'with fields:', fieldsToUpdate);
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(fieldsToUpdate)
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('updateProductInDb - Supabase error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      return { 
+        success: false, 
+        error: 'Product not found or not updated'
+      };
+    }
+
+    console.log('updateProductInDb - success, raw data:', data);
+
+    // Map the result back to Product format
+    const mappedResult = {
+      id: data.id,
+      name: data.name,
+      description: data.description || '',
+      isSaved: data.is_saved ?? true,
+      savedAt: data.saved_at,
+      interfaces: [] // Virtual relationship
+    };
+
+    console.log('updateProductInDb - mapped result:', mappedResult);
+
+    return { 
+      success: true, 
+      data: mappedResult 
+    };
+  } catch (error) {
+    console.error(`Error updating product ${updateData.id}:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
  * Delete a product
  */
 export async function deleteProductFromDb(id: string, tenantId: string) {

@@ -272,6 +272,61 @@ export async function updateReleasePriorityInDb(id: string, priority: 'High' | '
 }
 
 /**
+ * Update a release with multiple fields
+ */
+export async function updateReleaseInDb(updateData: any, tenantId: string) {
+  try {
+    console.log('updateReleaseInDb - input:', updateData, 'tenantId:', tenantId);
+    
+    if (!updateData.id) {
+      return { success: false, error: 'Release ID is required for update' };
+    }
+
+    const { id, ...fieldsToUpdate } = updateData;
+    
+    // Map frontend fields to database fields
+    if (fieldsToUpdate.targetDate !== undefined) {
+      fieldsToUpdate.release_date = fieldsToUpdate.targetDate;
+      delete fieldsToUpdate.targetDate;
+    }
+    
+    // Map priority values
+    if (fieldsToUpdate.priority !== undefined) {
+      const priorityMap: Record<string, string> = {
+        'High': 'high',
+        'Med': 'medium', 
+        'Low': 'low'
+      };
+      fieldsToUpdate.priority = priorityMap[fieldsToUpdate.priority] || 'medium';
+    }
+
+    const { data, error } = await supabase
+      .from('releases')
+      .update(fieldsToUpdate)
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating release:', error);
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      data: mapRelease(data)
+    };
+  } catch (error) {
+    console.error(`Error updating release ${updateData.id}:`, error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
  * Mark a release as saved
  */
 export async function markReleaseAsSavedInDb(id: string, tenantId: string) {

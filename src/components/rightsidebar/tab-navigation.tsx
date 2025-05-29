@@ -70,14 +70,14 @@ export function TabNavigation() {
   // Show modern toggle when sidebar is open
   return (
     <div className="p-3 pr-12">
-      {/* Clean Software-style Segmented Control */}
-      <div className="flex bg-black/30 backdrop-blur-sm rounded-full p-0.5 border border-white/20 max-w-[200px]">
+      {/* Clean Floating Toggle */}
+      <div className="flex bg-black/30 rounded-full p-0.5 max-w-[200px] shadow-lg border border-black/70">
         <button
           onClick={() => setActiveRightTab('chat')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium flex-1 justify-center transition-all duration-200 ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium flex-1 justify-center border border-black/70 transition-all duration-200 ${
             activeRightTab === 'chat'
-              ? 'bg-black/60 text-white border border-white/30'
-              : 'text-white/60 hover:text-white/80 hover:bg-black/20'
+              ? 'bg-black/70 text-white'
+              : 'text-white/60 hover:text-white/80 hover:bg-black/50'
           }`}
         >
           <MessageSquare className="w-3 h-3" />
@@ -85,10 +85,10 @@ export function TabNavigation() {
         </button>
         <button
           onClick={() => setActiveRightTab('todo')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium flex-1 justify-center transition-all duration-200 ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium flex-1 justify-center border border-black/70 transition-all duration-200 ${
             activeRightTab === 'todo'
-              ? 'bg-black/60 text-white border border-white/30'
-              : 'text-white/60 hover:text-white/80 hover:bg-black/20'
+              ? 'bg-black/70 text-white'
+              : 'text-white/60 hover:text-white/80 hover:bg-black/50'
           }`}
         >
           <CheckSquare className="w-3 h-3" />

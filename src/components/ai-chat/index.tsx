@@ -3,15 +3,21 @@
 import { useChat } from 'ai/react';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Database, ChevronLeft, CheckCircle2, Clock, AlertCircle, Bot, Search } from 'lucide-react';
+import { Send, Loader2, Database, ChevronLeft, CheckCircle2, Clock, AlertCircle, Bot, Search, Settings, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // Removed Card import - using custom dark styling instead
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAiChatFullyManaged } from '@/hooks/use-ai-chat-fully-managed';
+import { useAgent } from '@/providers/agent-provider';
+import { usePendingConfirmations } from '@/hooks/use-agent-confirmations';
+import { AgentConfirmationDialog } from '@/components/agent-confirmation-dialog';
+import type { AgentMode } from '@/types/models/ai-chat';
 // TODO: Move these to API routes to avoid client-side supabase imports
 // import { isAutoEmbeddingEnabled, getEmbeddingQueueStatus, triggerManualEmbeddingProcessing } from '@/services/ai-service';
 
@@ -23,8 +29,14 @@ export function AIChatComponent() {
   const [queueStatus, setQueueStatus] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   
-  // Toggle between RAG and OpenAI fully managed modes
-  const [useOpenAI, setUseOpenAI] = useState(false);
+  // Agent state management
+  const agent = useAgent();
+  const { confirmations, respondToConfirmation, isUpdating } = usePendingConfirmations();
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [activeConfirmation, setActiveConfirmation] = useState<any>(null);
+  
+  // Toggle between modes: RAG, Ask (OpenAI), Agent (OpenAI with function calling)
+  const [chatMode, setChatMode] = useState<'rag' | 'ask' | 'agent'>('rag');
   const [inputValue, setInputValue] = useState('');
   
   // RAG-based chat (existing)
@@ -47,8 +59,10 @@ export function AIChatComponent() {
     ],
   });
 
-  // OpenAI fully managed chat (new)
-  const openAIChat = useAiChatFullyManaged({
+  // OpenAI fully managed chat (ask mode)
+  const askChat = useAiChatFullyManaged({
+    mode: 'ask',
+    sessionId: agent.state.sessionId || undefined,
     onSuccess: (response) => {
       toast.success('Message sent successfully');
     },
@@ -57,33 +71,105 @@ export function AIChatComponent() {
     }
   });
 
-  // Unified interface based on selected mode
-  const activeChat = useOpenAI ? {
-    messages: openAIChat.messages,
-    input: inputValue,
-    handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value),
-    handleSubmit: async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (inputValue.trim()) {
-        await openAIChat.sendMessage(inputValue);
-        setInputValue('');
-      }
+  // OpenAI agent chat (agent mode with function calling)
+  const agentChat = useAiChatFullyManaged({
+    mode: 'agent',
+    sessionId: agent.state.sessionId || undefined,
+    onSuccess: (response) => {
+      toast.success('Message sent successfully');
     },
-    isLoading: openAIChat.isLoading,
-    error: openAIChat.error
-  } : {
+    onError: (error) => {
+      toast.error(`Agent error: ${error.message}`);
+    }
+  });
+
+  // Unified interface based on selected mode
+  const activeChat = chatMode === 'rag' ? {
     messages: ragChat.messages,
     input: ragChat.input,
     handleInputChange: ragChat.handleInputChange,
     handleSubmit: ragChat.handleSubmit,
     isLoading: ragChat.isLoading,
     error: ragChat.error
+  } : chatMode === 'ask' ? {
+    messages: askChat.messages,
+    input: inputValue,
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value),
+    handleSubmit: async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        await askChat.sendMessage(inputValue);
+        setInputValue('');
+      }
+    },
+    isLoading: askChat.isLoading,
+    error: askChat.error
+  } : {
+    messages: agentChat.messages,
+    input: inputValue,
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value),
+    handleSubmit: async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        await agentChat.sendMessage(inputValue);
+        setInputValue('');
+      }
+    },
+    isLoading: agentChat.isLoading,
+    error: agentChat.error
   };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat.messages]);
+
+  // Initialize agent session when switching to agent mode
+  useEffect(() => {
+    if (chatMode === 'agent' && !agent.state.currentSession) {
+      agent.initializeSession('agent');
+    } else if (chatMode === 'ask' && agent.state.mode !== 'ask') {
+      agent.updateSessionMode('ask');
+    }
+  }, [chatMode, agent]);
+
+  // Handle pending confirmations
+  useEffect(() => {
+    if (confirmations.length > 0 && !showConfirmationDialog) {
+      const firstConfirmation = confirmations[0];
+      setActiveConfirmation(firstConfirmation);
+      setShowConfirmationDialog(true);
+    }
+  }, [confirmations, showConfirmationDialog]);
+
+  // Handle confirmation response
+  const handleConfirmationResponse = async (
+    confirmationId: string,
+    response: 'confirmed' | 'rejected' | 'cancelled',
+    details?: any
+  ) => {
+    try {
+      await respondToConfirmation(confirmationId, response, details);
+      setShowConfirmationDialog(false);
+      setActiveConfirmation(null);
+      
+      if (response === 'confirmed') {
+        toast.success('Action confirmed successfully');
+      } else if (response === 'rejected') {
+        toast.info('Action rejected');
+      } else {
+        toast.info('Action cancelled');
+      }
+    } catch (error) {
+      toast.error('Failed to respond to confirmation');
+      console.error('Confirmation response error:', error);
+    }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmationDialog(false);
+    setActiveConfirmation(null);
+  };
 
   // Check auto-embedding status on mount
   useEffect(() => {
@@ -232,86 +318,32 @@ export function AIChatComponent() {
       <div className="sticky top-0 z-10 backdrop-blur-md bg-[#0A0A0A]/80 p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-xs text-white/60">Online</span>
-            </div>
-            
-            {/* AI Mode Toggle */}
-            <div className="flex items-center gap-3 px-3 py-1.5 bg-[#1A1A1A] rounded-md border border-[#232326]">
+            {/* Agent Status Indicators */}
+            {chatMode === 'agent' && (
               <div className="flex items-center gap-2">
-                <Search className="w-3 h-3 text-white/60" />
-                <span className="text-xs text-white/60">RAG</span>
-              </div>
-              <Switch 
-                checked={useOpenAI} 
-                onCheckedChange={setUseOpenAI}
-                className="scale-75"
-              />
-              <div className="flex items-center gap-2">
-                <Bot className="w-3 h-3 text-white/60" />
-                <span className="text-xs text-white/60">OpenAI</span>
-              </div>
-            </div>
-            
-            {/* Auto-embedding status indicator */}
-            {autoEmbeddingEnabled !== null && (
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-white/20 rounded-full"></div>
-                {autoEmbeddingEnabled ? (
-                  <div className="flex items-center gap-2">
-                    {syncStatus === 'syncing' && (
-                      <>
-                        <Clock className="w-3 h-3 text-orange-400" />
-                        <span className="text-xs text-orange-400">
-                          Processing {queueStatus?.queueLength || 0} items...
-                        </span>
-                      </>
-                    )}
-                    {syncStatus === 'synced' && (
-                      <>
-                        <CheckCircle2 className="w-3 h-3 text-green-400" />
-                        <span className="text-xs text-green-400">Auto-sync enabled</span>
-                      </>
-                    )}
-                    {syncStatus === 'error' && (
-                      <>
-                        <AlertCircle className="w-3 h-3 text-red-400" />
-                        <span className="text-xs text-red-400">Sync error</span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Database className="w-3 h-3 text-white/40" />
-                    <span className="text-xs text-white/60">Manual sync</span>
+                {agent.state.pendingActions.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {agent.state.pendingActions.length} pending
+                  </Badge>
+                )}
+                {confirmations.length > 0 && (
+                  <Badge variant="destructive" className="text-xs animate-pulse">
+                    {confirmations.length} confirmation{confirmations.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {agent.state.isProcessing && (
+                  <div className="flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                    <span className="text-xs text-blue-400">Processing</span>
                   </div>
                 )}
               </div>
             )}
+            
           </div>
-          
-          <Button
-            onClick={handleIndexing}
-            disabled={isIndexing}
-            size="sm"
-            className="h-8 px-3 bg-[#1A1A1A] hover:bg-[#232326] border border-[#232326] text-white/70 hover:text-white/90 text-xs"
-          >
-            {isIndexing ? (
-              <>
-                <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
-                {autoEmbeddingEnabled ? 'Processing' : 'Indexing'}
-              </>
-            ) : (
-              <>
-                <Database className="w-3 h-3 mr-1.5" />
-                {autoEmbeddingEnabled ? 'Manual Sync' : 'Sync'}
-              </>
-            )}
-          </Button>
         </div>
       </div>
-      <ScrollArea className="flex-1 w-full px-4 py-6 h-0 overflow-y-auto">
+      <div className="flex-1 w-full px-5 py-6 h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="space-y-4 w-full">
         {activeChat.messages.map((message) => (
           <div
@@ -323,8 +355,8 @@ export function AIChatComponent() {
             <div
               className={`max-w-[75%] rounded-2xl px-4 py-3 message-bubble ${
                 message.role === 'user'
-                  ? 'bg-gradient-to-br from-[#2a2a2c] to-[#232326] text-white/90 rounded-br-md'
-                  : 'bg-gradient-to-br from-[#1A1A1A] to-[#161618] text-white/85 rounded-bl-md'
+                  ? 'bg-transparent border border-black/70 text-white/90 rounded-br-md'
+                  : 'bg-transparent border border-white/10 text-white/90 rounded-bl-md'
               }`}
             >
               <div className="text-sm whitespace-pre-wrap break-words">
@@ -335,7 +367,7 @@ export function AIChatComponent() {
         ))}
         {activeChat.isLoading && (
           <div className="flex justify-start">
-            <div className="max-w-[75%] rounded-2xl rounded-bl-md px-4 py-3 bg-gradient-to-br from-[#1A1A1A] to-[#161618] shadow-sm">
+            <div className="max-w-[75%] rounded-2xl rounded-bl-md px-4 py-3 bg-transparent border border-white/10">
               <div className="flex gap-1.5">
                 <div className="w-2 h-2 bg-white/30 rounded-full animate-pulse" />
                 <div className="w-2 h-2 bg-white/30 rounded-full animate-pulse delay-75" />
@@ -353,36 +385,121 @@ export function AIChatComponent() {
         )}
         <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      {/* Clean Software-style Input */}
-      <form onSubmit={activeChat.handleSubmit} className="w-full p-4">
-        <div className="relative">
-          <Input
-            type="text"
+      {/* Floating Chat Input */}
+      <div className="bg-black/30 backdrop-blur-sm rounded-2xl m-4 shadow-2xl">
+        {/* Row 1: Context */}
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-black/40 backdrop-blur-sm text-white/60 hover:text-white/80 hover:bg-black/60 transition-all duration-200">
+              @ Add context
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Text Input */}
+        <form onSubmit={activeChat.handleSubmit} className="px-4 py-3">
+          <Textarea
             value={activeChat.input}
-            onChange={activeChat.handleInputChange}
-            placeholder={useOpenAI 
-              ? "Ask about your products with OpenAI Assistants..." 
-              : "Ask about your products, features, or get PM advice..."
+            onChange={(e) => activeChat.handleInputChange(e as any)}
+            placeholder={
+              chatMode === 'rag' 
+                ? "Ask about your products..." 
+                : chatMode === 'ask'
+                ? "Ask me anything..."
+                : "Create, update, or manage..."
             }
-            className="w-full bg-black/30 backdrop-blur-sm border border-white/20 text-white/90 placeholder:text-white/40 hover:bg-black/20 hover:border hover:border-white/20 focus:border-white/30 focus:ring-0 rounded-full pl-4 pr-12 py-3 h-12 transition-all duration-200"
+            className="w-full bg-transparent border-none text-white/90 placeholder:text-white/40 resize-none focus:ring-0 focus:outline-none text-sm leading-relaxed"
             disabled={activeChat.isLoading}
             autoFocus
+            rows={3}
+            style={{ 
+              minHeight: '72px',
+              maxHeight: '200px'
+            }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+            }}
           />
-          <Button
+        </form>
+
+        {/* Row 3: Controls */}
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Mode Toggle */}
+            <div className="flex bg-black/40 rounded-full p-0.5">
+              <button
+                onClick={() => setChatMode('rag')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-200 ${
+                  chatMode === 'rag'
+                    ? 'bg-black/60 text-white'
+                    : 'text-white/60 hover:text-white/80 hover:bg-black/40'
+                }`}
+              >
+                RAG
+              </button>
+              <button
+                onClick={() => setChatMode('ask')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-200 ${
+                  chatMode === 'ask'
+                    ? 'bg-black/60 text-white'
+                    : 'text-white/60 hover:text-white/80 hover:bg-black/40'
+                }`}
+              >
+                Ask
+              </button>
+              <button
+                onClick={() => setChatMode('agent')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-200 ${
+                  chatMode === 'agent'
+                    ? 'bg-black/60 text-white'
+                    : 'text-white/60 hover:text-white/80 hover:bg-black/40'
+                }`}
+              >
+                Agent
+              </button>
+            </div>
+
+            {/* Model Name */}
+            <div className="text-xs text-white/40">
+              GPT-4
+            </div>
+          </div>
+
+          {/* Send Button */}
+          <button
             type="submit"
             disabled={activeChat.isLoading || !activeChat.input.trim()}
-            className="absolute right-1 top-1 bottom-1 bg-black/60 hover:bg-black/80 border border-white/30 text-white/90 rounded-full w-10 h-10 p-0 flex items-center justify-center transition-all duration-200"
+            onClick={activeChat.handleSubmit}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {activeChat.isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Sending
+              </>
             ) : (
-              <Send className="w-5 h-5" />
+              <>
+                <Send className="w-3 h-3" />
+                Send
+              </>
             )}
-          </Button>
+          </button>
         </div>
-      </form>
+      </div>
+
+      {/* Agent Confirmation Dialog */}
+      <AgentConfirmationDialog
+        isOpen={showConfirmationDialog}
+        onClose={handleCloseConfirmation}
+        confirmation={activeConfirmation}
+        action={activeConfirmation} // In a real implementation, you'd fetch the action details
+        onConfirm={handleConfirmationResponse}
+        isProcessing={isUpdating}
+      />
     </div>
   );
 }

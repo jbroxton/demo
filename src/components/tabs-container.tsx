@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Pencil, Package, Layers, Puzzle, Calendar, Map } from 'lucide-react';
+import { X, Pencil, Package, Layers, Puzzle, Calendar, Map, FileText } from 'lucide-react';
+import { getPageTypeIcon } from '@/utils/page-icons';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useProductsQuery } from '@/hooks/use-products-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
+import { usePagesQuery } from '@/hooks/use-pages-query';
 import '@/styles/editor.css';
 
 export function TabsContainer() {
@@ -14,6 +16,7 @@ export function TabsContainer() {
   const featuresQuery = useFeaturesQuery();
   const productsQuery = useProductsQuery();
   const interfacesQuery = useInterfacesQuery();
+  const pagesQuery = usePagesQuery();
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
@@ -50,6 +53,8 @@ export function TabsContainer() {
         productsQuery.updateProductName(tab.itemId, editingValue);
       } else if (tab.type === 'interface') {
         interfacesQuery.updateInterfaceName(tab.itemId, editingValue);
+      } else if (tab.type === 'page') {
+        pagesQuery.updatePage(tab.itemId, { title: editingValue });
       }
     }
     
@@ -74,7 +79,14 @@ export function TabsContainer() {
   };
 
   // Function to get the appropriate icon based on tab type
-  const getTabIcon = (tabType: string) => {
+  const getTabIcon = (tabType: string, page?: any) => {
+    // For page tabs, use dynamic icon based on page type
+    if (tabType === 'page' && page?.type) {
+      const PageIcon = getPageTypeIcon(page.type);
+      return <PageIcon className="h-4 w-4 flex-shrink-0 my-auto" />;
+    }
+    
+    // For legacy entity tabs, use existing icons
     switch (tabType) {
       case 'product':
         return <Package className="h-4 w-4 flex-shrink-0 my-auto" />;
@@ -86,6 +98,8 @@ export function TabsContainer() {
         return <Calendar className="h-4 w-4 flex-shrink-0 my-auto" />;
       case 'roadmap':
         return <Map className="h-4 w-4 flex-shrink-0 my-auto" />;
+      case 'page':
+        return <FileText className="h-4 w-4 flex-shrink-0 my-auto" />; // Fallback
       default:
         return null;
     }
@@ -126,7 +140,7 @@ export function TabsContainer() {
                   className="w-full px-2 flex items-center justify-start text-xs tracking-[-0.006em] leading-[1.4] border border-transparent hover:bg-black/20 hover:border hover:border-white/20 hover:text-white/90 data-[state=active]:bg-black/30 data-[state=active]:border data-[state=active]:border-white/30 data-[state=active]:text-white transition-all duration-200 rounded-[10px] py-1"
                   data-action="activate-tab"
                 >
-                  {getTabIcon(tab.type)}
+                  {getTabIcon(tab.type, tab.type === 'page' ? pagesQuery.getPageById(tab.itemId) : undefined)}
                   <span className="truncate ml-1">{tab.title}</span>
                   {tab.hasChanges && (
                     <span className="inline-block w-1.5 h-1.5 bg-[#9333EA] rounded-full ml-1.5" aria-label="Unsaved changes" />
