@@ -1,4 +1,3 @@
-import React from 'react';
 import { SettingsDocumentEditor } from '@/components/settings-document-editor';
 
 interface SettingsTabContentProps {

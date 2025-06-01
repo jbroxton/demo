@@ -4,7 +4,7 @@ import { AuthForm } from "@/components/auth/auth-form"
 
 export default function SignInPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0A0A0A] text-white p-6 md:p-10">
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-[#0A0A0A] text-white p-6 md:p-10">
       {/* Logo and title in a row */}
       <div className="mb-8 flex items-center">
         {/* Smaller logo */}

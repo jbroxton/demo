@@ -8,7 +8,6 @@
  * - Utils - Error handling and validation
  */
 
-import { z } from 'zod';
 import { 
   getAllAgentFunctionTools,
   getAgentFunctionToolsByEntity,

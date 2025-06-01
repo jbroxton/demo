@@ -1,7 +1,5 @@
 "use client";
 
-import React from 'react';
-import { type Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import {
   Bold,
@@ -25,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { Editor } from '@tiptap/react';
 
 interface DocumentEditorToolbarProps {
   editor: Editor | null;

@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Puzzle, Save, X, Plus, FileText, Trash2, Paperclip, Calendar, ClipboardCheck, ChevronRight, ChevronLeft, ChevronDown, Info, MoreHorizontal } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SimpleEditor } from './simple-editor';
-import { FeatureRequirementsSectionQuery } from './feature-requirements-section-query';
-import { StagesApprovalTable } from './stages-approval-table';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -27,13 +25,9 @@ import {
 } from "@/components/ui/sheet";
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
-import { useReleasesQuery } from '@/hooks/use-releases-query';
-import { useEntityApprovalsQuery } from '@/hooks/use-entity-approvals-query';
 import { useAttachmentsQuery } from '@/hooks/use-attachments-query';
 import { useDocumentQuery, useDocumentsQuery } from '@/hooks/use-documents-query';
-import { AttachmentButton } from './attachment-button';
 import { AttachmentDialog } from './attachment-dialog';
-import { AttachmentList } from './attachment-list';
 import { Attachment, Document } from '@/types/models';
 import debounce from 'lodash/debounce';
 

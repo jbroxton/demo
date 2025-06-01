@@ -156,7 +156,7 @@ export function AuthForm({
   // Only show loading if not initialized or loading and not showing fallback
   if ((isLoading || !isInitialized || isAuthenticated) && !showLoginFormFallback) {
     return (
-      <div className="flex flex-col items-center justify-center p-8">
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <div className="flex items-center mb-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2">
@@ -197,7 +197,7 @@ export function AuthForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn("flex flex-col gap-6", className)} data-testid="auth-form" {...props}>
       <Card className="bg-[#0A0A0A] border-0 shadow-none">
         <CardHeader>
           <CardTitle className="text-4xl text-center font-bold">Sign in to Speqq</CardTitle>

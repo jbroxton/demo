@@ -336,6 +336,8 @@ export async function deletePage(id: string, tenantId: string): Promise<ServiceR
       };
     }
     
+    const page = pageResult.data;
+    
     // Check for child pages
     const { data: childPages, error: childError } = await supabase
       .from('pages')
@@ -355,6 +357,11 @@ export async function deletePage(id: string, tenantId: string): Promise<ServiceR
         success: false,
         error: `Cannot delete page with ${childPages.length} child page(s). Delete children first or move them to another parent.`,
       };
+    }
+    
+    // Clean up assignments before deleting (for roadmaps and releases)
+    if (page.type === 'roadmap' || page.type === 'release') {
+      await cleanupAssignmentsForDeletedPage(id, page.type, tenantId);
     }
     
     // Delete the page (blocks are stored within the page, so they're deleted automatically)
@@ -383,6 +390,73 @@ export async function deletePage(id: string, tenantId: string): Promise<ServiceR
       success: false,
       error: `Failed to delete page: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
+  }
+}
+
+// Helper function to clean up assignments when a roadmap or release is deleted
+async function cleanupAssignmentsForDeletedPage(
+  deletedPageId: string, 
+  pageType: 'roadmap' | 'release', 
+  tenantId: string
+): Promise<void> {
+  try {
+    console.log(`Cleaning up ${pageType} assignments for deleted page ${deletedPageId}`);
+    
+    const assignmentType = pageType === 'roadmap' ? 'roadmaps' : 'releases';
+    
+    // Find all pages that have this roadmap/release assigned
+    const { data: pagesWithAssignments, error } = await supabase
+      .from('pages')
+      .select('id, properties')
+      .eq('tenant_id', tenantId)
+      .not('properties', 'is', null);
+    
+    if (error) {
+      console.error('Error finding pages with assignments:', error);
+      return;
+    }
+    
+    if (!pagesWithAssignments) return;
+    
+    // Process pages that need assignment cleanup
+    const pagesToUpdate = pagesWithAssignments.filter(page => {
+      const assignedTo = page.properties?.assignedTo;
+      return assignedTo && 
+             assignedTo[assignmentType] && 
+             Array.isArray(assignedTo[assignmentType]) &&
+             assignedTo[assignmentType].some((item: any) => item.id === deletedPageId);
+    });
+    
+    console.log(`Found ${pagesToUpdate.length} pages with assignments to clean up`);
+    
+    // Update each page to remove the deleted assignment
+    for (const page of pagesToUpdate) {
+      const updatedAssignments = {
+        ...page.properties.assignedTo,
+        [assignmentType]: page.properties.assignedTo[assignmentType].filter(
+          (item: any) => item.id !== deletedPageId
+        )
+      };
+      
+      const updatedProperties = {
+        ...page.properties,
+        assignedTo: updatedAssignments
+      };
+      
+      await supabase
+        .from('pages')
+        .update({ 
+          properties: updatedProperties,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', page.id)
+        .eq('tenant_id', tenantId);
+        
+      console.log(`Cleaned up assignments for page ${page.id}`);
+    }
+    
+  } catch (error) {
+    console.error('Error cleaning up assignments:', error);
   }
 }
 

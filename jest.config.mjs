@@ -7,8 +7,7 @@ const config = {
   roots: ['<rootDir>/src'],
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',
-    '**/?(*.)+(spec|test).+(ts|tsx|js)',
-    '**/unit-tests/**/*.+(ts|tsx|js)'
+    '**/?(*.)+(spec|test).+(ts|tsx|js)'
   ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
@@ -28,8 +27,7 @@ const config = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/*.stories.{ts,tsx}',
-    '!src/**/__tests__/**',
-    '!src/unit-tests/**'
+    '!src/**/__tests__/**'
   ],
   coverageThreshold: {
     global: {

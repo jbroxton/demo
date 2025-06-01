@@ -23,7 +23,6 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { ensureValidTenantId } from '@/utils/uuid-utils';
 
 /**
  * Extracts common context from an API request

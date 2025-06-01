@@ -1,6 +1,5 @@
 "use client"
 
-import React from 'react';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -20,7 +19,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { useProductsQuery } from '@/hooks/use-products-query';

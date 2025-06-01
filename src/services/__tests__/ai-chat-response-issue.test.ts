@@ -194,9 +194,6 @@ describe('AI Chat Response Issue Debug', () => {
       console.log('Checking useChat compatibility:');
       console.log(`- Status: ${response.status}`);
       
-      // useChat expects either:
-      // 1. Streaming text response (200 status)
-      // 2. JSON error response (4xx/5xx status)
       
       if (response.ok) {
         // Should be streaming response

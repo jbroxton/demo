@@ -9,7 +9,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UIStateProvider, useUIState } from '@/providers/ui-state-provider';
 import { ResizeHandle } from '@/components/rightsidebar/resize-handle';
-import DashboardLayoutQuery from '@/components/dashboard-layout-query';
 
 // Get the mocked localStorage from jest setup
 const mockLocalStorage = window.localStorage as jest.Mocked<typeof window.localStorage>;

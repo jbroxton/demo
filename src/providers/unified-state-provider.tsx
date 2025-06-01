@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { TanstackQueryProvider } from '@/providers/query-provider';
 import { usePathname } from 'next/navigation';
 
 // Import React Query hooks
@@ -9,6 +8,7 @@ import { useProductsQuery } from '@/hooks/use-products-query';
 import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { useFeaturesQuery } from '@/hooks/use-features-query';
 import { useReleasesQuery } from '@/hooks/use-releases-query';
+import { usePagesQuery } from '@/hooks/use-pages-query';
 
 // Import feature flags
 import { USE_DB_BACKED_STORAGE } from '@/config/features';
@@ -47,6 +47,17 @@ const defaultContextValue = {
     getReleaseById: () => null,
     refetch: () => Promise.resolve(),
   },
+  pages: {
+    pages: [],
+    isLoading: true,
+    error: null,
+    getPages: () => [],
+    getPageById: () => null,
+    getPagesByType: () => [],
+    getRootPages: () => [],
+    getChildPages: () => [],
+    refetch: () => Promise.resolve(),
+  },
   isUsingDbBackedStorage: USE_DB_BACKED_STORAGE,
 };
 
@@ -77,6 +88,11 @@ export const useUnifiedFeatures = () => {
 export const useUnifiedReleases = () => {
   const { releases } = useUnifiedState();
   return releases;
+};
+
+export const useUnifiedPages = () => {
+  const { pages } = useUnifiedState();
+  return pages;
 };
 
 // Provider component
@@ -125,6 +141,9 @@ const DbBackedStateProvider = ({ children }: { children: ReactNode }) => {
     enabled: isReleaseDataNeeded 
   });
   
+  // Always load pages data (it's used in sidebar and tabs)
+  const pagesQuery = usePagesQuery();
+  
   
   // Type-safe approach for the value object
   const value = {
@@ -164,6 +183,35 @@ const DbBackedStateProvider = ({ children }: { children: ReactNode }) => {
         const releases = releasesQuery.releases || [];
         return releases.find(r => r.id === id) || null;
       },
+    },
+    pages: {
+      ...pagesQuery,
+      pages: pagesQuery.pages || [],
+      getPages: () => pagesQuery.pages || [],
+      getPageById: (id: string) => {
+        const pages = pagesQuery.pages || [];
+        return pages.find(p => p.id === id) || null;
+      },
+      getPagesByType: (type: string) => {
+        const pages = pagesQuery.pages || [];
+        return pages.filter(p => p.type === type);
+      },
+      getRootPages: () => {
+        const pages = pagesQuery.pages || [];
+        return pages.filter(p => !p.parent_id);
+      },
+      getChildPages: (parentId: string) => {
+        const pages = pagesQuery.pages || [];
+        return pages.filter(p => p.parent_id === parentId);
+      },
+      // Mutation functions for consistency with other entities
+      addPage: pagesQuery.addPage,
+      updatePage: pagesQuery.updatePage,
+      updatePageTitle: pagesQuery.updatePageTitle,
+      deletePage: pagesQuery.deletePage,
+      addBlock: pagesQuery.addBlock,
+      updateBlock: pagesQuery.updateBlock,
+      deleteBlock: pagesQuery.deleteBlock,
     },
     isUsingDbBackedStorage: true,
   };

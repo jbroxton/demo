@@ -1,6 +1,4 @@
-import React from 'react';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeatureQueryTabContent } from './feature-query-tab-content';
 import { ProductQueryTabContent } from './product-query-tab-content';
 import { InterfaceQueryTabContent } from './interface-query-tab-content';
@@ -10,6 +8,8 @@ import { RoadmapSpecificTabContent } from './roadmap-specific-tab-content';
 import { SettingsTabContent } from './settings-tab-content';
 import { UnifiedPageEditor } from './unified-page-editor';
 import { usePagesQuery } from '@/hooks/use-pages-query';
+import { useUnifiedPages } from '@/providers/unified-state-provider';
+import { useQuery } from '@tanstack/react-query';
 
 export function TabQueryContent() {
   const { tabs, activeTabId, isLoading } = useTabsQuery();
@@ -22,6 +22,7 @@ export function TabQueryContent() {
         className="flex items-center justify-center h-full p-6"
         data-component="canvas-content"
         data-state="empty"
+        data-testid="pages-empty-editor"
       >
         <div className="text-center text-[#a0a0a0]">
           <h3 className="text-lg font-medium">No active canvas</h3>
@@ -112,11 +113,41 @@ export function TabQueryContent() {
   );
 }
 
-// Wrapper component for UnifiedPageEditor that fetches page data
+// Wrapper component for UnifiedPageEditor that uses same data source as sidebar/tabs
 function UnifiedPageEditorWrapper({ pageId }: { pageId: string }) {
-  const { usePageQuery, updatePage, deletePageMutation } = usePagesQuery();
-  const { data: page, isLoading, error } = usePageQuery(pageId);
-  const { updateTabTitle } = useTabsQuery();
+  const { deletePageMutation } = usePagesQuery();
+  const { updateTabTitle, closeTab, tabs } = useTabsQuery();
+  const unifiedPagesState = useUnifiedPages();
+  
+  // Try to get page from unified state first (for cached pages)
+  const cachedPage = unifiedPagesState.getPageById(pageId);
+  
+  // If not found in cache, fetch it directly (for child pages not in main cache)
+  const { data: individualPage, isLoading: individualLoading, error: individualError } = useQuery({
+    queryKey: ['individual-page', pageId],
+    queryFn: async () => {
+      console.log(`🔍 Fetching individual page: ${pageId}`);
+      const response = await fetch(`/api/pages-db?id=${pageId}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch page: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ Individual page fetched:`, result);
+      return result.data || result;
+    },
+    enabled: !cachedPage, // Only fetch if not found in cache
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2
+  });
+  
+  // Use cached page if available, otherwise use individually fetched page
+  const page = cachedPage || individualPage;
+  const isLoading = !cachedPage && individualLoading;
+  const error = individualError || unifiedPagesState.error;
 
   if (isLoading) {
     return (
@@ -142,13 +173,32 @@ function UnifiedPageEditorWrapper({ pageId }: { pageId: string }) {
 
   const handleDelete = async () => {
     try {
-      await deletePageMutation.mutateAsync(pageId);
-      // Note: Tab closing should be handled by the parent component
-      console.log('Page deleted:', pageId);
+      await unifiedPagesState.deletePage(pageId);
+      
+      // Close the tab for the deleted page
+      const tabToClose = tabs.find(tab => tab.itemId === pageId);
+      if (tabToClose) {
+        await closeTab(tabToClose.id);
+        console.log('Page deleted and tab closed:', pageId);
+      } else {
+        console.log('Page deleted:', pageId);
+      }
     } catch (error) {
       console.error('Failed to delete page:', error);
     }
   };
+
+  // Debug logging for roadmap pages
+  if (page.type === 'roadmap') {
+    console.log('🗺️ ROADMAP PAGE DEBUG:', {
+      pageId: page.id,
+      pageType: page.type,
+      title: page.title,
+      blocks: page.blocks,
+      hasBlocks: page.blocks?.length > 0,
+      blocksContent: page.blocks?.[0]?.content
+    });
+  }
 
   return (
     <UnifiedPageEditor

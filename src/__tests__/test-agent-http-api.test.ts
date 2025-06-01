@@ -4,7 +4,6 @@
  */
 
 // Test the agent functionality by making actual HTTP calls
-import { spawn } from 'child_process';
 
 // Mock Next.js auth session
 jest.mock('next-auth', () => ({

@@ -1,7 +1,6 @@
 // API route for pages CRUD operations
 // Follows existing patterns in the codebase
 
-import { NextRequest } from 'next/server';
 import { createPage, getPages, updatePage, deletePage, getPageById } from '@/services/pages-db';
 import { PageType, AnyPropertyValue } from '@/types/models/Page';
 import { Block } from '@/types/models/Block';

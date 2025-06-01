@@ -39,18 +39,50 @@ export function PageContextMenu({
   const { openTab } = useTabsQuery();
 
   const handleCreateChild = async (childType: PageType) => {
-    console.log(`Creating ${childType} child for page:`, { pageId, pageType, pageTitle });
+    console.log(`🔨 Creating ${childType} child for page:`, { pageId, pageType, pageTitle });
     try {
       const pageData = {
         type: childType,
         title: `New ${childType.charAt(0).toUpperCase() + childType.slice(1)}`,
         parent_id: pageId,
+        properties: {},
+        blocks: [
+          {
+            id: `doc-${pageId}-${Date.now()}`,
+            type: 'document' as const,
+            content: {
+              tiptap_content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        type: 'text',
+                        text: `This is a new ${childType}. Start editing to add your content.`
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]
       };
-      console.log('Page data to create:', pageData);
-      console.log('PageId being used as parent:', pageId, typeof pageId);
+      console.log('🔨 Page data to create:', pageData);
+      console.log('🔨 PageId being used as parent:', pageId, typeof pageId);
       
       const newPage = await addPage(pageData);
-      console.log(`Successfully created new ${childType} under ${pageType}:`, newPage);
+      console.log(`🔨 ✅ Successfully created new ${childType} under ${pageType}:`, newPage);
+      console.log(`🔨 ✅ Created page details:`, {
+        id: newPage.id,
+        type: newPage.type,
+        title: newPage.title,
+        parent_id: newPage.parent_id,
+        blocksCount: newPage.blocks?.length || 0
+      });
       
       // Open tab for the new page (following Product section pattern)
       try {
@@ -122,7 +154,7 @@ export function PageContextMenu({
         {onDelete && (
           <ContextMenuItem 
             onClick={onDelete}
-            className="text-destructive focus:text-destructive"
+            className="text-destructive hover:text-destructive focus:text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete {pageType.charAt(0).toUpperCase() + pageType.slice(1)}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AgentConfirmationDialog } from '../components/agent-confirmation-dialog';
 import type { AgentConfirmation, AgentAction } from '@/types/models/ai-chat';

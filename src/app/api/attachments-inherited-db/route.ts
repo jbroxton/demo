@@ -1,7 +1,5 @@
-import { NextRequest } from 'next/server';
 import { getParentEntityAttachmentsFromDb } from '@/services/attachments-db';
 import { apiResponse } from '@/utils/api-response';
-import { validateRequired } from '@/utils/api-validate';
 import { authenticatedHandler } from '@/utils/api-authenticated-handler';
 import { EntityType } from '@/types/models';
 

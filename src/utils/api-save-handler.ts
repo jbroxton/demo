@@ -3,7 +3,6 @@
  * @description Generic API handler for marking entities as saved
  */
 
-import { NextRequest } from 'next/server';
 import { apiResponse } from '@/utils/api-response';
 import { validateRequired } from '@/utils/api-validate';
 import { authenticatedHandler } from '@/utils/api-authenticated-handler';

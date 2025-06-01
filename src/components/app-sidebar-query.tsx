@@ -1,7 +1,6 @@
 "use client"
 
-// 🔴 FILE LOAD TEST - This should show when the file is imported
-console.log('🔴 MODULE LOADING: app-sidebar-query.tsx file is being loaded!');
+// Main navigation sidebar with unified state management
 
 import * as React from "react"
 import { useState } from "react"
@@ -23,10 +22,11 @@ import {
   Trash2
 } from "lucide-react"
 import { getPageTypeIcon } from "@/utils/page-icons"
-import { PageContextMenu } from "@/components/page-context-menu"
 import { getAllowedChildTypes, canHaveChildren } from "@/utils/page-parenting-rules"
 import { useAuth } from "@/hooks/use-auth"
 import { EntityCreator } from "@/components/entity-creator"
+import { PageContextMenu } from "@/components/page-context-menu"
+import { PageTypeCreator } from "@/components/page-type-creator"
 import { useRouter } from "next/navigation"
 import { useProductsQuery } from "@/hooks/use-products-query"
 import { useInterfacesQuery } from "@/hooks/use-interfaces-query"
@@ -70,15 +70,9 @@ const goalsData = [
 
 
 export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttributes<HTMLDivElement> & { collapsed?: boolean }) {
-  console.log('🔵 COMPONENT START: AppSidebarQuery is being called!');
-  
   const { user, logout } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  
-  // TEMP DEBUG: Log auth context
-  console.log('🔐 AUTH DEBUG: Current user:', user);
-  console.log('🔐 AUTH DEBUG: User tenant ID:', user?.tenantId);
   
   // Track expanded IDs for each level of hierarchy
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
@@ -98,15 +92,12 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
   const featuresQuery = useFeaturesQuery();
   const releasesQuery = useReleasesQuery();
   const roadmapsQuery = useRoadmapsQuery();
-  const { openTab } = useTabsQuery();
+  const { openTab, closeTab, tabs } = useTabsQuery();
   
-  // STEP 1: Pages queries - fetch only root pages initially
-  const pagesQuery = usePagesQuery({ parentId: null });
+  // STEP 1: Pages queries - fetch all pages and filter locally for same cache
+  const pagesQuery = usePagesQuery();
   
-  // TEMP DEBUG: Log what the component receives
-  console.log('🎯 COMPONENT DEBUG: pagesQuery.pages:', pagesQuery.pages);
-  console.log('🎯 COMPONENT DEBUG: pagesQuery.isLoading:', pagesQuery.isLoading);
-  console.log('🎯 COMPONENT DEBUG: pagesQuery.error:', pagesQuery.error);
+  // Pages queries now using optimized cache settings
   
   // Toggle product expansion
   const toggleProductExpansion = (productId: string) => {
@@ -138,6 +129,31 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
       ...prev,
       [pageId]: !prev[pageId]
     }));
+  };
+
+  // Handle page deletion with context-aware messaging
+  const handlePageDelete = async (pageId: string, pageType: string, pageTitle: string) => {
+    const pageTypeCapitalized = pageType.charAt(0).toUpperCase() + pageType.slice(1);
+    const confirmMessage = `Are you sure you want to delete this ${pageTypeCapitalized}?\n\n"${pageTitle}"\n\nThis action cannot be undone.`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Delete the page from the database
+        await pagesQuery.deletePage(pageId);
+        
+        // Close the tab if it's open
+        const tabToClose = tabs.find(tab => tab.itemId === pageId);
+        if (tabToClose) {
+          await closeTab(tabToClose.id);
+          console.log(`${pageTypeCapitalized} deleted and tab closed:`, pageTitle);
+        } else {
+          console.log(`${pageTypeCapitalized} deleted:`, pageTitle);
+        }
+      } catch (error) {
+        console.error(`Failed to delete ${pageTypeCapitalized.toLowerCase()}:`, error);
+        alert(`Failed to delete ${pageTypeCapitalized.toLowerCase()}. Please try again.`);
+      }
+    }
   };
 
   
@@ -273,7 +289,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
       </div>
       
       {/* Pages section */}
-      <div className="flex items-center px-3 py-2" data-section="pages-header">
+      <div className="flex items-center px-3 py-2" data-section="pages-header" data-testid="pages-section-header">
         {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow uppercase tracking-wide">Pages</span>}
         <div className="flex gap-1">
           {/* Refresh button for debugging */}
@@ -293,21 +309,20 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
-          <EntityCreator
-            entityType="page"
-            buttonVariant="ghost"
-            buttonSize="icon"
-            buttonClassName={`${collapsed ? 'mx-auto' : ''} w-4 h-4 p-0 rounded hover:bg-white/10 flex items-center justify-center transition-colors`}
-            iconOnly={true}
-          />
+          <div data-testid="add-page-button">
+            <PageTypeCreator
+              buttonClassName={`${collapsed ? 'mx-auto' : ''} w-4 h-4 p-0 rounded hover:bg-white/10 flex items-center justify-center transition-colors`}
+              collapsed={collapsed}
+            />
+          </div>
         </div>
       </div>
       
       {/* Pages tree - EXACT COPY of Products tree structure */}
-      <div className="px-2 py-2 overflow-y-auto" data-section="pages-tree">
+      <div className="px-2 py-2 overflow-y-auto" data-section="pages-tree" data-testid="pages-section">
         {pagesQuery.pages && pagesQuery.pages.length > 0 ? (
-          <ul className="space-y-0.5" data-list="pages">
-            {pagesQuery.pages.filter(page => !page.parent_id).map(page => {
+          <ul className="space-y-0.5" data-list="pages" data-testid="pages-list">
+            {(pagesQuery.pages || []).filter(page => !page.parent_id).map(page => {
               // Determine if the page type can have children
               const pageCanHaveChildren = canHaveChildren(page.type);
               const isExpanded = expandedPages[page.id] || false;
@@ -318,16 +333,24 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                   className="group"
                   data-entity-type="page"
                   data-entity-id={page.id}
-                  data-expanded={isExpanded ? "true" : "false"}>
-                  <Collapsible open={isExpanded} onOpenChange={() => togglePageExpansion(page.id)}>
-                    {/* Page row - copy exact pattern from Product row */}
-                    <div className={`flex items-center ${collapsed ? 'justify-center p-2' : 'h-8'}`} data-row="page">
+                  data-expanded={isExpanded ? "true" : "false"}
+                  data-testid={`page-container-${page.id}`}>
+                  <PageContextMenu
+                    pageId={page.id}
+                    pageType={page.type}
+                    pageTitle={page.title}
+                    onDelete={() => handlePageDelete(page.id, page.type, page.title)}
+                  >
+                    <Collapsible open={isExpanded} onOpenChange={() => togglePageExpansion(page.id)}>
+                      {/* Page row - copy exact pattern from Product row */}
+                      <div className={`flex items-center ${collapsed ? 'justify-center p-2' : 'h-8'}`} data-row="page" data-testid={`page-row-${page.id}`}>
                       {/* Expand/collapse button - copy exact pattern from Products */}
                       {!collapsed && (
                         <CollapsibleTrigger asChild>
                           <button
                             className="flex items-center justify-center w-4 h-4 p-0 mr-0 hover:bg-white/10 rounded-sm transition-colors"
                             data-action="toggle"
+                            data-testid={`page-expand-button-${page.id}`}
                             aria-label={isExpanded ? "Collapse" : "Expand"}>
                             {pageCanHaveChildren ?
                               isExpanded ? <ChevronDown className="h-3 w-3 text-[#a0a0a0]" /> :
@@ -350,51 +373,57 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
                         title={page.title}
                         data-action="open-tab"
                         data-entity-name={page.title}
+                        data-testid={`page-button-${page.id}`}
                       >
                         {React.createElement(getPageTypeIcon(page.type), { 
                           className: `${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`
                         })}
-                        {!collapsed && <span className="truncate font-medium">{page.title}</span>}
+                        {!collapsed && <span className="truncate font-medium" data-testid={`page-title-${page.id}`}>{page.title}</span>}
                       </button>
 
                       {/* Child page creator - copy exact pattern from Interface creator */}
                       {!collapsed && (
-                        <EntityCreator
-                          entityType="page"
-                          iconOnly={true}
-                          buttonClassName="w-4 h-4 p-0 ml-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          buttonVariant="ghost"
-                          context={{
-                            parentId: page.id,
-                            parentType: 'page',
-                            parentName: page.title
-                          }}
-                        />
+                        <div data-testid={`add-child-page-button-${page.id}`}>
+                          <EntityCreator
+                            entityType="page"
+                            iconOnly={true}
+                            buttonClassName="w-4 h-4 p-0 ml-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            buttonVariant="ghost"
+                            context={{
+                              parentId: page.id,
+                              parentType: 'page',
+                              parentName: page.title
+                            }}
+                          />
+                        </div>
                       )}
                     </div>
 
-                    {/* Children list - Render PageChildrenRenderer if expanded and can have children */}
-                    {pageCanHaveChildren && !collapsed && isExpanded && (
-                      <CollapsibleContent>
-                        <PageChildrenRenderer parentId={page.id} collapsed={collapsed} />
-                      </CollapsibleContent>
-                    )}
-                  </Collapsible>
+                      {/* Children list - Render PageChildrenRenderer if expanded and can have children */}
+                      {pageCanHaveChildren && !collapsed && isExpanded && (
+                        <CollapsibleContent>
+                          <PageChildrenRenderer parentId={page.id} collapsed={collapsed} />
+                        </CollapsibleContent>
+                      )}
+                    </Collapsible>
+                  </PageContextMenu>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <div className="text-center text-sm text-[#a0a0a0] py-4" data-state="empty">
+          <div className="text-center text-sm text-[#a0a0a0] py-4" data-state="empty" data-testid="pages-empty-state">
             No pages available.
-            <EntityCreator
-              entityType="page"
-              buttonVariant="link"
-              buttonSize="sm"
-              buttonLabel="Create your first page"
-              buttonClassName="text-indigo-400 block mx-auto mt-2"
-              iconOnly={false}
-            />
+            <div data-testid="create-first-page-button">
+              <EntityCreator
+                entityType="page"
+                buttonVariant="link"
+                buttonSize="sm"
+                buttonLabel="Create your first page"
+                buttonClassName="text-indigo-400 block mx-auto mt-2"
+                iconOnly={false}
+              />
+            </div>
           </div>
         )}
       </div>

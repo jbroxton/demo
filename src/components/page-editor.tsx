@@ -35,7 +35,7 @@ interface PageEditorProps {
 }
 
 export function PageEditor({ pageId, onClose }: PageEditorProps) {
-  const { usePageQuery, updatePage, addBlock, updateBlock, deleteBlock } = usePagesQuery();
+  const { usePageQuery, updatePage, updatePageTitle, addBlock, updateBlock, deleteBlock } = usePagesQuery();
   const { updateTabTitle } = useTabsQuery();
   const { data: page, isLoading, error } = usePageQuery(pageId);
   
@@ -53,7 +53,7 @@ export function PageEditor({ pageId, onClose }: PageEditorProps) {
     }
   }, [page]);
 
-  // Debounced save function
+  // Debounced save function for general page updates
   const debouncedSave = useCallback(
     debounce(async (updates: any) => {
       if (!page) return;
@@ -70,10 +70,29 @@ export function PageEditor({ pageId, onClose }: PageEditorProps) {
     [page, updatePage]
   );
 
-  // Handle title change
+  // Debounced save function specifically for title updates (uses optimistic updates)
+  const debouncedSaveTitle = useCallback(
+    debounce(async (newTitle: string) => {
+      if (!page) return;
+      
+      console.log(`🚀 PageEditor: About to call updatePageTitle("${page.id}", "${newTitle}")`);
+      try {
+        await updatePageTitle(page.id, newTitle);
+        console.log(`✅ PageEditor: updatePageTitle completed successfully`);
+      } catch (error) {
+        console.error('❌ PageEditor: Error saving page title:', error);
+        // Revert title on error
+        setTitle(page.title || '');
+      }
+    }, 300), // Faster debounce for titles (300ms vs 500ms)
+    [page, updatePageTitle]
+  );
+
+  // Handle title change - now uses optimistic updates
   const handleTitleChange = (newTitle: string) => {
+    console.log(`🔄 PageEditor: Title changing from "${title}" to "${newTitle}"`);
     setTitle(newTitle);
-    debouncedSave({ title: newTitle });
+    debouncedSaveTitle(newTitle);
   };
 
   // Handle property changes

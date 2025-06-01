@@ -27,7 +27,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiResponse } from '@/utils/api-response';
 import { asyncHandler } from '@/utils/api-async-handler';
-import { getRequestContext } from '@/utils/api-request-context';
 import { 
   searchVectors, 
   storeChatMessage, 
@@ -36,8 +35,6 @@ import {
 } from '@/services/ai-service';
 import { getFeaturesFromDb } from '@/services/features-db';
 import { getReleasesFromDb } from '@/services/releases-db';
-import { getRequirementsFromDb } from '@/services/requirements-db';
-import { getRoadmaps } from '@/services/roadmaps-db';
 // BYPASSED: Complex system prompts causing issues with context usage
 // import { 
 //   analyzeProductContext, 

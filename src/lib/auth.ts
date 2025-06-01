@@ -2,7 +2,6 @@ import type { NextAuthOptions, User, DefaultSession } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { validateCredentials, Tenant, DbUser } from "@/services/auth.server";
-import { getBaseUrl } from "./env";
 import { getCookieSettings, getAuthUrl } from "@/utils/auth-config";
 
 // Custom User type for the authorization return value

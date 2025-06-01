@@ -1,5 +1,4 @@
 // Test AI Chat UI Integration
-import { NextRequest, NextResponse } from 'next/server';
 
 // Verify component structure and imports
 async function testComponentStructure() {

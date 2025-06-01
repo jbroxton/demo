@@ -245,10 +245,8 @@ export function SimpleEditor({
         // Debounce the onChange to parent
         debouncedOnChange(jsonString);
         
-        // Save to localStorage for recovery
-        if (persistenceKey && window.localStorage) {
-          localStorage.setItem(`tiptap-content-${persistenceKey}`, jsonString);
-        }
+        // Content persistence is now handled by provider optimistic updates
+        // No need for localStorage backup
       }
     },
     // Monitor all transactions to distinguish between user and programmatic changes

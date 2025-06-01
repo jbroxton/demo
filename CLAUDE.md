@@ -386,34 +386,730 @@ import { formatDate } from '@/utils/date';
 
 # Testing
 
-## Testing Strategy
-- Framework: Jest + React Testing Library
-- File naming: `*.test.ts` or `*.test.tsx`
-- Location: Co-locate with implementation files
-- Focus: Business logic, critical paths, transformations
+## Testing Guide
 
-## Test Pattern
+### Testing Environment Setup
+
+#### Jest Configuration Overview
+- **Framework**: Jest with React Testing Library
+- **Environment**: jsdom for DOM simulation
+- **TypeScript**: ts-jest for TypeScript support
+- **Coverage**: 70% threshold for branches, functions, lines, statements
+
+#### Required Dependencies
+```json
+{
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0", 
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.3.3",
+    "@playwright/test": "^1.40.0"
+  }
+}
+```
+
+#### Playwright Setup for E2E Testing
+
+##### Installation and Configuration
+```bash
+# Install Playwright
+npm install --save-dev @playwright/test
+
+# Install browsers
+npx playwright install
+
+# Generate Playwright config
+npx playwright init
+```
+
+##### Playwright Configuration (`playwright.config.ts`)
 ```typescript
-import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { defineConfig, devices } from '@playwright/test';
 
-describe('ComponentName', () => {
-  const queryClient = new QueryClient();
-  
-  const renderWithProviders = (ui: React.ReactElement) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        {ui}
-      </QueryClientProvider>
-    );
-  };
-  
-  it('should render correctly', () => {
-    renderWithProviders(<Component />);
-    expect(screen.getByText('Expected text')).toBeInTheDocument();
+export default defineConfig({
+  testDir: './tests/e2e',
+  timeout: 30 * 1000,
+  expect: {
+    timeout: 5000
+  },
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
+
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+```
+
+##### E2E Test Structure
+```
+tests/
+├── e2e/                           # Playwright E2E tests
+│   ├── auth/
+│   │   ├── login.spec.ts         # Authentication flows
+│   │   └── signup.spec.ts        # User registration
+│   ├── ui/
+│   │   ├── layout.spec.ts        # Component positioning
+│   │   ├── interactions.spec.ts  # User interactions
+│   │   └── responsive.spec.ts    # Mobile/desktop layouts
+│   ├── workflows/
+│   │   ├── product-management.spec.ts  # Complete workflows
+│   │   └── roadmap-creation.spec.ts    # End-to-end scenarios
+│   └── fixtures/
+│       └── test-data.ts          # Test data and helpers
+```
+
+#### Test Environment Variables
+Essential environment variables are configured in `src/jest-setup-env.ts`:
+
+```typescript
+// Supabase connection
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'your-service-role-key';
+
+// Real test users
+process.env.TEST_USER_EMAIL = 'pm1@demo.com';
+process.env.TEST_USER_ID = '20000000-0000-0000-0000-000000000001';
+process.env.TEST_TENANT_ID = '22222222-2222-2222-2222-222222222222';
+```
+
+#### Local vs Remote Supabase Connections
+```bash
+# Local development (default for tests)
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+
+# Remote testing (when needed)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+```
+
+### Playwright E2E Testing
+
+#### UI Component Positioning Tests
+Test actual component layout and positioning:
+
+```typescript
+// tests/e2e/ui/layout.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('UI Layout and Positioning', () => {
+  test('dashboard layout components are correctly positioned', async ({ page }) => {
+    await page.goto('/dashboard');
+    
+    // Test header positioning
+    const header = page.locator('[data-testid="app-header"]');
+    await expect(header).toBeVisible();
+    
+    const headerBox = await header.boundingBox();
+    expect(headerBox?.y).toBe(0); // Header at top
+    expect(headerBox?.width).toBeGreaterThan(1000); // Full width
+    
+    // Test sidebar positioning
+    const sidebar = page.locator('[data-testid="sidebar"]');
+    await expect(sidebar).toBeVisible();
+    
+    const sidebarBox = await sidebar.boundingBox();
+    expect(sidebarBox?.x).toBe(0); // Sidebar at left
+    expect(sidebarBox?.height).toBeGreaterThan(600); // Full height
+    
+    // Test main content area
+    const main = page.locator('[data-testid="main-content"]');
+    const mainBox = await main.boundingBox();
+    
+    // Main content should be to the right of sidebar
+    expect(mainBox?.x).toBeGreaterThan(sidebarBox?.width || 0);
+  });
+
+  test('modal dialogs center correctly on screen', async ({ page }) => {
+    await page.goto('/products');
+    
+    // Open create product modal
+    await page.click('[data-testid="create-product-button"]');
+    
+    const modal = page.locator('[data-testid="create-product-modal"]');
+    await expect(modal).toBeVisible();
+    
+    const modalBox = await modal.boundingBox();
+    const viewportSize = page.viewportSize();
+    
+    if (modalBox && viewportSize) {
+      // Modal should be centered horizontally
+      const expectedX = (viewportSize.width - modalBox.width) / 2;
+      expect(Math.abs(modalBox.x - expectedX)).toBeLessThan(10);
+      
+      // Modal should be centered vertically (with some offset for header)
+      const expectedY = (viewportSize.height - modalBox.height) / 2;
+      expect(Math.abs(modalBox.y - expectedY)).toBeLessThan(50);
+    }
+  });
+
+  test('form fields align properly', async ({ page }) => {
+    await page.goto('/products/create');
+    
+    // Check form field alignment
+    const nameField = page.locator('[data-testid="product-name-field"]');
+    const descField = page.locator('[data-testid="product-description-field"]');
+    
+    const nameBox = await nameField.boundingBox();
+    const descBox = await descField.boundingBox();
+    
+    if (nameBox && descBox) {
+      // Fields should align on left edge
+      expect(Math.abs(nameBox.x - descBox.x)).toBeLessThan(5);
+      
+      // Description field should be below name field
+      expect(descBox.y).toBeGreaterThan(nameBox.y + nameBox.height);
+    }
   });
 });
 ```
+
+#### User Interaction Testing
+Test complex user behaviors and workflows:
+
+```typescript
+// tests/e2e/ui/interactions.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('User Interactions', () => {
+  test('drag and drop reordering works correctly', async ({ page }) => {
+    await page.goto('/roadmap');
+    
+    // Get initial order of items
+    const items = page.locator('[data-testid="roadmap-item"]');
+    const firstItem = items.first();
+    const secondItem = items.nth(1);
+    
+    const firstItemText = await firstItem.textContent();
+    const secondItemText = await secondItem.textContent();
+    
+    // Perform drag and drop
+    await firstItem.hover();
+    await page.mouse.down();
+    await secondItem.hover();
+    await page.mouse.up();
+    
+    // Wait for reorder animation
+    await page.waitForTimeout(500);
+    
+    // Verify order changed
+    const newFirstItem = items.first();
+    const newFirstText = await newFirstItem.textContent();
+    expect(newFirstText).toBe(secondItemText);
+  });
+
+  test('TipTap editor handles complex formatting', async ({ page }) => {
+    await page.goto('/features/create');
+    
+    const editor = page.locator('[data-testid="tiptap-editor"]');
+    await editor.click();
+    
+    // Type and format text
+    await page.keyboard.type('This is bold text');
+    
+    // Select text
+    await page.keyboard.press('Control+A');
+    
+    // Make bold
+    await page.click('[data-testid="bold-button"]');
+    
+    // Verify bold formatting applied
+    const boldText = page.locator('.ProseMirror strong');
+    await expect(boldText).toHaveText('This is bold text');
+    
+    // Add a new line and create a list
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    await page.click('[data-testid="bullet-list-button"]');
+    
+    await page.keyboard.type('First item');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Second item');
+    
+    // Verify list structure
+    const listItems = page.locator('.ProseMirror ul li');
+    await expect(listItems).toHaveCount(2);
+    await expect(listItems.first()).toHaveText('First item');
+    await expect(listItems.nth(1)).toHaveText('Second item');
+  });
+
+  test('keyboard navigation works across components', async ({ page }) => {
+    await page.goto('/dashboard');
+    
+    // Tab through navigation items
+    await page.keyboard.press('Tab');
+    await expect(page.locator(':focus')).toHaveAttribute('data-testid', 'dashboard-link');
+    
+    await page.keyboard.press('Tab');
+    await expect(page.locator(':focus')).toHaveAttribute('data-testid', 'products-link');
+    
+    await page.keyboard.press('Tab');
+    await expect(page.locator(':focus')).toHaveAttribute('data-testid', 'features-link');
+    
+    // Enter key should activate focused element
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/.*\/features/);
+  });
+
+  test('context menus appear at correct positions', async ({ page }) => {
+    await page.goto('/products');
+    
+    const productCard = page.locator('[data-testid="product-card"]').first();
+    
+    // Right-click to open context menu
+    await productCard.click({ button: 'right' });
+    
+    const contextMenu = page.locator('[data-testid="context-menu"]');
+    await expect(contextMenu).toBeVisible();
+    
+    // Context menu should appear near click position
+    const cardBox = await productCard.boundingBox();
+    const menuBox = await contextMenu.boundingBox();
+    
+    if (cardBox && menuBox) {
+      expect(menuBox.x).toBeGreaterThanOrEqual(cardBox.x);
+      expect(menuBox.x).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+      expect(menuBox.y).toBeGreaterThanOrEqual(cardBox.y);
+      expect(menuBox.y).toBeLessThanOrEqual(cardBox.y + cardBox.height);
+    }
+  });
+});
+```
+
+#### Authentication Flow Testing
+Test real authentication with Playwright:
+
+```typescript
+// tests/e2e/auth/login.spec.ts
+import { test, expect } from '@playwright/test';
+
+// Test data
+const TEST_USER = {
+  email: 'pm1@demo.com',
+  password: 'testpassword123',
+  name: 'Sarah Chen'
+};
+
+test.describe('Authentication Flows', () => {
+  test('complete login workflow', async ({ page }) => {
+    await page.goto('/login');
+    
+    // Fill login form
+    await page.fill('[data-testid="email-input"]', TEST_USER.email);
+    await page.fill('[data-testid="password-input"]', TEST_USER.password);
+    
+    // Submit form
+    await page.click('[data-testid="login-button"]');
+    
+    // Wait for redirect to dashboard
+    await expect(page).toHaveURL(/.*\/dashboard/);
+    
+    // Verify user is logged in
+    await expect(page.locator('[data-testid="user-menu"]')).toContainText(TEST_USER.name);
+    
+    // Verify user can access protected content
+    await page.goto('/products');
+    await expect(page.locator('[data-testid="create-product-button"]')).toBeVisible();
+  });
+
+  test('multi-tenant isolation', async ({ page, context }) => {
+    // Login as user from tenant 1
+    await page.goto('/login');
+    await page.fill('[data-testid="email-input"]', 'pm1@demo.com');
+    await page.fill('[data-testid="password-input"]', 'password');
+    await page.click('[data-testid="login-button"]');
+    
+    await page.goto('/products');
+    const tenant1Products = await page.locator('[data-testid="product-card"]').count();
+    
+    // Open new tab and login as user from tenant 2
+    const newPage = await context.newPage();
+    await newPage.goto('/login');
+    await newPage.fill('[data-testid="email-input"]', 'pm2@demo.com');
+    await newPage.fill('[data-testid="password-input"]', 'password');
+    await newPage.click('[data-testid="login-button"]');
+    
+    await newPage.goto('/products');
+    const tenant2Products = await newPage.locator('[data-testid="product-card"]').count();
+    
+    // Verify different tenants see different data
+    expect(tenant1Products).not.toBe(tenant2Products);
+  });
+});
+```
+
+#### Complete Workflow Testing
+Test end-to-end user journeys:
+
+```typescript
+// tests/e2e/workflows/product-management.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Product Management Workflows', () => {
+  test('create product with features and requirements', async ({ page }) => {
+    await page.goto('/dashboard');
+    
+    // Step 1: Create a new product
+    await page.click('[data-testid="products-link"]');
+    await page.click('[data-testid="create-product-button"]');
+    
+    await page.fill('[data-testid="product-name-input"]', 'E2E Test Product');
+    await page.fill('[data-testid="product-description-input"]', 'Created by Playwright test');
+    await page.click('[data-testid="save-product-button"]');
+    
+    // Verify product appears in list
+    await expect(page.locator('[data-testid="product-card"]')).toContainText('E2E Test Product');
+    
+    // Step 2: Add features to the product
+    await page.click('[data-testid="product-card"]:has-text("E2E Test Product")');
+    await page.click('[data-testid="add-feature-button"]');
+    
+    await page.fill('[data-testid="feature-name-input"]', 'User Authentication');
+    await page.fill('[data-testid="feature-description-input"]', 'Login and signup functionality');
+    await page.selectOption('[data-testid="feature-priority-select"]', 'high');
+    await page.click('[data-testid="save-feature-button"]');
+    
+    // Step 3: Add requirements to the feature
+    await page.click('[data-testid="feature-card"]:has-text("User Authentication")');
+    await page.click('[data-testid="add-requirement-button"]');
+    
+    await page.fill('[data-testid="requirement-title-input"]', 'Secure Password Validation');
+    
+    // Use TipTap editor for description
+    const editor = page.locator('[data-testid="requirement-description-editor"]');
+    await editor.click();
+    await page.keyboard.type('Password must meet security criteria:');
+    await page.keyboard.press('Enter');
+    await page.click('[data-testid="bullet-list-button"]');
+    await page.keyboard.type('At least 8 characters');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Include uppercase and lowercase');
+    
+    await page.click('[data-testid="save-requirement-button"]');
+    
+    // Step 4: Verify complete hierarchy
+    await page.goto('/products');
+    const productCard = page.locator('[data-testid="product-card"]:has-text("E2E Test Product")');
+    await expect(productCard.locator('[data-testid="feature-count"]')).toHaveText('1 feature');
+    
+    await productCard.click();
+    const featureCard = page.locator('[data-testid="feature-card"]:has-text("User Authentication")');
+    await expect(featureCard.locator('[data-testid="requirement-count"]')).toHaveText('1 requirement');
+    
+    // Step 5: Test search and filtering
+    await page.goto('/dashboard');
+    await page.fill('[data-testid="global-search"]', 'User Authentication');
+    await page.keyboard.press('Enter');
+    
+    await expect(page.locator('[data-testid="search-result"]')).toContainText('User Authentication');
+  });
+
+  test('collaborative editing with multiple users', async ({ browser }) => {
+    // Create two browser contexts (simulate different users)
+    const context1 = await browser.newContext();
+    const context2 = await browser.newContext();
+    
+    const page1 = await context1.newPage();
+    const page2 = await context2.newPage();
+    
+    // User 1 logs in and creates document
+    await page1.goto('/login');
+    await page1.fill('[data-testid="email-input"]', 'pm1@demo.com');
+    await page1.fill('[data-testid="password-input"]', 'password');
+    await page1.click('[data-testid="login-button"]');
+    
+    await page1.goto('/features/create');
+    await page1.fill('[data-testid="feature-title"]', 'Collaborative Feature');
+    
+    const editor1 = page1.locator('[data-testid="tiptap-editor"]');
+    await editor1.click();
+    await page1.keyboard.type('User 1 is typing...');
+    
+    // User 2 logs in and opens same document
+    await page2.goto('/login');
+    await page2.fill('[data-testid="email-input"]', 'pm2@demo.com');
+    await page2.fill('[data-testid="password-input"]', 'password');
+    await page2.click('[data-testid="login-button"]');
+    
+    // Navigate to same feature (would need to be shared/accessible)
+    await page2.goto('/features'); // Simplified for test
+    
+    // Test real-time collaboration would require WebSocket testing
+    // This is a simplified version showing the test structure
+    
+    await context1.close();
+    await context2.close();
+  });
+});
+```
+
+#### Visual Regression Testing
+Test UI consistency across changes:
+
+```typescript
+// tests/e2e/ui/visual.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Visual Regression Tests', () => {
+  test('dashboard layout remains consistent', async ({ page }) => {
+    await page.goto('/dashboard');
+    
+    // Wait for content to load
+    await page.waitForSelector('[data-testid="dashboard-content"]');
+    
+    // Take screenshot and compare
+    await expect(page).toHaveScreenshot('dashboard-full.png');
+  });
+
+  test('product card layout in different states', async ({ page }) => {
+    await page.goto('/products');
+    
+    // Test empty state
+    await expect(page.locator('[data-testid="empty-state"]')).toHaveScreenshot('products-empty.png');
+    
+    // Test with products
+    await page.goto('/products?mock=true'); // Assuming mock data route
+    await expect(page.locator('[data-testid="products-grid"]')).toHaveScreenshot('products-grid.png');
+  });
+
+  test('modal dialogs render consistently', async ({ page }) => {
+    await page.goto('/products');
+    await page.click('[data-testid="create-product-button"]');
+    
+    const modal = page.locator('[data-testid="create-product-modal"]');
+    await expect(modal).toHaveScreenshot('create-product-modal.png');
+  });
+});
+```
+
+#### Authentication & User Session Testing
+
+// ... existing auth section content ...
+
+#### UI Component Testing
+
+// ... existing UI testing content ...
+
+#### Unit Testing Guidelines
+
+// ... existing unit testing content ...
+
+#### Integration Testing
+
+// ... existing integration testing content ...
+
+#### Supabase CLI for Testing
+
+// ... existing Supabase CLI content ...
+
+#### Running Tests
+
+##### Command Examples for Different Test Types
+```bash
+# Run all tests
+npm test
+
+# Run Jest unit/integration tests
+npm test -- --watch
+
+# Run Playwright E2E tests
+npx playwright test
+
+# Run specific E2E test
+npx playwright test auth/login.spec.ts
+
+# Run E2E tests in headed mode (see browser)
+npx playwright test --headed
+
+# Run tests in specific browser
+npx playwright test --project=chromium
+
+# Run E2E tests with debugging
+npx playwright test --debug
+
+# Generate test report
+npx playwright show-report
+
+# Record new test
+npx playwright codegen localhost:3000
+
+# Update visual baselines
+npx playwright test --update-snapshots
+```
+
+##### E2E Test File Naming Conventions
+```
+tests/
+├── e2e/
+│   ├── auth/
+│   │   ├── login.spec.ts         # Authentication flows
+│   │   └── signup.spec.ts        # User registration
+│   ├── ui/
+│   │   ├── layout.spec.ts        # Component positioning
+│   │   ├── interactions.spec.ts  # User interactions
+│   │   ├── responsive.spec.ts    # Mobile/desktop layouts
+│   │   └── visual.spec.ts        # Visual regression
+│   ├── workflows/
+│   │   ├── product-management.spec.ts  # Complete workflows
+│   │   └── roadmap-creation.spec.ts    # End-to-end scenarios
+│   └── fixtures/
+│       ├── test-data.ts          # Test data
+│       └── auth-helpers.ts       # Reusable auth functions
+```
+
+##### Debugging E2E Tests
+```bash
+# Debug specific test
+npx playwright test auth/login.spec.ts --debug
+
+# Run with browser visible
+npx playwright test --headed --slowMo=1000
+
+# Generate trace for failed tests
+npx playwright test --trace=on
+
+# View trace files
+npx playwright show-trace trace.zip
+
+# Pause test execution for inspection
+await page.pause(); // Add to test code
+```
+
+##### CI/CD with Playwright
+```yaml
+# GitHub Actions example
+name: E2E Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Start Supabase
+        run: npx supabase start
+      
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+```
+
+#### Quick Reference
+
+##### Essential Test Imports
+```typescript
+// Jest/RTL unit tests
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { renderWithProviders } from '@/test-utils/test-providers';
+
+// Playwright E2E tests
+import { test, expect } from '@playwright/test';
+
+// Auth utilities
+import { createMockSession, TEST_USERS } from '@/test-utils/auth-test-utils';
+
+// Database utilities  
+import { setupTestDb, cleanupTestDb, createTestProduct } from '@/test-utils/test-db';
+
+// API testing
+import { testAuthenticatedApiRoute, expectApiSuccess } from '@/test-utils/api-test-utils';
+
+// TipTap testing
+import { createMockEditor, SAMPLE_TIPTAP_CONTENT } from '@/test-utils/tiptap-test-utils';
+```
+
+##### Common Test Patterns
+```typescript
+// Unit/Integration with RTL
+renderWithProviders(<Component />, { session: mockSession });
+
+// E2E with Playwright
+await page.goto('/dashboard');
+await page.click('[data-testid="button"]');
+await expect(page.locator('[data-testid="result"]')).toBeVisible();
+
+// Visual testing
+await expect(page).toHaveScreenshot('component.png');
+
+// Position testing
+const box = await element.boundingBox();
+expect(box?.x).toBeGreaterThan(100);
+```
+
+##### Troubleshooting Common Test Issues
+- **Playwright timeouts**: Increase timeout or use `page.waitForSelector()`
+- **Flaky E2E tests**: Add proper waits and stable selectors
+- **Visual diffs**: Use `--update-snapshots` to regenerate baselines
+- **Browser not launching**: Run `npx playwright install`
+- **Network issues**: Mock external API calls in E2E tests
+- **Auth in E2E**: Use persistent browser state or login helpers
+
+### Test Strategy Recommendation
+
+**Use Jest + RTL for:**
+- Component logic and state
+- Hooks and utilities
+- API route handlers
+- Fast feedback development
+
+**Use Playwright for:**
+- Complete user workflows
+- Cross-browser compatibility
+- Visual regression testing
+- Real authentication flows
+- UI positioning and layout
+- Complex interactions (drag/drop, TipTap editor)
 
 # Security & Performance
 

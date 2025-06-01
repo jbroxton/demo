@@ -67,6 +67,20 @@ export interface RelationPropertyValue extends PropertyValue {
   }>;
 }
 
+export interface AssignmentPropertyValue extends PropertyValue {
+  type: 'assignment';
+  assignment: {
+    roadmaps: Array<{
+      id: string;
+      title: string;
+    }>;
+    releases: Array<{
+      id: string;
+      title: string;
+    }>;
+  };
+}
+
 // Union type for all property values
 export type AnyPropertyValue = 
   | SelectPropertyValue
@@ -75,18 +89,12 @@ export type AnyPropertyValue =
   | NumberPropertyValue
   | DatePropertyValue
   | PersonPropertyValue
-  | RelationPropertyValue;
+  | RelationPropertyValue
+  | AssignmentPropertyValue;
 
 // Note: Specific property interfaces commented out to resolve TypeScript compilation issues
 // They can be re-enabled when needed with proper type handling
 
-// export interface ProjectProperties {
-//   status?: SelectPropertyValue;
-//   owner?: PersonPropertyValue;
-//   priority?: SelectPropertyValue;
-//   budget?: NumberPropertyValue;
-//   timeline?: DatePropertyValue;
-// }
 
 // Base Page interface following Notion's structure with JSON block storage
 export interface Page {
@@ -140,7 +148,8 @@ export type PropertySchemaConfig =
   | { type: 'number'; format?: 'number' | 'percent' | 'dollar' }
   | { type: 'date' }
   | { type: 'person' }
-  | { type: 'relation'; target_page_type: PageType };
+  | { type: 'relation'; target_page_type: PageType }
+  | { type: 'assignment' };
 
 // Property schemas for each page type
 export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
@@ -172,6 +181,12 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
           { name: 'Low', color: 'green' }
         ]
       }
+    },
+    {
+      id: 'assignedTo',
+      name: 'Assigned To',
+      type: 'assignment',
+      config: { type: 'assignment' }
     }
   ],
   project: [
@@ -208,6 +223,12 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
       name: 'Owner',
       type: 'person',
       config: { type: 'person' }
+    },
+    {
+      id: 'assignedTo',
+      name: 'Assigned To',
+      type: 'assignment',
+      config: { type: 'assignment' }
     }
   ],
   feature: [
@@ -255,6 +276,12 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
       name: 'Owner',
       type: 'person',
       config: { type: 'person' }
+    },
+    {
+      id: 'assignedTo',
+      name: 'Assigned To',
+      type: 'assignment',
+      config: { type: 'assignment' }
     }
   ],
   roadmap: [

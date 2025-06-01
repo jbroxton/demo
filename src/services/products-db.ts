@@ -43,9 +43,6 @@ function mapProductToDb(product: Partial<Product>): Record<string, any> {
   if (product.description !== undefined) {
     mapped.description = product.description;
   }
-  //if (product.tenantId !== undefined) {
-  //  mapped.tenant_id = product.tenantId;
-  //}
   if (product.isSaved !== undefined) {
     mapped.is_saved = product.isSaved;
   }

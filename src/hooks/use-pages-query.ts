@@ -20,14 +20,12 @@ export function usePagesQuery(options?: {
 }) {
   const queryClient = useQueryClient()
 
-  // Get all pages with optional filtering
+  // Get all pages with optional filtering  
   const { data: pages = [], isLoading, error } = useQuery<Page[]>({
     queryKey: [PAGES_QUERY_KEY, options],
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache data
+    staleTime: 5 * 60 * 1000, // 5 minutes - restored from optimized cache settings
+    gcTime: 10 * 60 * 1000, // 10 minutes - restored from optimized cache settings
     queryFn: async () => {
-      console.log('🔍 REAL APP DEBUG: Pages query starting...')
-      
       const searchParams = new URLSearchParams()
       
       if (options?.type) searchParams.set('type', options.type)
@@ -37,23 +35,11 @@ export function usePagesQuery(options?: {
       if (options?.limit) searchParams.set('limit', options.limit.toString())
       if (options?.offset) searchParams.set('offset', options.offset.toString())
 
-      // Add cache busting timestamp
-      searchParams.set('_t', Date.now().toString());
-      
       const url = `/api/pages-db?${searchParams.toString()}`;
-      console.log('🔍 REAL APP DEBUG: Fetching from URL:', url)
 
       const response = await fetch(url, {
-        credentials: 'include',
-        cache: 'no-cache', // Force browser to not use cache
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        credentials: 'include'
       })
-      
-      console.log('🔍 REAL APP DEBUG: Response status:', response.status)
       
       if (!response.ok) {
         console.error(`Pages API error: ${response.status} ${response.statusText}`)
@@ -63,15 +49,6 @@ export function usePagesQuery(options?: {
       }
       
       const result = await response.json()
-      console.log('🔍 REAL APP DEBUG: API result:', result)
-      console.log('🔍 REAL APP DEBUG: Number of pages returned:', result.data?.length || 0)
-      
-      if (result.data && result.data.length > 0) {
-        console.log('🔍 REAL APP DEBUG: First page:', result.data[0])
-        console.log('🔍 REAL APP DEBUG: Root pages count:', result.data.filter((p: any) => !p.parent_id).length)
-        console.log('🔍 REAL APP DEBUG: Child pages count:', result.data.filter((p: any) => p.parent_id).length)
-      }
-      
       return result.data || []
     }
   })
@@ -160,7 +137,7 @@ export function usePagesQuery(options?: {
     },
   })
 
-  // Update page mutation
+  // Update page mutation with optimistic updates
   const updatePageMutation = useMutation({
     mutationFn: async ({ pageId, updates }: {
       pageId: string;
@@ -188,6 +165,63 @@ export function usePagesQuery(options?: {
       const result = await response.json()
       return result.data
     },
+    onMutate: async ({ pageId, updates }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [PAGES_QUERY_KEY] })
+      await queryClient.cancelQueries({ queryKey: [PAGE_QUERY_KEY, pageId] })
+      
+      // Snapshot previous values for rollback
+      const previousPages = queryClient.getQueryData([PAGES_QUERY_KEY])
+      const previousPage = queryClient.getQueryData([PAGE_QUERY_KEY, pageId])
+      
+      // Optimistically update the cache immediately
+      const updateAllCaches = (updateFn: (pages: Page[]) => Page[]) => {
+        const queryCache = queryClient.getQueryCache()
+        queryCache.getAll().forEach(query => {
+          if (query.queryKey[0] === PAGES_QUERY_KEY) {
+            const currentData = query.state.data as Page[] | undefined
+            if (currentData && Array.isArray(currentData)) {
+              queryClient.setQueryData(query.queryKey, updateFn(currentData))
+            }
+          }
+        })
+      }
+      
+      // Apply optimistic update to all page caches
+      updateAllCaches((pages) => 
+        pages.map(page => 
+          page.id === pageId 
+            ? { ...page, ...updates, updated_at: new Date().toISOString() }
+            : page
+        )
+      )
+      
+      // Update single page cache if it exists
+      const currentPage = queryClient.getQueryData([PAGE_QUERY_KEY, pageId]) as Page | undefined
+      if (currentPage) {
+        queryClient.setQueryData([PAGE_QUERY_KEY, pageId], {
+          ...currentPage,
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+      }
+      
+      return { previousPages, previousPage }
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousPages) {
+        const queryCache = queryClient.getQueryCache()
+        queryCache.getAll().forEach(query => {
+          if (query.queryKey[0] === PAGES_QUERY_KEY) {
+            queryClient.setQueryData(query.queryKey, context.previousPages)
+          }
+        })
+      }
+      if (context?.previousPage) {
+        queryClient.setQueryData([PAGE_QUERY_KEY, variables.pageId], context.previousPage)
+      }
+    },
     onSuccess: (updatedPage) => {
       // Update single page cache first
       queryClient.setQueryData([PAGE_QUERY_KEY, updatedPage.id], updatedPage)
@@ -211,6 +245,100 @@ export function usePagesQuery(options?: {
       
       // Invalidate all pages queries to ensure consistency and trigger refetch for any missed caches
       queryClient.invalidateQueries({ queryKey: [PAGES_QUERY_KEY] })
+    },
+  })
+
+  // Specialized mutation for title updates with optimistic updates
+  const updatePageTitleMutation = useMutation({
+    mutationFn: async ({ pageId, title }: { pageId: string; title: string }) => {
+      const response = await fetch(`/api/pages-db?id=${pageId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ title }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      return result.data
+    },
+    onMutate: async ({ pageId, title }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [PAGES_QUERY_KEY] })
+      await queryClient.cancelQueries({ queryKey: [PAGE_QUERY_KEY, pageId] })
+      
+      // Snapshot previous values
+      const previousPages = queryClient.getQueryData([PAGES_QUERY_KEY])
+      const previousPage = queryClient.getQueryData([PAGE_QUERY_KEY, pageId])
+      
+      // Optimistically update ALL page caches immediately
+      const updateAllCaches = (updateFn: (pages: Page[]) => Page[]) => {
+        const queryCache = queryClient.getQueryCache()
+        queryCache.getAll().forEach(query => {
+          if (query.queryKey[0] === PAGES_QUERY_KEY) {
+            const currentData = query.state.data as Page[] | undefined
+            if (currentData && Array.isArray(currentData)) {
+              queryClient.setQueryData(query.queryKey, updateFn(currentData))
+            }
+          }
+        })
+      }
+      
+      updateAllCaches((pages) => 
+        pages.map(page => 
+          page.id === pageId 
+            ? { ...page, title, updated_at: new Date().toISOString() }
+            : page
+        )
+      )
+      
+      // Update single page cache if it exists
+      const currentPage = queryClient.getQueryData([PAGE_QUERY_KEY, pageId]) as Page | undefined
+      if (currentPage) {
+        queryClient.setQueryData([PAGE_QUERY_KEY, pageId], {
+          ...currentPage,
+          title,
+          updated_at: new Date().toISOString()
+        })
+      }
+      
+      return { previousPages, previousPage }
+    },
+    onError: (err, variables, context) => {
+      // Rollback optimistic updates on error
+      if (context?.previousPages) {
+        const queryCache = queryClient.getQueryCache()
+        queryCache.getAll().forEach(query => {
+          if (query.queryKey[0] === PAGES_QUERY_KEY) {
+            queryClient.setQueryData(query.queryKey, context.previousPages)
+          }
+        })
+      }
+      if (context?.previousPage) {
+        queryClient.setQueryData([PAGE_QUERY_KEY, variables.pageId], context.previousPage)
+      }
+    },
+    onSuccess: (updatedPage) => {
+      // Final update with server response (ensures consistency)
+      queryClient.setQueryData([PAGE_QUERY_KEY, updatedPage.id], updatedPage)
+      
+      const queryCache = queryClient.getQueryCache()
+      queryCache.getAll().forEach(query => {
+        if (query.queryKey[0] === PAGES_QUERY_KEY) {
+          const currentData = query.state.data as Page[] | undefined
+          if (currentData && Array.isArray(currentData)) {
+            const updatedData = currentData.map(page => 
+              page.id === updatedPage.id ? updatedPage : page
+            )
+            queryClient.setQueryData(query.queryKey, updatedData)
+          }
+        }
+      })
     },
   })
 
@@ -273,6 +401,10 @@ export function usePagesQuery(options?: {
     blocks?: Block[];
   }) => {
     return updatePageMutation.mutateAsync({ pageId, updates })
+  }
+
+  const updatePageTitle = async (pageId: string, title: string) => {
+    return updatePageTitleMutation.mutateAsync({ pageId, title })
   }
 
   const deletePage = async (pageId: string) => {
@@ -381,11 +513,13 @@ export function usePagesQuery(options?: {
     // Page mutations
     addPageMutation,
     updatePageMutation,
+    updatePageTitleMutation,
     deletePageMutation,
     
     // Convenient wrapper functions
     addPage,
     updatePage,
+    updatePageTitle,
     deletePage,
     addBlock,
     updateBlock,

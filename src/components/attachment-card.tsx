@@ -18,7 +18,6 @@ import {
   Trash2
 } from "lucide-react";
 import { AttachmentCardProps } from "@/types/models";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import {
   ConfirmationDialog

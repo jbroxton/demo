@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRequirementsQuery } from '@/hooks/use-requirements-query'
 import { Requirement } from '@/types/models'
 import { DataTable } from './data-table'

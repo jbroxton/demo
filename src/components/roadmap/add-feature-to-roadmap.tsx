@@ -16,7 +16,6 @@ import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import { Feature } from '@/types/models';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ApprovalStatusBadge } from '@/components/approval-status-badge';
-import { cn } from '@/lib/utils';
 
 interface AddFeatureToRoadmapProps {
   roadmapId: string;

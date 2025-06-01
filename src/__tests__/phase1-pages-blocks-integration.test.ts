@@ -28,7 +28,6 @@ import {
 } from '@/services/blocks-db';
 
 import { Page, PageType } from '@/types/models/Page';
-import { Block, BlockType } from '@/types/models/Block';
 
 // Test database setup
 const TEST_DB_PATH = path.join(process.cwd(), 'test-speqq.db');

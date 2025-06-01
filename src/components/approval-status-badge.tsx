@@ -1,4 +1,3 @@
-import React from 'react';
 import { ApprovalStatus } from '@/types/models';
 import { cn } from '@/lib/utils';
 

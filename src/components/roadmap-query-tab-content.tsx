@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useRoadmapsQuery } from '@/hooks/use-roadmaps-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -11,7 +10,6 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Map } from 'lucide-react';
 import { EntityCreator } from '@/components/entity-creator';
 

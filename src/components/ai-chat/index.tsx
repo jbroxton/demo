@@ -8,9 +8,6 @@ import { Button } from '@/components/ui/button';
 // Removed Card import - using custom dark styling instead
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAiChatFullyManaged } from '@/hooks/use-ai-chat-fully-managed';

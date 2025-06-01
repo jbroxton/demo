@@ -12,7 +12,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import { DocumentEditorToolbar } from './document-editor-toolbar';
 // Theme import removed
-import debounce from 'lodash/debounce';
 
 interface FeatureDescriptionEditorProps {
   initialContent: string;

@@ -8,7 +8,7 @@ import { TabsContainer } from '@/components/tabs-container';
 import { useRouter } from 'next/navigation';
 import { RightSidebar } from './rightsidebar/right-sidebar';
 import { useUIState } from '@/providers/ui-state-provider';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PanelRight } from 'lucide-react';
 
 export default function WorkspaceLayout() {
   const router = useRouter();
@@ -17,6 +17,7 @@ export default function WorkspaceLayout() {
     rightSidebarOpen, 
     leftSidebarCollapsed, 
     toggleLeftSidebar, 
+    toggleRightSidebar,
     rightSidebarWidth 
   } = useUIState();
 
@@ -63,20 +64,17 @@ export default function WorkspaceLayout() {
         className={`workspace-grid ${leftSidebarCollapsed ? 'navigator-collapsed' : ''} ${rightSidebarOpen ? 'utility-expanded' : ''}`}
         data-component="workspace"
       style={{
-        // CSS variable for backward compatibility (kept for reference)
-        '--dynamic-right-sidebar-width': rightSidebarOpen ? `${rightSidebarWidth}px` : '48px',
-        
-        // CRITICAL FIX: Direct gridTemplateColumns override
-        // Issue: CSS variable inheritance/specificity problems prevented grid columns from updating
-        // Solution: Bypass CSS variables by setting gridTemplateColumns directly with React state values
-        // This ensures the CSS Grid properly constrains all three columns:
-        // 1. Left nav (collapsible): var(--left-sidebar-width-*)
-        // 2. Canvas (responsive): 1fr (takes remaining space)  
-        // 3. Right sidebar (resizable): ${rightSidebarWidth}px (280-600px range)
+        // CRITICAL FIX: Direct gridTemplateColumns override using explicit pixel values  
+        // This ensures CSS Grid properly constrains all three columns without CSS variable issues
         gridTemplateColumns: rightSidebarOpen 
-          ? `var(--left-sidebar-width-${leftSidebarCollapsed ? 'collapsed' : 'expanded'}) 1fr ${rightSidebarWidth}px`
-          : `var(--left-sidebar-width-${leftSidebarCollapsed ? 'collapsed' : 'expanded'}) 1fr 48px`
+          ? `${leftSidebarCollapsed ? '60px' : '280px'} 1fr ${rightSidebarWidth}px`
+          : `${leftSidebarCollapsed ? '60px' : '280px'} 1fr 48px`
       } as React.CSSProperties}
+      data-debug-grid={rightSidebarOpen 
+        ? `${leftSidebarCollapsed ? '60px' : '280px'} 1fr ${rightSidebarWidth}px`
+        : `${leftSidebarCollapsed ? '60px' : '280px'} 1fr 48px`}
+      data-right-sidebar-open={rightSidebarOpen.toString()}
+      data-right-sidebar-width={rightSidebarWidth}
     >
       {/* Navigator - left sidebar */}
       <div
@@ -121,6 +119,7 @@ export default function WorkspaceLayout() {
           className="canvas-editor custom-scrollbar"
           style={{ transition: 'all var(--transition-speed) var(--transition-timing)' }}
           data-section="canvas-editor"
+          data-testid="pages-container"
         >
           <TabQueryContent />
         </div>
