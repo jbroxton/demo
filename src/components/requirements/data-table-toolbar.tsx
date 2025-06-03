@@ -45,13 +45,13 @@ export function DataTableToolbar<TData>({
           onChange={(event) =>
             table.getColumn('name')?.setFilterValue(event.target.value)
           }
-          className="h-8 w-[200px] lg:w-[300px] bg-[#232326] border-[#2a2a2c] text-white"
+          className="h-10 w-[200px] lg:w-[300px] bg-[#0a0a0a] border border-[#2a2a2c] text-[#e1e1e6] placeholder:text-[#8b8b90] rounded-lg shadow-lg shadow-black/20 focus:border-blue-500/50 focus:shadow-xl focus:shadow-blue-500/20 transition-all duration-300"
         />
         {isFiltered && (
           <Button
             variant="ghost"
             onClick={() => table.resetColumnFilters()}
-            className="h-8 px-2 lg:px-3"
+            className="h-10 px-3 bg-[#0a0a0a] border border-[#2a2a2c] text-[#e1e1e6] hover:bg-[#121212] hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/20 transition-all duration-300 rounded-lg shadow-lg shadow-black/20"
           >
             Reset
             <Cross2Icon className="ml-2 h-4 w-4" />
@@ -62,13 +62,13 @@ export function DataTableToolbar<TData>({
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-8"
+              className="h-10 bg-[#0a0a0a] border border-[#2a2a2c] text-[#e1e1e6] hover:bg-[#121212] hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 rounded-lg shadow-lg shadow-black/20"
             >
               <ListFilter className="mr-2 h-4 w-4" />
               Columns
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#1e1e20] border-[#2a2a2c] text-[#a0a0a0]">
+          <DropdownMenuContent align="end" className="bg-[#0a0a0a] border border-[#2a2a2c] text-[#e1e1e6] shadow-xl shadow-black/30 rounded-xl">
             {table
               .getAllColumns()
               .filter(

@@ -93,18 +93,18 @@ export function DataTable<TData, TValue>({
       <div className="mb-1">
         <DataTableToolbar table={table} />
       </div>
-      <div className="rounded-md border border-[#2a2a2c] bg-[#1e1e20] w-full">
+      <div className="rounded-2xl border border-[#2a2a2c] bg-[#0a0a0a] w-full shadow-lg shadow-black/30">
         <div className="overflow-x-auto w-full">
           <Table className="w-full">
-            <TableHeader className="bg-[#1e1e20]">
+            <TableHeader className="bg-[#0a0a0a]">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-b border-[#2a2a2c]">
+                <TableRow key={headerGroup.id} className="border-b border-[#2a2a2c] hover:bg-transparent">
                   {headerGroup.headers.map((header) => {
                     return (
                       <TableHead 
                         key={header.id} 
                         colSpan={header.colSpan}
-                        className="text-[#a0a0a0] p-1"
+                        className="text-[#e1e1e6] font-semibold p-4 text-sm tracking-wide"
                       >
                         {header.isPlaceholder
                           ? null
@@ -125,17 +125,20 @@ export function DataTable<TData, TValue>({
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                     className={`
-                      transition-colors duration-150
-                      border-b border-[#2a2a2c]
-                      ${index % 2 === 0 ? 'bg-[#1e1e20]' : 'bg-[#232326]'}
-                      hover:bg-[#232326]
-                      data-[state=selected]:bg-[#2a2a2c]
+                      transition-all duration-300 ease-in-out
+                      border-b border-[#2a2a2c]/30
+                      bg-[#0a0a0a]
+                      hover:bg-[#121212] 
+                      hover:shadow-md hover:shadow-blue-500/10
+                      data-[state=selected]:bg-[#151515]
+                      data-[state=selected]:border-blue-500/30
                       ${onRowClick ? 'cursor-pointer' : ''}
+                      group
                     `}
                     onClick={() => onRowClick && onRowClick(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="p-1 transition-colors">
+                      <TableCell key={cell.id} className="px-4 py-3 transition-all duration-300 text-[#e1e1e6] group-hover:text-white">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -143,7 +146,7 @@ export function DataTable<TData, TValue>({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-16 text-center text-[#a0a0a0]">
+                  <TableCell colSpan={columns.length} className="h-20 text-center text-[#8b8b90] bg-[#0a0a0a] font-medium tracking-wide">
                     No requirements found.
                   </TableCell>
                 </TableRow>

@@ -1,0 +1,70 @@
+/* Requirements Table Styling */
+.requirements-table {
+  @apply border-collapse w-full my-4 rounded-lg overflow-hidden;
+  background-color: #0a0a0a;
+  border: 1px solid #2a2a2c;
+}
+
+.requirements-table th,
+.requirements-table td {
+  @apply border border-[#2a2a2c] px-4 py-2 text-left;
+}
+
+.requirements-table th {
+  @apply bg-[#0a0a0a] text-[#e1e1e6] font-semibold text-sm tracking-wide;
+}
+
+.requirements-table td {
+  @apply bg-[#0a0a0a] text-[#e1e1e6];
+}
+
+.requirements-table tr:hover td {
+  @apply bg-[#121212];
+}
+
+/* Table controls */
+.requirements-table .tableWrapper {
+  @apply relative;
+}
+
+/* Column resize handle */
+.requirements-table .column-resize-handle {
+  @apply absolute top-0 right-0 bottom-0 w-1 bg-blue-500 opacity-0 cursor-col-resize;
+  @apply hover:opacity-100 transition-opacity;
+}
+
+/* Selected cell */
+.requirements-table .selectedCell {
+  @apply bg-blue-500/20 relative;
+}
+
+/* Table menu button */
+.table-menu-button {
+  @apply absolute -top-8 right-0 flex gap-2;
+}
+
+/* Status badges in table cells */
+.requirements-table .status-pending {
+  @apply inline-flex px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30;
+}
+
+.requirements-table .status-in-progress {
+  @apply inline-flex px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30;
+}
+
+.requirements-table .status-complete {
+  @apply inline-flex px-2 py-1 rounded text-xs bg-green-500/20 text-green-300 border border-green-500/30;
+}
+
+/* Priority badges in table cells */
+.requirements-table .priority-high {
+  @apply inline-flex px-2 py-1 rounded text-xs bg-red-500/20 text-red-300 border border-red-500/30;
+}
+
+.requirements-table .priority-medium {
+  @apply inline-flex px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30;
+}
+
+.requirements-table .priority-low {
+  @apply inline-flex px-2 py-1 rounded text-xs bg-green-500/20 text-green-300 border border-green-500/30;
+}

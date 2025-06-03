@@ -120,13 +120,13 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <Tabs defaultValue="All" onValueChange={handleStatusChange}>
-          <TabsList>
-            <TabsTrigger value="All">All</TabsTrigger>
-            <TabsTrigger value="Backlog">Backlog</TabsTrigger>
-            <TabsTrigger value="Not Started">Not Started</TabsTrigger>
-            <TabsTrigger value="In Progress">In Progress</TabsTrigger>
-            <TabsTrigger value="Launched">Launched</TabsTrigger>
-            <TabsTrigger value="Blocked">Blocked</TabsTrigger>
+          <TabsList className="bg-[#0a0a0a] border border-[#2a2a2c] h-12 rounded-xl shadow-lg shadow-black/20">
+            <TabsTrigger value="All" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">All</TabsTrigger>
+            <TabsTrigger value="Backlog" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Backlog</TabsTrigger>
+            <TabsTrigger value="Not Started" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Not Started</TabsTrigger>
+            <TabsTrigger value="In Progress" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">In Progress</TabsTrigger>
+            <TabsTrigger value="Launched" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Launched</TabsTrigger>
+            <TabsTrigger value="Blocked" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Blocked</TabsTrigger>
           </TabsList>
         </Tabs>
         
@@ -138,11 +138,13 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
         />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={features}
-        isLoading={isLoadingFeatures}
-      />
+      <div className="bg-transparent">
+        <DataTable
+          columns={columns}
+          data={features}
+          isLoading={isLoadingFeatures}
+        />
+      </div>
     </div>
   )
 }

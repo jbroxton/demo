@@ -164,22 +164,22 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <Tabs defaultValue={statusFilter} value={statusFilter} onValueChange={handleStatusChange} className="w-auto">
-          <TabsList className="bg-muted">
-            <TabsTrigger value="All">All</TabsTrigger>
-            <TabsTrigger value="Backlog">Backlog</TabsTrigger>
-            <TabsTrigger value="Not Started">Not Started</TabsTrigger>
-            <TabsTrigger value="In Progress">In Progress</TabsTrigger>
-            <TabsTrigger value="Launched">Launched</TabsTrigger>
-            <TabsTrigger value="Blocked">Blocked</TabsTrigger>
+          <TabsList className="bg-[#0a0a0a] border border-[#2a2a2c] h-12 rounded-xl shadow-lg shadow-black/20">
+            <TabsTrigger value="All" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">All</TabsTrigger>
+            <TabsTrigger value="Backlog" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Backlog</TabsTrigger>
+            <TabsTrigger value="Not Started" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Not Started</TabsTrigger>
+            <TabsTrigger value="In Progress" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">In Progress</TabsTrigger>
+            <TabsTrigger value="Launched" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Launched</TabsTrigger>
+            <TabsTrigger value="Blocked" className="data-[state=active]:bg-[#121212] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20 text-[#8b8b90] border-r border-[#2a2a2c] last:border-r-0 transition-all duration-300 rounded-lg hover:text-[#e1e1e6]">Blocked</TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="flex items-center gap-2">
           <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-[#8b8b90]" />
             <Input
               placeholder="Search features..."
-              className="pl-8 h-9 bg-transparent border-[#2a2a2c] rounded-md"
+              className="pl-10 h-12 bg-[#0a0a0a] border border-[#2a2a2c] rounded-xl text-[#e1e1e6] placeholder:text-[#8b8b90] shadow-lg shadow-black/20 focus:border-blue-500/50 focus:shadow-xl focus:shadow-blue-500/20 transition-all duration-300"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -195,15 +195,15 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
         </div>
       </div>
 
-      <div className="rounded-md border border-[#2a2a2c] bg-[#1e1e20] w-full">
+      <div className="rounded-2xl border border-[#2a2a2c] bg-[#0a0a0a] w-full shadow-lg shadow-black/30">
         <div className="overflow-x-auto w-full">
           <Table className="w-full">
-            <TableHeader className="bg-[#1e1e20]">
-              <TableRow className="border-b border-[#2a2a2c]">
-                <TableHead className="text-[#a0a0a0] p-2">Feature</TableHead>
-                <TableHead className="text-[#a0a0a0] p-2">Feature Status</TableHead>
-                <TableHead className="text-[#a0a0a0] p-2">Release</TableHead>
-                <TableHead className="text-[#a0a0a0] p-2 text-right">Actions</TableHead>
+            <TableHeader className="bg-[#0a0a0a]">
+              <TableRow className="border-b border-[#2a2a2c] hover:bg-transparent">
+                <TableHead className="text-[#e1e1e6] font-semibold p-4 text-sm tracking-wide">Feature</TableHead>
+                <TableHead className="text-[#e1e1e6] font-semibold p-4 text-sm tracking-wide">Feature Status</TableHead>
+                <TableHead className="text-[#e1e1e6] font-semibold p-4 text-sm tracking-wide">Release</TableHead>
+                <TableHead className="text-[#e1e1e6] font-semibold p-4 text-sm tracking-wide text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -212,17 +212,19 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
                   <TableRow
                     key={feature.id}
                     className={`
-                      transition-colors duration-150
-                      border-b border-[#2a2a2c]
-                      ${index % 2 === 0 ? 'bg-[#1e1e20]' : 'bg-[#232326]'}
-                      hover:bg-[#232326]
+                      transition-all duration-300 ease-in-out
+                      border-b border-[#2a2a2c]/30
+                      bg-[#0a0a0a]
+                      hover:bg-[#121212] 
+                      hover:shadow-md hover:shadow-blue-500/10
+                      group
                     `}
                   >
-                    <TableCell className="p-2 font-medium">{feature.name}</TableCell>
-                    <TableCell className="p-2">
+                    <TableCell className="px-4 py-3 font-medium text-[#e1e1e6] group-hover:text-white transition-all duration-300">{feature.name}</TableCell>
+                    <TableCell className="px-4 py-3 transition-all duration-300">
                       <ApprovalStatusBadge status={feature.workflowStatus || 'Not Started'} />
                     </TableCell>
-                    <TableCell className="p-2">
+                    <TableCell className="px-4 py-3 transition-all duration-300">
                       <div className="flex flex-col gap-1">
                         {(feature as any).releasesData && (feature as any).releasesData.length > 0 ? (
                           (feature as any).releasesData.map((release: any) => (
@@ -237,12 +239,13 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="p-2 text-right">
+                    <TableCell className="px-4 py-3 text-right transition-all duration-300">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleRemoveFeature(feature.id)}
                         disabled={isRemoving}
+                        className="bg-[#0a0a0a] border border-[#2a2a2c] text-[#e1e1e6] hover:bg-[#121212] hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/20 transition-all duration-300 shadow-lg shadow-black/20"
                       >
                         <MinusCircle className="h-4 w-4 mr-2" /> Remove
                       </Button>
@@ -251,7 +254,7 @@ export function RoadmapFeaturesTable({ roadmapId }: RoadmapFeaturesTableProps) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-16 text-center text-[#a0a0a0]">
+                  <TableCell colSpan={4} className="h-20 text-center text-[#8b8b90] bg-[#0a0a0a] font-medium tracking-wide">
                     {searchQuery 
                       ? 'No features match your search criteria.' 
                       : 'No features found in this roadmap.'}
