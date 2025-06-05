@@ -14,12 +14,39 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { getPageTypeIcon } from '@/utils/page-icons';
 import type { Page } from '@/types/models/Page';
+import type { Feature } from '@/types/models/Feature';
 
+// Generic assignment item interface
 interface AssignmentItem {
   id: string;
   title: string;
 }
 
+// Generic option configuration for different object types
+interface OptionConfig<T> {
+  getId: (item: T) => string;
+  getTitle: (item: T) => string;
+  getSearchableText: (item: T) => string[];
+  renderItem?: (item: T, isSelected: boolean) => React.ReactNode;
+  getSubtitle?: (item: T) => string;
+  getIcon?: (item: T) => React.ComponentType<any>;
+  getBadge?: (item: T) => { text: string; className: string } | null;
+}
+
+interface GenericMultiSelectProps<T> {
+  options: T[];
+  selectedItems: AssignmentItem[];
+  onSelectionChange: (items: AssignmentItem[]) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyMessage: string;
+  config: OptionConfig<T>;
+  className?: string;
+  disabled?: boolean;
+  testId?: string;
+}
+
+// Legacy interface for backward compatibility
 interface PageMultiSelectProps {
   options: Page[];
   selectedItems: AssignmentItem[];
@@ -32,61 +59,64 @@ interface PageMultiSelectProps {
 }
 
 /**
- * Industry Standard Multi-Select Component
+ * Generic Multi-Select Component
  * 
- * This follows the standard pattern used by:
- * - React Hook Form multi-select
- * - Ant Design Select (mode="multiple") 
- * - Material-UI Autocomplete (multiple)
- * - Chakra UI MultiSelect
+ * Build once, reuse everywhere! This component can handle:
+ * - Pages (roadmaps, releases, etc.)
+ * - Features (for feedback assignment)
+ * - Any other object type via configuration
  * 
  * Pattern: Popover + Search Input + Checkbox List + ScrollArea
  */
-export function PageMultiSelectProper({
+export function GenericMultiSelect<T>({
   options,
   selectedItems,
   onSelectionChange,
   placeholder,
   searchPlaceholder,
   emptyMessage,
+  config,
   className,
-  disabled = false
-}: PageMultiSelectProps) {
+  disabled = false,
+  testId
+}: GenericMultiSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
-  // Filter options based on search
+  // Filter options based on search using configurable search text
   const filteredOptions = useMemo(() => {
     if (!searchValue) return options;
     
-    return options.filter(option =>
-      option.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-      option.type.toLowerCase().includes(searchValue.toLowerCase())
-    );
-  }, [options, searchValue]);
+    return options.filter(option => {
+      const searchableTexts = config.getSearchableText(option);
+      return searchableTexts.some(text => 
+        text.toLowerCase().includes(searchValue.toLowerCase())
+      );
+    });
+  }, [options, searchValue, config]);
 
   // Check if an item is selected
-  const isSelected = (pageId: string) => {
-    return selectedItems.some(item => item.id === pageId);
+  const isSelected = (itemId: string) => {
+    return selectedItems.some(item => item.id === itemId);
   };
 
   // Toggle selection of an item
-  const toggleSelection = (page: Page, checked: boolean) => {
+  const toggleSelection = (option: T, checked: boolean) => {
+    const itemId = config.getId(option);
     if (checked) {
       // Add to selection
       const newItem: AssignmentItem = {
-        id: page.id,
-        title: page.title
+        id: itemId,
+        title: config.getTitle(option)
       };
       onSelectionChange([...selectedItems, newItem]);
     } else {
       // Remove from selection
-      const newSelection = selectedItems.filter(item => item.id !== page.id);
+      const newSelection = selectedItems.filter(item => item.id !== itemId);
       onSelectionChange(newSelection);
     }
     
     // Keep popover open for multi-selection
-    // User can click outside or press Escape to close
   };
 
   // Get trigger button text
@@ -123,6 +153,7 @@ export function PageMultiSelectProper({
             className
           )}
           disabled={disabled}
+          data-testid={testId}
         >
           <span className="truncate">{getTriggerText()}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-white/60" />
@@ -159,31 +190,60 @@ export function PageMultiSelectProper({
         <ScrollArea className="max-h-60">
           {filteredOptions.length === 0 ? (
             <div className="py-6 text-center text-sm text-white/60">
-              {emptyMessage}
+              {searchValue ? `No results found for "${searchValue}"` : emptyMessage}
             </div>
           ) : (
             <div className="p-1">
-              {filteredOptions.map((page) => {
-                const PageIcon = getPageTypeIcon(page.type);
-                const selected = isSelected(page.id);
+              {filteredOptions.map((option) => {
+                const itemId = config.getId(option);
+                const selected = isSelected(itemId);
+                
+                // Use custom renderer if provided, otherwise use default
+                if (config.renderItem) {
+                  return (
+                    <div
+                      key={itemId}
+                      className="cursor-pointer"
+                      onClick={() => toggleSelection(option, !selected)}
+                    >
+                      {config.renderItem(option, selected)}
+                    </div>
+                  );
+                }
+                
+                // Default rendering
+                const Icon = config.getIcon?.(option);
+                const subtitle = config.getSubtitle?.(option);
+                const badge = config.getBadge?.(option);
                 
                 return (
                   <div
-                    key={page.id}
+                    key={itemId}
                     className="flex items-center gap-3 rounded-sm px-3 py-2 hover:bg-white/10 cursor-pointer"
-                    onClick={() => toggleSelection(page, !selected)}
+                    onClick={() => toggleSelection(option, !selected)}
                   >
                     <Checkbox
                       checked={selected}
-                      onCheckedChange={(checked) => toggleSelection(page, checked as boolean)}
+                      onCheckedChange={(checked) => toggleSelection(option, checked as boolean)}
                       className="data-[state=checked]:bg-white data-[state=checked]:border-white"
                     />
                     
-                    <PageIcon className="h-4 w-4 text-white/70 shrink-0" />
+                    {Icon && <Icon className="h-4 w-4 text-white/70 shrink-0" />}
                     
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-white truncate">{page.title}</div>
-                      <div className="text-xs text-white/60 capitalize">{page.type}</div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-white truncate">
+                          {config.getTitle(option)}
+                        </span>
+                        {badge && (
+                          <span className={cn("text-xs px-1.5 py-0.5 rounded", badge.className)}>
+                            {badge.text}
+                          </span>
+                        )}
+                      </div>
+                      {subtitle && (
+                        <div className="text-xs text-white/60">{subtitle}</div>
+                      )}
                     </div>
                   </div>
                 );
@@ -191,7 +251,42 @@ export function PageMultiSelectProper({
             </div>
           )}
         </ScrollArea>
+
+        {/* Footer */}
+        {selectedItems.length > 0 && (
+          <div className="border-t border-white/10 p-2">
+            <div className="flex items-center justify-between text-xs text-white/60">
+              <span>{selectedItems.length} selected</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-white/60 hover:text-white"
+                onClick={() => onSelectionChange([])}
+              >
+                Clear all
+              </Button>
+            </div>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+// Legacy PageMultiSelectProper for backward compatibility
+export function PageMultiSelectProper(props: PageMultiSelectProps) {
+  const pageConfig: OptionConfig<Page> = {
+    getId: (page) => page.id,
+    getTitle: (page) => page.title,
+    getSearchableText: (page) => [page.title, page.type],
+    getSubtitle: (page) => page.type,
+    getIcon: (page) => getPageTypeIcon(page.type)
+  };
+
+  return (
+    <GenericMultiSelect
+      {...props}
+      config={pageConfig}
+    />
   );
 }

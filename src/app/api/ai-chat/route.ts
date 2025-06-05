@@ -33,7 +33,7 @@ import {
   indexFeature, 
   indexRelease 
 } from '@/services/ai-service';
-import { getFeaturesFromDb } from '@/services/features-db';
+import { getPages } from '@/services/pages-db';
 import { getReleasesFromDb } from '@/services/releases-db';
 // BYPASSED: Complex system prompts causing issues with context usage
 // import { 
@@ -294,7 +294,7 @@ async function handleIndexing(tenantId: string): Promise<NextResponse> {
     let releases: any[] = [];
     
     try {
-      const featuresResult = await getFeaturesFromDb(tenantId);
+      const featuresResult = await getPages({ tenantId, type: 'feature' });
       features = featuresResult.success ? featuresResult.data || [] : [];
       console.log(`Found ${features.length} features to index`);
     } catch (featureError) {

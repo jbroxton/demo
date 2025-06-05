@@ -47,7 +47,7 @@ export const POST = authenticatedHandler(async (request, { tenantId, userId, bod
   const { type, title } = body;
 
   // Validate page type
-  const validTypes: PageType[] = ['product', 'project', 'feature', 'release', 'roadmap'];
+  const validTypes: PageType[] = ['product', 'project', 'feature', 'release', 'roadmap', 'feedback'];
   if (!validTypes.includes(type)) {
     return apiResponse.error(`Invalid page type. Must be one of: ${validTypes.join(', ')}`, 400);
   }

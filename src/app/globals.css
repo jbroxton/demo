@@ -986,6 +986,18 @@ div[class*='MRT_TopToolbar'],
   z-index: 1;
 }
 
+/* Nested sidebar open state - adjust grid to account for overlay */
+.workspace-grid.nested-sidebar-open {
+  /* Grid is adjusted via inline styles in dashboard-layout-query.tsx to reserve space for nested sidebar */
+  transition: grid-template-columns var(--transition-speed) var(--transition-timing);
+}
+
+/* Ensure canvas content area respects nested sidebar overlay */
+.workspace-grid.nested-sidebar-open .canvas-container {
+  /* Canvas area is automatically resized by CSS Grid when gridTemplateColumns changes */
+  /* The nested sidebar overlay space is reserved in the first column */
+}
+
 /* Collapsed navigator state */
 .workspace-grid.navigator-collapsed {
   grid-template-columns:

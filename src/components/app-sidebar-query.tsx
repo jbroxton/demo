@@ -19,7 +19,9 @@ import {
   Puzzle,
   Plus,
   Settings,
-  Trash2
+  Trash2,
+  Inbox,
+  Search
 } from "lucide-react"
 import { getPageTypeIcon } from "@/utils/page-icons"
 import { getAllowedChildTypes, canHaveChildren } from "@/utils/page-parenting-rules"
@@ -28,6 +30,7 @@ import { EntityCreator } from "@/components/entity-creator"
 import { PageContextMenu } from "@/components/page-context-menu"
 import { PageTypeCreator } from "@/components/page-type-creator"
 import { useRouter } from "next/navigation"
+import { useUIState } from "@/providers/ui-state-provider"
 import { useProductsQuery } from "@/hooks/use-products-query"
 import { useInterfacesQuery } from "@/hooks/use-interfaces-query"
 import { useFeaturesQuery } from "@/hooks/use-features-query"
@@ -73,6 +76,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
   const { user, logout } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { setNestedSidebar } = useUIState();
   
   // Track expanded IDs for each level of hierarchy
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
@@ -246,6 +250,22 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
       {/* Navigation menu */}
       <div className="px-2 py-3" data-section="navigation-menu">
         <ul className="flex flex-col gap-0.5">
+          {/* Search button - placed before Goals */}
+          <li data-nav-item="search" data-testid="sidebar-search-button">
+            <button
+              className={`flex w-full items-center ${collapsed ? 'justify-center p-2' : 'gap-1.5 px-2 py-1.5 text-left'} rounded text-sm text-[#e5e5e5] hover:text-white hover:bg-white/10 transition-colors`}
+              onClick={() => {
+                console.log('Search button clicked - opening nested sidebar');
+                setNestedSidebar('pages-search');
+              }}
+              title="Search"
+              data-action="navigate"
+              data-nav-target="search"
+            >
+              <Search className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+              {!collapsed && <span className="truncate">Search</span>}
+            </button>
+          </li>
           {goalsData.map((item) => (
             <li key={item.name} data-nav-item={item.name.toLowerCase()}>
               {item.name === 'Roadmap' ? (
@@ -285,6 +305,22 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
               )}
             </li>
           ))}
+          {/* Feedback button */}
+          <li data-nav-item="feedback" data-testid="sidebar-feedback-button">
+            <button
+              className={`flex w-full items-center ${collapsed ? 'justify-center p-2' : 'gap-1.5 px-2 py-1.5 text-left'} rounded text-sm text-[#e5e5e5] hover:text-white hover:bg-white/10 transition-colors`}
+              onClick={() => {
+                console.log('Feedback button clicked - opening nested sidebar');
+                setNestedSidebar('feedback');
+              }}
+              title="Feedback"
+              data-action="navigate"
+              data-nav-target="feedback"
+            >
+              <Inbox className={`${collapsed ? 'h-5 w-5' : 'h-4 w-4 flex-shrink-0'} text-[#a0a0a0]`} />
+              {!collapsed && <span className="truncate">Feedback</span>}
+            </button>
+          </li>
         </ul>
       </div>
       
@@ -322,7 +358,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
       <div className="px-2 py-2 overflow-y-auto" data-section="pages-tree" data-testid="pages-section">
         {pagesQuery.pages && pagesQuery.pages.length > 0 ? (
           <ul className="space-y-0.5" data-list="pages" data-testid="pages-list">
-            {(pagesQuery.pages || []).filter(page => !page.parent_id).map(page => {
+            {(pagesQuery.pages || []).filter(page => !page.parent_id && page.type !== 'feedback').map(page => {
               // Determine if the page type can have children
               const pageCanHaveChildren = canHaveChildren(page.type);
               const isExpanded = expandedPages[page.id] || false;

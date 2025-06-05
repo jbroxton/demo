@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { usePagesQuery } from '@/hooks/use-pages-query';
-import type { Block } from '@/types/models';
+import type { Block, RequirementContent } from '@/types/models';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DataTable } from './data-table';
@@ -29,39 +29,41 @@ export function RequirementsPagesTable({
     jiraId: '',
   });
   
-  const { data: feature, addBlock, updateBlock, deleteBlock } = usePagesQuery({ 
-    id: featureId || undefined 
-  });
+  const { usePageQuery, addBlock, updateBlock, deleteBlock } = usePagesQuery({});
+  const { data: feature } = usePageQuery(featureId || '');
 
   // Use prop requirements if provided, otherwise get from feature
   const requirements = propRequirements || (feature?.blocks || []).filter(
     (block: Block) => block.type === 'requirement'
-  ).map((req: Block) => ({
-    id: req.id,
-    title: req.properties?.title?.value || 'Untitled',
-    status: req.properties?.status?.value || 'pending',
-    priority: req.properties?.priority?.value || 'medium',
-    jiraId: req.properties?.jira_id?.value || '',
-    assignedTo: req.properties?.assigned_to?.value || null,
-    createdAt: req.properties?.created_at?.value || new Date().toISOString(),
-  }));
+  ).map((req: Block) => {
+    const reqContent = req.content as RequirementContent;
+    return {
+      id: req.id,
+      title: reqContent.name || 'Untitled',
+      status: reqContent.status?.toLowerCase() || 'draft',
+      priority: reqContent.priority?.toLowerCase() || 'medium',
+      jiraId: reqContent.cuj || '',
+      assignedTo: reqContent.owner || null,
+      createdAt: req.created_at || new Date().toISOString(),
+    };
+  });
 
   const handleAddRequirement = async () => {
     if (!featureId || !newRequirement.title.trim()) return;
 
-    const block: Partial<Block> = {
-      type: 'requirement',
-      properties: {
-        title: { type: 'text', value: newRequirement.title },
-        status: { type: 'select', value: newRequirement.status },
-        priority: { type: 'select', value: newRequirement.priority },
-        jira_id: { type: 'text', value: newRequirement.jiraId },
-        created_at: { type: 'date', value: new Date().toISOString() },
-      },
-      content: {},
+    const requirementContent: RequirementContent = {
+      name: newRequirement.title,
+      status: newRequirement.status === 'pending' ? 'Draft' : 
+              newRequirement.status === 'in-progress' ? 'In Progress' :
+              newRequirement.status === 'complete' ? 'Complete' : 'Blocked',
+      priority: newRequirement.priority === 'high' ? 'High' : newRequirement.priority === 'medium' ? 'Medium' : 'Low',
+      cuj: newRequirement.jiraId,
     };
 
-    await addBlock(featureId, block);
+    await addBlock(featureId, {
+      type: 'requirement',
+      content: requirementContent,
+    });
     setIsAddingNew(false);
     setNewRequirement({ title: '', status: 'pending', priority: 'medium', jiraId: '' });
   };

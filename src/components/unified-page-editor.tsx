@@ -33,6 +33,7 @@ import debounce from 'lodash/debounce';
 import { Extension } from '@tiptap/core';
 import { Suggestion } from '@tiptap/suggestion';
 import { PluginKey } from 'prosemirror-state';
+import { Input } from '@/components/ui/input';
 
 // Create a lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -525,6 +526,7 @@ import type { PageType } from '@/types/models/Page';
 import { getPageTypeIcon } from '@/utils/page-icons';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useUnifiedPages } from '@/providers/unified-state-provider';
+import { usePagesQuery } from '@/hooks/use-pages-query';
 import { PageDetailsDrawer } from './page-details-drawer';
 
 interface UnifiedPageEditorProps {
@@ -607,6 +609,9 @@ export function UnifiedPageEditor({
 
   // Get page type icon
   const PageIcon = getPageTypeIcon(pageType);
+  
+  // Get features for feedback assignment dropdown
+  const { pages: features } = usePagesQuery({ type: 'feature' });
 
   /**
    * Processes database blocks into TipTap document format for editor initialization
@@ -1391,7 +1396,7 @@ export function UnifiedPageEditor({
       editor.chain().focus().insertRequirementsTable({
         rows: 4,
         cols: 5,
-        featureId: pageId || null
+        featureId: pageId || undefined
       }).run();
     } else {
       // Default: Insert a new paragraph at the end
@@ -1693,6 +1698,145 @@ export function UnifiedPageEditor({
           </div>
         </div>
         
+        {/* Feedback Metadata Section */}
+        {pageType === 'feedback' && currentPage && (
+          <div className="px-6 py-4 border-b border-white/10 space-y-4" data-testid="feedback-metadata-section">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Status */}
+              <div>
+                <label className="text-sm text-white/60 mb-1 block">Status</label>
+                <Select
+                  value={currentPage.properties?.status?.select?.name || 'new'}
+                  onValueChange={(value) => {
+                    pagesState.updatePageProperty(pageId, 'status', {
+                      type: 'select',
+                      select: { name: value, color: 'blue' }
+                    });
+                  }}
+                  data-testid="feedback-status-select"
+                >
+                  <SelectTrigger data-testid="feedback-status-select-trigger">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="in-review">In Review</SelectItem>
+                    <SelectItem value="planned">Planned</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="declined">Declined</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Priority */}
+              <div>
+                <label className="text-sm text-white/60 mb-1 block">Priority</label>
+                <Select
+                  value={currentPage.properties?.priority?.select?.name || 'medium'}
+                  onValueChange={(value) => {
+                    pagesState.updatePageProperty(pageId, 'priority', {
+                      type: 'select',
+                      select: { name: value, color: value === 'high' ? 'red' : value === 'medium' ? 'yellow' : 'green' }
+                    });
+                  }}
+                  data-testid="feedback-priority-select"
+                >
+                  <SelectTrigger data-testid="feedback-priority-select-trigger">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Feedback Type */}
+              <div>
+                <label className="text-sm text-white/60 mb-1 block">Type</label>
+                <Select
+                  value={currentPage.properties?.feedbackType?.select?.name || 'feature-request'}
+                  onValueChange={(value) => {
+                    pagesState.updatePageProperty(pageId, 'feedbackType', {
+                      type: 'select',
+                      select: { name: value, color: value === 'bug' ? 'red' : value === 'feature-request' ? 'blue' : 'green' }
+                    });
+                  }}
+                  data-testid="feedback-type-select"
+                >
+                  <SelectTrigger data-testid="feedback-type-select-trigger">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bug">Bug</SelectItem>
+                    <SelectItem value="feature-request">Feature Request</SelectItem>
+                    <SelectItem value="improvement">Improvement</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Source */}
+              <div>
+                <label className="text-sm text-white/60 mb-1 block">Source</label>
+                <Select
+                  value={currentPage.properties?.source?.select?.name || 'manual'}
+                  disabled
+                  data-testid="feedback-source-select"
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Customer Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-white/60 mb-1 block">Customer Name</label>
+                <Input
+                  value={currentPage.properties?.customerName?.rich_text?.[0]?.text?.content || ''}
+                  onChange={(e) => {
+                    pagesState.updatePageProperty(pageId, 'customerName', {
+                      type: 'text',
+                      rich_text: [{
+                        type: 'text',
+                        text: { content: e.target.value, link: null }
+                      }]
+                    });
+                  }}
+                  placeholder="Enter customer name"
+                  className="bg-[#0A0A0A] border-white/10"
+                  data-testid="feedback-customer-name-input"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm text-white/60 mb-1 block">Customer Email</label>
+                <Input
+                  value={currentPage.properties?.customerEmail?.rich_text?.[0]?.text?.content || ''}
+                  onChange={(e) => {
+                    pagesState.updatePageProperty(pageId, 'customerEmail', {
+                      type: 'text',
+                      rich_text: [{
+                        type: 'text',
+                        text: { content: e.target.value, link: null }
+                      }]
+                    });
+                  }}
+                  placeholder="Enter customer email"
+                  className="bg-[#0A0A0A] border-white/10"
+                  data-testid="feedback-customer-email-input"
+                />
+              </div>
+            </div>
+            
+          </div>
+        )}
 
         {/* Main Content Area: Toolbar + Editor */}
         <div className="flex-1 flex flex-col h-full">

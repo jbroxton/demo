@@ -69,8 +69,29 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = await response.text();
+          // Try to parse as JSON first
+          try {
+            const jsonError = JSON.parse(errorData);
+            errorMessage = jsonError.error || errorMessage;
+          } catch {
+            // If not JSON, use the text as error message
+            errorMessage = errorData || errorMessage;
+          }
+        } catch {
+          // If we can't read the response, use the status text
+        }
+        
+        console.error('AI Chat API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          message: errorMessage
+        });
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

@@ -73,7 +73,7 @@ export function PageChildrenRenderer({ parentId, collapsed }: PageChildrenRender
 
   return (
     <ul className="ml-4 mt-0.5 space-y-0.5" data-list="child-pages" data-testid="child-pages-list">
-      {childPages.map((childPage: Page) => (
+      {childPages.filter(childPage => childPage.type !== 'feedback').map((childPage: Page) => (
         <li key={childPage.id} className="group" data-testid={`child-page-container-${childPage.id}`}>
           <PageContextMenu
             pageId={childPage.id}

@@ -3,7 +3,7 @@
 
 import { Block } from './Block';
 
-export type PageType = 'product' | 'project' | 'feature' | 'release' | 'roadmap';
+export type PageType = 'product' | 'project' | 'feature' | 'release' | 'roadmap' | 'feedback';
 
 // Notion-style property value types
 export interface PropertyValue {
@@ -130,8 +130,12 @@ export interface ReleasePage extends Page {
   type: 'release';
 }
 
+export interface FeedbackPage extends Page {
+  type: 'feedback';
+}
+
 // Union type for type-safe pages
-export type TypedPage = ProjectPage | FeaturePage | RoadmapPage | ReleasePage;
+export type TypedPage = ProjectPage | FeaturePage | RoadmapPage | ReleasePage | FeedbackPage;
 
 // Property schema definitions (for validation)
 export interface PropertySchema {
@@ -339,6 +343,78 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
         ]
       }
     }
+  ],
+  feedback: [
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'New', color: 'blue' },
+          { name: 'In Review', color: 'yellow' },
+          { name: 'Planned', color: 'green' },
+          { name: 'Completed', color: 'purple' },
+          { name: 'Declined', color: 'red' }
+        ]
+      }
+    },
+    {
+      id: 'priority',
+      name: 'Priority',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'High', color: 'red' },
+          { name: 'Medium', color: 'yellow' },
+          { name: 'Low', color: 'green' }
+        ]
+      }
+    },
+    {
+      id: 'feedbackType',
+      name: 'Type',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'Bug', color: 'red' },
+          { name: 'Feature Request', color: 'blue' },
+          { name: 'Improvement', color: 'green' }
+        ]
+      }
+    },
+    {
+      id: 'source',
+      name: 'Source',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'Manual', color: 'gray' }
+        ]
+      }
+    },
+    {
+      id: 'customerName',
+      name: 'Customer Name',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'customerEmail',
+      name: 'Customer Email',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'assignedFeature',
+      name: 'Assigned Feature',
+      type: 'relation',
+      config: { type: 'relation', target_page_type: 'feature' }
+    }
   ]
 };
 
@@ -384,4 +460,8 @@ export function isRoadmapPage(page: Page): page is RoadmapPage {
 
 export function isReleasePage(page: Page): page is ReleasePage {
   return page.type === 'release';
+}
+
+export function isFeedbackPage(page: Page): page is FeedbackPage {
+  return page.type === 'feedback';
 }

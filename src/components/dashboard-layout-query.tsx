@@ -8,7 +8,9 @@ import { TabsContainer } from '@/components/tabs-container';
 import { useRouter } from 'next/navigation';
 import { RightSidebar } from './rightsidebar/right-sidebar';
 import { useUIState } from '@/providers/ui-state-provider';
-import { ChevronLeft, ChevronRight, PanelRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PanelRight, X } from 'lucide-react';
+import { FeedbackSidebar } from './feedback/feedback-sidebar';
+import { PagesSearchSidebar } from './pages-search-sidebar';
 
 export default function WorkspaceLayout() {
   const router = useRouter();
@@ -18,7 +20,10 @@ export default function WorkspaceLayout() {
     leftSidebarCollapsed, 
     toggleLeftSidebar, 
     toggleRightSidebar,
-    rightSidebarWidth 
+    rightSidebarWidth,
+    nestedSidebarOpen,
+    nestedSidebarType,
+    closeNestedSidebar
   } = useUIState();
 
   // Redirect to login if not authenticated
@@ -61,20 +66,22 @@ export default function WorkspaceLayout() {
         due to inheritance/specificity issues that prevented grid updates.
       */}
       <div
-        className={`workspace-grid ${leftSidebarCollapsed ? 'navigator-collapsed' : ''} ${rightSidebarOpen ? 'utility-expanded' : ''}`}
+        className={`workspace-grid ${leftSidebarCollapsed ? 'navigator-collapsed' : ''} ${rightSidebarOpen ? 'utility-expanded' : ''} ${nestedSidebarOpen ? 'nested-sidebar-open' : ''}`}
         data-component="workspace"
       style={{
         // CRITICAL FIX: Direct gridTemplateColumns override using explicit pixel values  
         // This ensures CSS Grid properly constrains all three columns without CSS variable issues
+        // Also accounts for nested sidebar overlay by adjusting content start position
         gridTemplateColumns: rightSidebarOpen 
-          ? `${leftSidebarCollapsed ? '60px' : '280px'} 1fr ${rightSidebarWidth}px`
-          : `${leftSidebarCollapsed ? '60px' : '280px'} 1fr 48px`
+          ? `${nestedSidebarOpen ? '380px' : (leftSidebarCollapsed ? '60px' : '280px')} 1fr ${rightSidebarWidth}px`
+          : `${nestedSidebarOpen ? '380px' : (leftSidebarCollapsed ? '60px' : '280px')} 1fr 48px`
       } as React.CSSProperties}
       data-debug-grid={rightSidebarOpen 
-        ? `${leftSidebarCollapsed ? '60px' : '280px'} 1fr ${rightSidebarWidth}px`
-        : `${leftSidebarCollapsed ? '60px' : '280px'} 1fr 48px`}
+        ? `${nestedSidebarOpen ? '380px' : (leftSidebarCollapsed ? '60px' : '280px')} 1fr ${rightSidebarWidth}px`
+        : `${nestedSidebarOpen ? '380px' : (leftSidebarCollapsed ? '60px' : '280px')} 1fr 48px`}
       data-right-sidebar-open={rightSidebarOpen.toString()}
       data-right-sidebar-width={rightSidebarWidth}
+      data-nested-sidebar-open={nestedSidebarOpen.toString()}
     >
       {/* Navigator - left sidebar */}
       <div
@@ -106,6 +113,35 @@ export default function WorkspaceLayout() {
           {leftSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
+
+      {/* Nested Sidebar */}
+      {nestedSidebarOpen && nestedSidebarType && (
+        <>
+          {/* Nested sidebar container */}
+          <div className="fixed left-0 top-0 h-full z-40 flex" data-testid="nested-sidebar-container">
+            {/* Show collapsed main sidebar */}
+            <div className="w-[60px] bg-[#0A0A0A] border-r border-white/10">
+              <AppSidebarQuery collapsed={true} />
+            </div>
+            
+            {/* Nested sidebar content */}
+            <div className="relative">
+              {nestedSidebarType === 'feedback' && <FeedbackSidebar />}
+              {nestedSidebarType === 'pages-search' && <PagesSearchSidebar />}
+              
+              {/* Close button - positioned like main sidebar toggle */}
+              <button
+                className="absolute top-4 right-[-10px] z-40 p-1.5 rounded-md bg-[#0F0F0F] hover:bg-[#1A1A1A] text-white/70 hover:text-white/90 transition-colors duration-200 flex items-center justify-center"
+                onClick={closeNestedSidebar}
+                aria-label="Collapse navigator"
+                data-testid="close-nested-sidebar"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Canvas container - main work area */}
       <div className="canvas-container" data-section="canvas">

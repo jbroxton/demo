@@ -221,30 +221,31 @@ export function PageDetailsDrawer({
               pageData={page}
             />
 
-            <Separator className="bg-white/10" />
-
-            {/* Properties */}
-            {page.properties && Object.keys(page.properties).filter(key => key !== 'assignedTo').length > 0 && (
-              <section>
-                <h3 className="text-sm font-medium text-white/90 mb-3">Properties</h3>
-                <div className="space-y-3">
-                  {Object.entries(page.properties)
-                    .filter(([key]) => key !== 'assignedTo') // Exclude assignedTo as it's shown in assignments section
-                    .map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-start">
-                      <span className="text-white/60 text-sm capitalize">
-                        {key.replace(/_/g, ' ')}:
-                      </span>
-                      <span className="text-white/90 text-sm text-right flex-1 ml-2">
-                        {typeof value === 'object' ? 
-                          JSON.stringify(value, null, 2) : 
-                          String(value)
-                        }
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+            {/* Properties - Hide for feedback pages */}
+            {page.type !== 'feedback' && page.properties && Object.keys(page.properties).filter(key => key !== 'assignedTo').length > 0 && (
+              <>
+                <Separator className="bg-white/10" />
+                <section>
+                  <h3 className="text-sm font-medium text-white/90 mb-3">Properties</h3>
+                  <div className="space-y-3">
+                    {Object.entries(page.properties)
+                      .filter(([key]) => key !== 'assignedTo') // Exclude assignedTo as it's shown in assignments section
+                      .map(([key, value]) => (
+                      <div key={key} className="flex justify-between items-start">
+                        <span className="text-white/60 text-sm capitalize">
+                          {key.replace(/_/g, ' ')}:
+                        </span>
+                        <span className="text-white/90 text-sm text-right flex-1 ml-2">
+                          {typeof value === 'object' ? 
+                            JSON.stringify(value, null, 2) : 
+                            String(value)
+                          }
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </>
             )}
 
           </div>

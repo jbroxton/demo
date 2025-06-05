@@ -5,6 +5,9 @@ import React, { createContext, useState, useContext, useCallback, useMemo, React
 // Define the type for right sidebar tab
 type RightSidebarTab = 'chat' | 'todo';
 
+// Define the type for nested sidebar
+type NestedSidebarType = 'feedback' | 'pages-search' | null;
+
 // Define the context interface
 interface UIStateContextType {
   // Right sidebar state
@@ -26,6 +29,12 @@ interface UIStateContextType {
   leftSidebarCollapsed: boolean;
   toggleLeftSidebar: () => void;
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
+
+  // Nested sidebar state
+  nestedSidebarOpen: boolean;
+  nestedSidebarType: NestedSidebarType;
+  setNestedSidebar: (type: NestedSidebarType) => void;
+  closeNestedSidebar: () => void;
 }
 
 // Create context with default values
@@ -51,6 +60,10 @@ export function UIStateProvider({ children }: UIStateProviderProps) {
 
   // State for left sidebar
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState<boolean>(false);
+
+  // State for nested sidebar
+  const [nestedSidebarOpen, setNestedSidebarOpen] = useState<boolean>(false);
+  const [nestedSidebarType, setNestedSidebarType] = useState<NestedSidebarType>(null);
 
   // Initialize state from localStorage if available
   useEffect(() => {
@@ -112,6 +125,26 @@ export function UIStateProvider({ children }: UIStateProviderProps) {
     setLeftSidebarCollapsed((prev) => !prev);
   }, []);
 
+  // Functions for nested sidebar
+  const setNestedSidebar = useCallback((type: NestedSidebarType) => {
+    if (type) {
+      setNestedSidebarType(type);
+      setNestedSidebarOpen(true);
+      // Collapse main sidebar when opening nested
+      setLeftSidebarCollapsed(true);
+    } else {
+      setNestedSidebarOpen(false);
+      setNestedSidebarType(null);
+    }
+  }, []);
+
+  const closeNestedSidebar = useCallback(() => {
+    setNestedSidebarOpen(false);
+    setNestedSidebarType(null);
+    // Restore main sidebar
+    setLeftSidebarCollapsed(false);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({
@@ -133,9 +166,15 @@ export function UIStateProvider({ children }: UIStateProviderProps) {
       // Left sidebar
       leftSidebarCollapsed,
       toggleLeftSidebar,
-      setLeftSidebarCollapsed
+      setLeftSidebarCollapsed,
+
+      // Nested sidebar
+      nestedSidebarOpen,
+      nestedSidebarType,
+      setNestedSidebar,
+      closeNestedSidebar
     }),
-    [rightSidebarOpen, toggleRightSidebar, activeRightTab, rightSidebarWidth, isResizing, leftSidebarCollapsed, toggleLeftSidebar]
+    [rightSidebarOpen, toggleRightSidebar, activeRightTab, rightSidebarWidth, isResizing, leftSidebarCollapsed, toggleLeftSidebar, nestedSidebarOpen, nestedSidebarType, setNestedSidebar, closeNestedSidebar]
   );
 
   return (
