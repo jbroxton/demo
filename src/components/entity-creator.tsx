@@ -12,25 +12,11 @@ import {
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { useProductsQuery } from '@/hooks/use-products-query';
-import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
-import { useFeaturesQuery } from '@/hooks/use-features-query';
-import { useReleasesQuery } from '@/hooks/use-releases-query';
-import { useRoadmapsQuery } from '@/hooks/use-roadmaps-query';
 import { usePagesQuery } from '@/hooks/use-pages-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/providers/auth-provider';
-import type { Product, Interface, Feature, Release } from '@/types/models';
-import type { Roadmap } from '@/types/models/Roadmap';
 import type { Page } from '@/types/models/Page';
 
 // Define all possible entity types
@@ -66,11 +52,6 @@ export function EntityCreator({
   console.log('=== EntityCreator MOUNTED ===', { entityType });
   
   const { openTab } = useTabsQuery();
-  const productsQuery = useProductsQuery();
-  const interfacesQuery = useInterfacesQuery();
-  const featuresQuery = useFeaturesQuery();
-  const releasesQuery = useReleasesQuery();
-  const roadmapsQuery = useRoadmapsQuery();
   const pagesQuery = usePagesQuery();
   const auth = useAuth();
   
@@ -91,7 +72,7 @@ export function EntityCreator({
   };
   
   // Define typed entities returned from mutations
-  type CreatedEntity = Product | Interface | Feature | Release | Roadmap | Page;
+  type CreatedEntity =  Page;
   
   // Create a new entity tab
   const createEntityTab = async () => {
@@ -110,131 +91,6 @@ export function EntityCreator({
       
       // Create the entity in the database first
       switch (entityType) {
-        case 'product':
-          console.log('Creating new product...');
-          // Note: tenantId is automatically added by the API handler from authentication
-          newEntity = await productsQuery.addProduct({
-            name: `New Product`,
-            description: '',
-            isSaved: false,
-            savedAt: null
-          });
-          console.log('Created product:', newEntity);
-          
-          // Wait a bit to ensure the product is propagated through the backend
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          // Invalidate and refetch to ensure the new product is in the cache
-          try {
-            await productsQuery.invalidateQueries();
-            await productsQuery.refetch();
-            console.log('Products query refetched');
-          
-            // Double check the product exists in the cache
-            const verifyProduct = productsQuery.getProductById(newEntity.id);
-            console.log('Verify product in cache:', verifyProduct);
-            
-            if (!verifyProduct) {
-              console.warn('Product not found in cache after refetch, tab might show empty');
-            }
-          } catch (error) {
-            console.error('Error refreshing products:', error);
-          }
-          break;
-          
-        case 'interface':
-          // Ensure parent ID is valid for interface creation
-          if (!context?.parentId) {
-            throw new Error('Interface requires a parent product');
-          }
-          newEntity = await interfacesQuery.addInterface({
-            name: `New Interface`,
-            description: '',
-            productId: context.parentId,
-            isSaved: false,
-            savedAt: null
-          });
-          break;
-          
-        case 'feature':
-          // Ensure parent ID is valid for feature creation
-          if (!context?.parentId) {
-            throw new Error('Feature requires a parent interface');
-          }
-          newEntity = await featuresQuery.addFeature({
-            name: `New Feature`,
-            description: '',
-            priority: 'Med',  // Default priority
-            interfaceId: context.parentId,
-            isSaved: false,
-            savedAt: null
-          });
-          break;
-          
-        case 'release':
-          // Ensure parent ID is valid for release creation
-          if (!context?.parentId) {
-            throw new Error('Release requires a parent feature');
-          }
-          newEntity = await releasesQuery.addRelease({
-            name: `New Release`,
-            description: '',
-            featureId: context.parentId,
-            priority: 'Med',  // Default priority
-            releaseDate: new Date().toISOString().split('T')[0],  // Today's date in ISO format
-            isSaved: false,
-            savedAt: null
-          });
-          break;
-          
-        case 'roadmap':
-          // Create new roadmap in the database first
-          console.log('Creating new roadmap...');
-          
-          // Explicitly check tenant ID before attempting creation
-          if (!auth.currentTenant) {
-            console.error('No tenant selected. Current auth state:', {
-              isAuthenticated: auth.isAuthenticated,
-              currentTenant: auth.currentTenant,
-              allowedTenants: auth.allowedTenants,
-            });
-            
-            // Try to get tenant ID from user if available
-            const tenantId = auth?.user?.tenantId || auth?.user?.currentTenant;
-            if (!tenantId) {
-              throw new Error('Cannot create roadmap: No tenant selected');
-            }
-            
-            console.log('Using tenant ID from user:', tenantId);
-          }
-          
-          // tenant ID is automatically added by the API handler from the auth system
-          newEntity = await roadmapsQuery.addRoadmap({
-            name: 'New Roadmap',
-            description: '',
-            is_default: false
-          });
-          console.log('Created roadmap:', newEntity);
-          
-          // Wait a bit to ensure the roadmap is propagated through the backend
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          // Refresh roadmaps to ensure the new roadmap is in the cache
-          try {
-            await roadmapsQuery.roadmapsRefetch();
-            console.log('Roadmaps query refetched');
-            
-            // Double check the roadmap exists in the cache
-            const verifyRoadmap = roadmapsQuery.getRoadmapById(newEntity.id);
-            console.log('Verify roadmap in cache:', verifyRoadmap);
-            
-            if (!verifyRoadmap) {
-              console.warn('Roadmap not found in cache after refetch, tab might show empty');
-            }
-          } catch (error) {
-            console.error('Error refreshing roadmaps:', error);
-          }
-          break;
 
         case 'page':
           console.log('Creating new page...', context);

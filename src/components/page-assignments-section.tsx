@@ -4,9 +4,7 @@ import React, { useMemo } from 'react';
 import { PageMultiSelectProper as PageMultiSelect, GenericMultiSelect } from './page-multi-select-proper';
 import { AssignmentBadges } from './assignment-badges';
 import { useUnifiedPages } from '@/providers/unified-state-provider';
-import { useFeaturesQuery } from '@/hooks/use-features-query';
-import type { Page, PageType } from '@/types/models/Page';
-import type { Feature } from '@/types/models/Feature';
+import type { Page, PageType, TextPropertyValue, SelectPropertyValue } from '@/types/models/Page';
 
 // Type definition for feature configuration (inline since not exported)
 interface OptionConfig<T> {
@@ -49,7 +47,6 @@ export function PageAssignmentsSection({
   pageData 
 }: PageAssignmentsSectionProps) {
   const pagesState = useUnifiedPages();
-  const { features } = useFeaturesQuery();
   
   // Get all pages for assignment options
   const allPages = pagesState.getPages();
@@ -136,14 +133,22 @@ export function PageAssignmentsSection({
     updateAssignments('releases', newReleases);
   };
 
+  // Get feature pages for assignment options
+  const featureOptions = useMemo(() => {
+    return allPages.filter((page: Page) => 
+      page.type === 'feature' && 
+      page.id !== pageId
+    );
+  }, [allPages, pageId]);
+
   // Get current feature assignments for feedback pages
   const currentFeatureAssignments = useMemo(() => {
     const featureRelations = livePage.properties?.assignedFeature?.relation || [];
     return featureRelations.map((rel: { id: string }) => ({
       id: rel.id,
-      title: features?.find(f => f.id === rel.id)?.name || 'Unknown Feature'
+      title: featureOptions.find((f: Page) => f.id === rel.id)?.title || 'Unknown Feature'
     }));
-  }, [livePage.properties?.assignedFeature?.relation, features]);
+  }, [livePage.properties?.assignedFeature?.relation, featureOptions]);
   
   // Handle feature assignment changes for feedback pages (supports multiple)
   const handleFeatureAssignmentChange = async (newFeatureAssignments: AssignmentItem[]) => {
@@ -187,20 +192,41 @@ export function PageAssignmentsSection({
   };
   
   // Feature configuration for GenericMultiSelect
-  const featureConfig: OptionConfig<Feature> = {
+  const featureConfig: OptionConfig<Page> = {
     getId: (feature) => feature.id,
-    getTitle: (feature) => feature.name,
-    getSearchableText: (feature) => [feature.name, feature.description, feature.priority],
-    getSubtitle: (feature) => feature.description,
+    getTitle: (feature) => feature.title,
+    getSearchableText: (feature) => {
+      // Get description from properties if available
+      const descriptionProp = feature.properties?.description;
+      const description = descriptionProp?.type === 'text' 
+        ? (descriptionProp as TextPropertyValue).text 
+        : '';
+      return [feature.title, description || ''];
+    },
+    getSubtitle: (feature) => {
+      // Get description from properties if available
+      const descriptionProp = feature.properties?.description;
+      const description = descriptionProp?.type === 'text' 
+        ? (descriptionProp as TextPropertyValue).text 
+        : '';
+      return description || '';
+    },
     getBadge: (feature) => {
-      const priorityColors = {
+      // Get priority from page properties if available
+      const priorityProp = feature.properties?.priority;
+      const priority = priorityProp?.type === 'select'
+        ? (priorityProp as SelectPropertyValue).select?.name
+        : null;
+      if (!priority) return null;
+      
+      const priorityColors: Record<string, string> = {
         'High': 'bg-red-500/20 text-red-400 border-red-500/30',
         'Med': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
         'Low': 'bg-green-500/20 text-green-400 border-green-500/30'
       };
       return {
-        text: feature.priority,
-        className: priorityColors[feature.priority] || 'bg-gray-500/20 text-gray-400'
+        text: priority,
+        className: priorityColors[priority] || 'bg-gray-500/20 text-gray-400'
       };
     }
   };
@@ -219,7 +245,7 @@ export function PageAssignmentsSection({
             <label className="text-white/70 text-sm mb-2 block">Assign to Features</label>
             
             <GenericMultiSelect
-              options={features || []}
+              options={featureOptions}
               selectedItems={currentFeatureAssignments}
               onSelectionChange={handleFeatureAssignmentChange}
               placeholder="Select features..."

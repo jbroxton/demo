@@ -4,18 +4,12 @@ import { X, Pencil, Package, Layers, Puzzle, Calendar, Map, FileText, ChevronLef
 import { getPageTypeIcon } from '@/utils/page-icons';
 import { Input } from '@/components/ui/input';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
-import { useFeaturesQuery } from '@/hooks/use-features-query';
-import { useProductsQuery } from '@/hooks/use-products-query';
-import { useInterfacesQuery } from '@/hooks/use-interfaces-query';
 import { usePagesQuery } from '@/hooks/use-pages-query';
 import { useUnifiedPages } from '@/providers/unified-state-provider';
 import '@/styles/editor.css';
 
 export function TabsContainer() {
   const { tabs, activeTabId, activateTab, closeTab, updateTabTitle } = useTabsQuery();
-  const featuresQuery = useFeaturesQuery();
-  const productsQuery = useProductsQuery();
-  const interfacesQuery = useInterfacesQuery();
   const pagesQuery = usePagesQuery();
   const unifiedPagesState = useUnifiedPages();
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -127,16 +121,8 @@ export function TabsContainer() {
       // Only update if the value has changed and is not empty
       updateTabTitle(tab.itemId, tab.type, editingValue);
       
-      // Update the appropriate store based on tab type
-      if (tab.type === 'feature') {
-        featuresQuery.updateFeatureName(tab.itemId, editingValue);
-      } else if (tab.type === 'product') {
-        productsQuery.updateProductName(tab.itemId, editingValue);
-      } else if (tab.type === 'interface') {
-        interfacesQuery.updateInterfaceName(tab.itemId, editingValue);
-      } else if (tab.type === 'page') {
-        unifiedPagesState.updatePageTitle(tab.itemId, editingValue);
-      }
+      // Update the page title using unified pages system
+      unifiedPagesState.updatePageTitle(tab.itemId, editingValue);
     }
     
     // Reset editing state

@@ -461,24 +461,7 @@ async function executeAgentFunction(
         break;
       case 'listFeatures':
         result = await agentOperationsService.listFeatures(tenantId, validationResult.data.productId);
-        break;
-        
-      // Requirement operations
-      case 'createRequirement':
-        result = await agentOperationsService.createRequirement(validationResult.data, tenantId);
-        break;
-      case 'updateRequirement':
-        result = await agentOperationsService.updateRequirement(
-          validationResult.data.id,
-          validationResult.data,
-          tenantId
-        );
-        break;
-      case 'deleteRequirement':
-        result = await agentOperationsService.deleteRequirement(validationResult.data.id, tenantId);
-        break;
-      case 'listRequirements':
-        result = await agentOperationsService.listRequirements(tenantId, validationResult.data.featureId);
+      
         break;
         
       // Release operations

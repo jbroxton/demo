@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS } from '../../../src/test-utils/test-users';
+import { TEST_USERS } from '../../../src/utils/test-utils/test-users';
 
 /**
  * E2E Test: Pages Creation Flow from Sidebar Navigation

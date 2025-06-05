@@ -11,7 +11,7 @@ import type {
   CreateRoadmapParams,
   UpdateRoadmapParams
 } from '@/types/models/ai-chat';
-import type { Product, Feature, Requirement, Release, Roadmap, Interface, Page } from '@/types/models';
+import type { Page } from '@/types/models';
 import { 
   createAgentError, 
   AgentErrorType, 
@@ -52,15 +52,6 @@ function getTextContent(property: unknown): string {
   return '';
 }
 
-// Import legacy services for entities not yet migrated to pages
-import { 
-  getRequirementsFromDb, 
-  createRequirementInDb, 
-  updateRequirementNameInDb,
-  updateRequirementDescriptionInDb,
-  deleteRequirementFromDb 
-} from './requirements-db';
-import { getInterfacesFromDb } from './interfaces-db';
 
 /**
  * Agent operations service that handles actual CRUD operations
@@ -73,7 +64,7 @@ export class AgentOperationsService {
   async createProduct(
     params: CreateProductParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Product>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const result = await createPage({
@@ -90,15 +81,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to create product');
         }
 
-        // Convert page to product format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          isSaved: true,
-          savedAt: page.updated_at
-        } as unknown as Product;
+        return result.data!;
       },
       {
         operationName: 'createProduct',
@@ -111,7 +94,7 @@ export class AgentOperationsService {
     productId: string,
     params: UpdateProductParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Product>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const updateData: { title?: string; properties?: Record<string, TextPropertyValue> } = {};
@@ -128,15 +111,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to update product');
         }
 
-        // Convert page to product format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          isSaved: true,
-          savedAt: page.updated_at
-        } as unknown as Product;
+        return result.data!;
       },
       {
         operationName: 'updateProduct',
@@ -169,7 +144,7 @@ export class AgentOperationsService {
   async getProduct(
     productId: string,
     tenantId: string
-  ): Promise<AgentOperationResult<Product>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'project' });
@@ -183,14 +158,7 @@ export class AgentOperationsService {
           throw new Error('Product not found');
         }
 
-        // Convert page to product format for compatibility
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          isSaved: true,
-          savedAt: page.updated_at
-        } as unknown as Product;
+        return page;
       },
       {
         operationName: 'getProduct',
@@ -205,7 +173,7 @@ export class AgentOperationsService {
   async createFeature(
     params: CreateFeatureParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Feature>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const result = await createPage({
@@ -224,18 +192,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to create feature');
         }
 
-        // Convert page to feature format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          interfaceId: getTextContent(page.properties?.interfaceId),
-          priority: getTextContent(page.properties?.priority),
-          isSaved: true,
-          createdAt: page.created_at,
-          updatedAt: page.updated_at
-        } as unknown as Feature;
+        return result.data!;
       },
       {
         operationName: 'createFeature',
@@ -248,7 +205,7 @@ export class AgentOperationsService {
     featureId: string,
     params: UpdateFeatureParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Feature>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const updateData: { title?: string; properties?: Record<string, TextPropertyValue> } = {};
@@ -269,19 +226,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to update feature');
         }
 
-        // Convert page to feature format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          interfaceId: getTextContent(page.properties?.interfaceId),
-          priority: getTextContent(page.properties?.priority),
-          roadmapId: getTextContent(page.properties?.roadmapId),
-          isSaved: true,
-          createdAt: page.created_at,
-          updatedAt: page.updated_at
-        } as unknown as Feature;
+        return result.data!;
       },
       {
         operationName: 'updateFeature',
@@ -311,93 +256,6 @@ export class AgentOperationsService {
     );
   }
 
-  /**
-   * Requirement Operations
-   */
-  async createRequirement(
-    params: CreateRequirementParams,
-    tenantId: string
-  ): Promise<AgentOperationResult<Requirement>> {
-    return safeAgentOperation(
-      async () => {
-        const result = await createRequirementInDb({
-          name: params.name,
-          description: params.description || '',
-          featureId: params.featureId,
-          priority: params.priority,
-          owner: params.owner,
-          isSaved: false
-        }, tenantId);
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to create requirement');
-        }
-
-        return result.data!;
-      },
-      {
-        operationName: 'createRequirement',
-        entityType: 'requirement'
-      }
-    );
-  }
-
-  async updateRequirement(
-    requirementId: string,
-    params: UpdateRequirementParams,
-    tenantId: string
-  ): Promise<AgentOperationResult<Requirement>> {
-    return safeAgentOperation(
-      async () => {
-        // Update fields individually since there's no single update function
-        let lastResult: { success: boolean; error?: string; data?: unknown } = { success: true };
-        
-        if (params.name !== undefined) {
-          lastResult = await updateRequirementNameInDb(requirementId, params.name, tenantId);
-          if (!lastResult.success) throw new Error(lastResult.error || 'Failed to update requirement name');
-        }
-        
-        if (params.description !== undefined) {
-          lastResult = await updateRequirementDescriptionInDb(requirementId, params.description, tenantId);
-          if (!lastResult.success) throw new Error(lastResult.error || 'Failed to update requirement description');
-        }
-        
-        // Get the updated requirement to return
-        const result = await getRequirementsFromDb(tenantId);
-        if (!result.success) throw new Error('Failed to get updated requirement');
-        
-        const updatedRequirement = result.data?.find((r: { id: string }) => r.id === requirementId);
-        if (!updatedRequirement) throw new Error('Requirement not found after update');
-        
-        return updatedRequirement;
-      },
-      {
-        operationName: 'updateRequirement',
-        entityType: 'requirement'
-      }
-    );
-  }
-
-  async deleteRequirement(
-    requirementId: string,
-    tenantId: string
-  ): Promise<AgentOperationResult<boolean>> {
-    return safeAgentOperation(
-      async () => {
-        const result = await deleteRequirementFromDb(requirementId, tenantId);
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to delete requirement');
-        }
-
-        return true;
-      },
-      {
-        operationName: 'deleteRequirement',
-        entityType: 'requirement'
-      }
-    );
-  }
 
   /**
    * Release Operations
@@ -405,7 +263,7 @@ export class AgentOperationsService {
   async createRelease(
     params: CreateReleaseParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Release>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const result = await createPage({
@@ -425,18 +283,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to create release');
         }
 
-        // Convert page to release format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          releaseDate: getTextContent(page.properties?.releaseDate),
-          priority: getTextContent(page.properties?.priority) as 'High' | 'Med' | 'Low',
-          featureId: getTextContent(page.properties?.featureId),
-          tenantId: tenantId,
-          isSaved: true
-        } as Release;
+        return result.data!;
       },
       {
         operationName: 'createRelease',
@@ -449,7 +296,7 @@ export class AgentOperationsService {
     releaseId: string,
     params: UpdateReleaseParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Release>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const updateData: { title?: string; properties?: Record<string, TextPropertyValue> } = {};
@@ -470,18 +317,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to update release');
         }
 
-        // Convert page to release format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          releaseDate: getTextContent(page.properties?.releaseDate),
-          priority: getTextContent(page.properties?.priority) as 'High' | 'Med' | 'Low',
-          featureId: getTextContent(page.properties?.featureId),
-          tenantId: tenantId,
-          isSaved: true
-        } as Release;
+        return result.data!;
       },
       {
         operationName: 'updateRelease',
@@ -517,7 +353,7 @@ export class AgentOperationsService {
   async createRoadmap(
     params: CreateRoadmapParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Roadmap>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const result = await createPage({
@@ -534,18 +370,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to create roadmap');
         }
 
-        // Convert page to roadmap format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          is_default: 0,
-          tenantId: tenantId,
-          created_at: page.created_at,
-          updated_at: page.updated_at,
-          isSaved: true
-        } as Roadmap;
+        return result.data!;
       },
       {
         operationName: 'createRoadmap',
@@ -558,7 +383,7 @@ export class AgentOperationsService {
     roadmapId: string,
     params: UpdateRoadmapParams,
     tenantId: string
-  ): Promise<AgentOperationResult<Roadmap>> {
+  ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
       async () => {
         const updateData: { title?: string; properties?: Record<string, TextPropertyValue> } = {};
@@ -578,18 +403,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to update roadmap');
         }
 
-        // Convert page to roadmap format for compatibility
-        const page = result.data!;
-        return {
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          is_default: 0,
-          tenantId: tenantId,
-          created_at: page.created_at,
-          updated_at: page.updated_at,
-          isSaved: true
-        } as Roadmap;
+        return result.data!;
       },
       {
         operationName: 'updateRoadmap',
@@ -622,7 +436,7 @@ export class AgentOperationsService {
   /**
    * List Operations for context gathering
    */
-  async listProducts(tenantId: string): Promise<AgentOperationResult<Product[]>> {
+  async listProducts(tenantId: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'project' });
@@ -631,16 +445,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to list products');
         }
 
-        // Convert pages to product format for compatibility
-        const products = (result.data || []).map(page => ({
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          isSaved: true,
-          savedAt: page.updated_at
-        } as Product));
-
-        return products;
+        return result.data || [];
       },
       {
         operationName: 'listProducts',
@@ -670,25 +475,8 @@ export class AgentOperationsService {
     );
   }
 
-  async listRequirements(tenantId: string, featureId?: string): Promise<AgentOperationResult<Requirement[]>> {
-    return safeAgentOperation(
-      async () => {
-        const result = await getRequirementsFromDb(tenantId);
 
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to list requirements');
-        }
-
-        return result.data || [];
-      },
-      {
-        operationName: 'listRequirements',
-        entityType: 'requirement'
-      }
-    );
-  }
-
-  async listReleases(tenantId: string, featureId?: string): Promise<AgentOperationResult<Release[]>> {
+  async listReleases(tenantId: string, featureId?: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'release' });
@@ -697,20 +485,13 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to list releases');
         }
 
-        let releases = (result.data || []).map(page => ({
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          releaseDate: getTextContent(page.properties?.releaseDate),
-          priority: getTextContent(page.properties?.priority) as 'High' | 'Med' | 'Low',
-          featureId: getTextContent(page.properties?.featureId),
-          tenantId: tenantId,
-          isSaved: true
-        } as Release));
+        let releases = result.data || [];
 
-        // Filter by featureId if provided
+        // Filter by featureId if provided (check properties for featureId)
         if (featureId) {
-          releases = releases.filter(release => release.featureId === featureId);
+          releases = releases.filter(page => 
+            getTextContent(page.properties?.featureId) === featureId
+          );
         }
 
         return releases;
@@ -722,7 +503,7 @@ export class AgentOperationsService {
     );
   }
 
-  async listRoadmaps(tenantId: string, productId?: string): Promise<AgentOperationResult<Roadmap[]>> {
+  async listRoadmaps(tenantId: string, productId?: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'roadmap' });
@@ -731,19 +512,7 @@ export class AgentOperationsService {
           throw new Error(result.error || 'Failed to list roadmaps');
         }
 
-        // Convert pages to roadmap format for compatibility
-        const roadmaps = (result.data || []).map(page => ({
-          id: page.id,
-          name: page.title,
-          description: getTextContent(page.properties?.description),
-          is_default: 0,
-          tenantId: tenantId,
-          created_at: page.created_at,
-          updated_at: page.updated_at,
-          isSaved: true
-        } as Roadmap));
-
-        return roadmaps;
+        return result.data || [];
       },
       {
         operationName: 'listRoadmaps',
@@ -752,23 +521,6 @@ export class AgentOperationsService {
     );
   }
 
-  async listInterfaces(tenantId: string): Promise<AgentOperationResult<Interface[]>> {
-    return safeAgentOperation(
-      async () => {
-        const result = await getInterfacesFromDb(tenantId);
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to list interfaces');
-        }
-
-        return result.data || [];
-      },
-      {
-        operationName: 'listInterfaces',
-        entityType: 'interface'
-      }
-    );
-  }
 }
 
 /**

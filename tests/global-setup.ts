@@ -1,5 +1,5 @@
 import { chromium, FullConfig } from '@playwright/test';
-import { TEST_USERS, getTestUserCredentials } from '../src/test-utils/test-users';
+import { TEST_USERS, getTestUserCredentials } from '../src/utils/test-utils/test-users';
 
 /**
  * Global setup for Playwright tests

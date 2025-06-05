@@ -16,8 +16,8 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import { RoadmapFeaturesTable } from './roadmap/roadmap-features-table-extension';
 import { RequirementsTable } from './requirements/requirements-table-tiptap-extension';
+import { RoadmapTable } from './roadmap/roadmap-table-tiptap-extension';
 import { common, createLowlight } from 'lowlight';
 import 'highlight.js/styles/atom-one-dark.css';
 import '@/styles/code-highlight.css';
@@ -1258,9 +1258,9 @@ export function UnifiedPageEditor({
           class: 'border border-gray-700 p-2',
         },
       }),
-      RoadmapFeaturesTable.configure({
+      RoadmapTable.configure({
         HTMLAttributes: {
-          class: 'roadmap-features-table my-4',
+          class: 'roadmap-table my-4',
         },
       }),
       RequirementsTable.configure({

@@ -122,6 +122,12 @@ export type BlockContent =
   | TableContent
   | ListContent;
 
+// Input for creating new blocks (no ID or timestamps - database generates these)
+export interface CreateBlockInput {
+  type: BlockType;
+  content: BlockContent;
+}
+
 // Base Block interface for JSONB storage within pages
 export interface Block {
   id: string;

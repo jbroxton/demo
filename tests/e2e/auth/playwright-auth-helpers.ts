@@ -5,7 +5,7 @@
  */
 
 import { Page, BrowserContext, expect } from '@playwright/test';
-import { TEST_USERS, getTestUserCredentials } from '../../../src/test-utils/test-users';
+import { TEST_USERS, getTestUserCredentials } from '../../../src/utils/test-utils/test-users';
 
 export interface AuthenticatedUser {
   userKey: keyof typeof TEST_USERS;

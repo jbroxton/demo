@@ -10,7 +10,6 @@ import { UnifiedStateProvider } from '@/providers/unified-state-provider'
 import { AuthProvider } from '@/providers/auth-provider'
 import { AgentProvider } from '@/providers/agent-provider'
 import { getBaseUrl } from '@/lib/env'
-import { StyleLoader } from '@/components/style-loader'
 import { SidebarProvider } from '@/components/ui/sidebar'
 // Theme providers removed
 
@@ -58,7 +57,7 @@ export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <TanstackQueryProvider>
             <AuthProvider>
-              <StyleLoader />
+         
               {isHydrated ? (
                 <SidebarProvider>
                   <UnifiedStateProvider>

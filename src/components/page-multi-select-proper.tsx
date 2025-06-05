@@ -14,7 +14,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { getPageTypeIcon } from '@/utils/page-icons';
 import type { Page } from '@/types/models/Page';
-import type { Feature } from '@/types/models/Feature';
 
 // Generic assignment item interface
 interface AssignmentItem {

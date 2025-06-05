@@ -11,7 +11,6 @@
 
 import OpenAI, { toFile } from 'openai';
 import { supabase } from '@/services/supabase';
-import { getRequirementsFromDb } from '@/services/requirements-db';
 import { getPages } from '@/services/pages-db';
 
 // Initialize OpenAI client
@@ -234,13 +233,12 @@ export async function exportTenantDataForOpenAI(tenantId: string): Promise<strin
     
     // Fetch all tenant data using pages API (unified approach)
     // Note: requirements are stored as blocks within features, not as separate pages
-    const [projectsResult, featuresResult, releasesResult, roadmapsResult, feedbackResult, requirementsResult] = await Promise.all([
+    const [projectsResult, featuresResult, releasesResult, roadmapsResult, feedbackResult] = await Promise.all([
       getPages({ tenantId, type: 'project' }),
       getPages({ tenantId, type: 'feature' }),
       getPages({ tenantId, type: 'release' }),
       getPages({ tenantId, type: 'roadmap' }),
       getPages({ tenantId, type: 'feedback' }),
-      getRequirementsFromDb(tenantId) // Still use legacy for requirements as they're not pages
     ]);
     
     // Extract page data arrays
@@ -249,7 +247,6 @@ export async function exportTenantDataForOpenAI(tenantId: string): Promise<strin
     const releases = releasesResult.success ? releasesResult.data || [] : [];
     const roadmaps = roadmapsResult.success ? roadmapsResult.data || [] : [];
     const feedback = feedbackResult.success ? feedbackResult.data || [] : [];
-    const requirements = requirementsResult.success ? requirementsResult.data || [] : [];
     
     // Format as comprehensive text document using pages structure
     const content = `# Product Management Context for Organization
@@ -282,18 +279,8 @@ ${feature.blocks?.map(block => `
   Block: ${block.type} - ${JSON.stringify(block.content)}`).join('\n') || ''}
 ---`).join('\n') : 'No features found.'}
 
-## Requirements (${requirements.length} total)
 
-${requirements.length > 0 ? requirements.map(requirement => `
-### Requirement: ${requirement.name || 'Unnamed Requirement'}
-- **Feature ID**: ${requirement.featureId || 'Unknown feature'}
-- **Priority**: ${requirement.priority || 'Not set'}
-- **Owner**: ${requirement.owner || 'No owner assigned'}
-- **Description**: ${requirement.description || 'No description provided'}
-- **Acceptance Criteria**: ${requirement.acceptanceCriteria || 'None specified'}
-- **CUJ**: ${requirement.cuj || 'Not specified'}
-- **Saved**: ${requirement.isSaved ? 'Yes' : 'No'}
----`).join('\n') : 'No requirements found.'}
+
 
 ## Releases (${releases.length} total)
 
@@ -339,12 +326,11 @@ ${item.blocks?.map(block => `
 This organization currently manages:
 - **${projects.length}** projects
 - **${features.length}** features
-- **${requirements.length}** requirements  
 - **${releases.length}** releases
 - **${roadmaps.length}** roadmaps
 - **${feedback.length}** feedback items
 
-Total pages: **${projects.length + features.length + requirements.length + releases.length + roadmaps.length + feedback.length}**
+Total pages: **${projects.length + features.length  + releases.length + roadmaps.length + feedback.length}**
 
 Use this information to provide contextual advice about their product management needs, feature prioritization, and strategic planning.
 `;
