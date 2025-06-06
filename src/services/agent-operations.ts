@@ -1,15 +1,5 @@
 import type { 
-  AgentOperationResult,
-  CreateProductParams,
-  UpdateProductParams,
-  CreateFeatureParams,
-  UpdateFeatureParams,
-  CreateRequirementParams,
-  UpdateRequirementParams,
-  CreateReleaseParams,
-  UpdateReleaseParams,
-  CreateRoadmapParams,
-  UpdateRoadmapParams
+  AgentOperationResult
 } from '@/types/models/ai-chat';
 import type { Page } from '@/types/models';
 import { 
@@ -27,6 +17,80 @@ import {
   deletePage
 } from './pages-db';
 import type { TextPropertyValue } from '@/types/models/Page';
+
+// Page-specific parameter interfaces (replacing legacy entity params)
+export interface CreateProductPageParams {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateProductPageParams {
+  id?: string;
+  name?: string;
+  description?: string;
+}
+
+export interface CreateFeaturePageParams {
+  name: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+  parentPageId?: string;
+}
+
+export interface UpdateFeaturePageParams {
+  id?: string;
+  name?: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+  parentPageId?: string;
+}
+
+export interface CreateRequirementPageParams {
+  name: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+  owner?: string;
+  parentPageId?: string;
+}
+
+export interface UpdateRequirementPageParams {
+  id?: string;
+  name?: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+  owner?: string;
+  parentPageId?: string;
+}
+
+export interface CreateReleasePageParams {
+  name: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+  parentPageId?: string;
+  releaseDate?: string;
+}
+
+export interface UpdateReleasePageParams {
+  id?: string;
+  name?: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+  parentPageId?: string;
+  releaseDate?: string;
+}
+
+export interface CreateRoadmapPageParams {
+  name: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+}
+
+export interface UpdateRoadmapPageParams {
+  id?: string;
+  name?: string;
+  description?: string;
+  priority?: 'High' | 'Med' | 'Low';
+}
 
 // Helper function to create text property values
 function createTextProperty(content: string): TextPropertyValue {
@@ -59,10 +123,10 @@ function getTextContent(property: unknown): string {
  */
 export class AgentOperationsService {
   /**
-   * Product Operations
+   * Product Page Operations (stored as pages with type='project')
    */
-  async createProduct(
-    params: CreateProductParams,
+  async createProductPage(
+    params: CreateProductPageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -90,9 +154,9 @@ export class AgentOperationsService {
     );
   }
 
-  async updateProduct(
+  async updateProductPage(
     productId: string,
-    params: UpdateProductParams,
+    params: UpdateProductPageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -120,7 +184,7 @@ export class AgentOperationsService {
     );
   }
 
-  async deleteProduct(
+  async deleteProductPage(
     productId: string,
     tenantId: string
   ): Promise<AgentOperationResult<boolean>> {
@@ -141,7 +205,7 @@ export class AgentOperationsService {
     );
   }
 
-  async getProduct(
+  async getProductPage(
     productId: string,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
@@ -168,10 +232,10 @@ export class AgentOperationsService {
   }
 
   /**
-   * Feature Operations
+   * Feature Page Operations (stored as pages with type='feature')
    */
-  async createFeature(
-    params: CreateFeatureParams,
+  async createFeaturePage(
+    params: CreateFeaturePageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -181,7 +245,7 @@ export class AgentOperationsService {
           type: 'feature',
           properties: {
             description: createTextProperty(params.description || ''),
-            interfaceId: createTextProperty(params.interfaceId || ''),
+            parentPageId: createTextProperty(params.parentPageId || ''),
             priority: createTextProperty(params.priority || '')
           },
           blocks: [],
@@ -201,9 +265,9 @@ export class AgentOperationsService {
     );
   }
 
-  async updateFeature(
+  async updateFeaturePage(
     featureId: string,
-    params: UpdateFeatureParams,
+    params: UpdateFeaturePageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -214,7 +278,7 @@ export class AgentOperationsService {
         const properties: Record<string, TextPropertyValue> = {};
         if (params.description !== undefined) properties.description = createTextProperty(params.description);
         if (params.priority !== undefined) properties.priority = createTextProperty(params.priority);
-        if (params.roadmapId !== undefined) properties.roadmapId = createTextProperty(params.roadmapId);
+        if (params.parentPageId !== undefined) properties.parentPageId = createTextProperty(params.parentPageId);
         
         if (Object.keys(properties).length > 0) {
           updateData.properties = properties;
@@ -235,7 +299,7 @@ export class AgentOperationsService {
     );
   }
 
-  async deleteFeature(
+  async deleteFeaturePage(
     featureId: string,
     tenantId: string
   ): Promise<AgentOperationResult<boolean>> {
@@ -258,10 +322,127 @@ export class AgentOperationsService {
 
 
   /**
-   * Release Operations
+   * Requirements Page Operations (stored as pages with type='requirement')
    */
-  async createRelease(
-    params: CreateReleaseParams,
+  async createRequirementsPage(
+    params: CreateRequirementPageParams,
+    tenantId: string
+  ): Promise<AgentOperationResult<Page>> {
+    return safeAgentOperation(
+      async () => {
+        const result = await createPage({
+          title: params.name,
+          type: 'requirement',
+          properties: {
+            description: createTextProperty(params.description || ''),
+            priority: createTextProperty(params.priority || ''),
+            owner: createTextProperty(params.owner || ''),
+            parentPageId: createTextProperty(params.parentPageId || '')
+          },
+          blocks: [],
+          tenant_id: tenantId
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create requirement');
+        }
+
+        return result.data!;
+      },
+      {
+        operationName: 'createRequirement',
+        entityType: 'requirement'
+      }
+    );
+  }
+
+  async updateRequirementsPage(
+    requirementId: string,
+    params: UpdateRequirementPageParams,
+    tenantId: string
+  ): Promise<AgentOperationResult<Page>> {
+    return safeAgentOperation(
+      async () => {
+        const updateData: { title?: string; properties?: Record<string, TextPropertyValue> } = {};
+        if (params.name !== undefined) updateData.title = params.name;
+        
+        const properties: Record<string, TextPropertyValue> = {};
+        if (params.description !== undefined) properties.description = createTextProperty(params.description);
+        if (params.priority !== undefined) properties.priority = createTextProperty(params.priority);
+        if (params.owner !== undefined) properties.owner = createTextProperty(params.owner);
+        
+        if (Object.keys(properties).length > 0) {
+          updateData.properties = properties;
+        }
+
+        const result = await updatePage(requirementId, updateData, tenantId);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update requirement');
+        }
+
+        return result.data!;
+      },
+      {
+        operationName: 'updateRequirement',
+        entityType: 'requirement'
+      }
+    );
+  }
+
+  async deleteRequirementsPage(
+    requirementId: string,
+    tenantId: string
+  ): Promise<AgentOperationResult<boolean>> {
+    return safeAgentOperation(
+      async () => {
+        const result = await deletePage(requirementId, tenantId);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete requirement');
+        }
+
+        return true;
+      },
+      {
+        operationName: 'deleteRequirement',
+        entityType: 'requirement'
+      }
+    );
+  }
+
+  async listRequirementsPages(tenantId: string, featureId?: string): Promise<AgentOperationResult<Page[]>> {
+    return safeAgentOperation(
+      async () => {
+        const result = await getPages({ tenantId, type: 'requirement' });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to list requirements');
+        }
+
+        let requirements = result.data || [];
+
+        // Filter by featureId if provided (check properties for parentPageId)
+        if (featureId) {
+          requirements = requirements.filter(page => 
+            getTextContent(page.properties?.parentPageId) === featureId
+          );
+        }
+
+        return requirements;
+      },
+      {
+        operationName: 'listRequirements',
+        entityType: 'requirement'
+      }
+    );
+  }
+
+  /**
+   * Release Page Operations (stored as pages with type='release')
+   */
+  async createReleasePage(
+    params: CreateReleasePageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -273,7 +454,7 @@ export class AgentOperationsService {
             description: createTextProperty(params.description || ''),
             releaseDate: createTextProperty(params.releaseDate || ''),
             priority: createTextProperty(params.priority || ''),
-            featureId: createTextProperty(params.featureId || '')
+            parentPageId: createTextProperty(params.parentPageId || '')
           },
           blocks: [],
           tenant_id: tenantId
@@ -292,9 +473,9 @@ export class AgentOperationsService {
     );
   }
 
-  async updateRelease(
+  async updateReleasePage(
     releaseId: string,
-    params: UpdateReleaseParams,
+    params: UpdateReleasePageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -326,7 +507,7 @@ export class AgentOperationsService {
     );
   }
 
-  async deleteRelease(
+  async deleteReleasePage(
     releaseId: string,
     tenantId: string
   ): Promise<AgentOperationResult<boolean>> {
@@ -348,10 +529,10 @@ export class AgentOperationsService {
   }
 
   /**
-   * Roadmap Operations
+   * Roadmap Page Operations (stored as pages with type='roadmap')
    */
-  async createRoadmap(
-    params: CreateRoadmapParams,
+  async createRoadmapPage(
+    params: CreateRoadmapPageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -379,9 +560,9 @@ export class AgentOperationsService {
     );
   }
 
-  async updateRoadmap(
+  async updateRoadmapPage(
     roadmapId: string,
-    params: UpdateRoadmapParams,
+    params: UpdateRoadmapPageParams,
     tenantId: string
   ): Promise<AgentOperationResult<Page>> {
     return safeAgentOperation(
@@ -412,7 +593,7 @@ export class AgentOperationsService {
     );
   }
 
-  async deleteRoadmap(
+  async deleteRoadmapPage(
     roadmapId: string,
     tenantId: string
   ): Promise<AgentOperationResult<boolean>> {
@@ -436,7 +617,7 @@ export class AgentOperationsService {
   /**
    * List Operations for context gathering
    */
-  async listProducts(tenantId: string): Promise<AgentOperationResult<Page[]>> {
+  async listProductPages(tenantId: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'project' });
@@ -454,7 +635,7 @@ export class AgentOperationsService {
     );
   }
 
-  async listFeatures(tenantId: string, productId?: string): Promise<AgentOperationResult<Page[]>> {
+  async listFeaturePages(tenantId: string, productId?: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({
@@ -470,13 +651,13 @@ export class AgentOperationsService {
       },
       {
         operationName: 'listFeatures',
-        entityType: 'feature'
+        entityType: 'Pages'
       }
     );
   }
 
 
-  async listReleases(tenantId: string, featureId?: string): Promise<AgentOperationResult<Page[]>> {
+  async listReleasePages(tenantId: string, featureId?: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'release' });
@@ -487,10 +668,10 @@ export class AgentOperationsService {
 
         let releases = result.data || [];
 
-        // Filter by featureId if provided (check properties for featureId)
+        // Filter by featureId if provided (check properties for parentPageId)
         if (featureId) {
           releases = releases.filter(page => 
-            getTextContent(page.properties?.featureId) === featureId
+            getTextContent(page.properties?.parentPageId) === featureId
           );
         }
 
@@ -503,7 +684,7 @@ export class AgentOperationsService {
     );
   }
 
-  async listRoadmaps(tenantId: string, productId?: string): Promise<AgentOperationResult<Page[]>> {
+  async listRoadmapPages(tenantId: string, productId?: string): Promise<AgentOperationResult<Page[]>> {
     return safeAgentOperation(
       async () => {
         const result = await getPages({ tenantId, type: 'roadmap' });

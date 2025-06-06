@@ -15,7 +15,7 @@ export function createMockSession(options: MockSessionOptions): Session {
   return {
     user: {
       id: options.userId,
-      email: options.email || 'pm1@demo.com',
+      email: options.email || 'pm1@test.com',
       name: options.name || 'Sarah Chen',
       image: null,
       role: 'user',
@@ -32,7 +32,7 @@ export function createMockSessionWithoutTenant(userId: string): Session {
   return {
     user: {
       id: userId,
-      email: 'pm1@demo.com',
+      email: 'pm1@test.com',
       name: 'Sarah Chen',
       image: null,
       role: 'user',

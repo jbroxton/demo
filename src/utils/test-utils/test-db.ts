@@ -3,12 +3,7 @@
  * Supports TipTap content, auth workflows, and isolated test scenarios
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { supabase } from '@/services/supabase';
 
 // Real test data from environment
 export const REAL_USER_ID = process.env.TEST_USER_ID || '20000000-0000-0000-0000-000000000001';

@@ -6,6 +6,39 @@
 
 import '@testing-library/jest-dom';
 
+// Add TextEncoder/TextDecoder polyfill for Node.js environment
+import { TextEncoder, TextDecoder } from 'util';
+
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = TextEncoder;
+}
+
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = TextDecoder as any;
+}
+
+// Mock Next.js globals for API route testing
+if (typeof global.Request === 'undefined') {
+  global.Request = class MockRequest {
+    constructor(public url: string, public init?: any) {}
+    json() { return this.init?.body ? JSON.parse(this.init.body) : {}; }
+    text() { return this.init?.body || ''; }
+    headers = new Map();
+  } as any;
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = class MockResponse {
+    constructor(public body?: any, public init?: any) {}
+    json() { return Promise.resolve(this.body); }
+    text() { return Promise.resolve(this.body); }
+    get ok() { return (this.init?.status || 200) >= 200 && (this.init?.status || 200) < 300; }
+    get status() { return this.init?.status || 200; }
+    get statusText() { return this.init?.statusText || 'OK'; }
+    headers = new Map();
+  } as any;
+}
+
 // Simple fetch implementation for testing that handles authentication headers
 global.fetch = async (url, options = {}) => {
   const http = require('http');
@@ -104,12 +137,12 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/providers/auth-provider', () => ({
   useAuth: () => ({
     user: { 
-      id: 'acac31b2-1ff2-4792-b2dc-2b7f4164f53a', 
-      email: 'pm1@demo.com' 
+      id: '20000000-0000-0000-0000-000000000001', 
+      email: 'pm1@test.com' 
     },
     tenant: { 
-      id: 'cb1e1373-da6e-4167-86b9-3f08f81e3315', 
-      name: 'Tenant 1' 
+      id: '22222222-2222-2222-2222-222222222222', 
+      name: 'ShopFlow Commerce' 
     },
     isAuthenticated: true,
   }),

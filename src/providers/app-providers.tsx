@@ -1,17 +1,24 @@
 "use client"
 
-import React, { forwardRef } from 'react'
+import React, { forwardRef, Suspense } from 'react'
 import { Toaster } from 'sonner'
-import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { ThemeProvider } from 'next-themes'
 import { SessionProvider } from 'next-auth/react'
 import { TanstackQueryProvider } from '@/providers/query-provider'
-import { UnifiedStateProvider } from '@/providers/unified-state-provider'
 import { AuthProvider } from '@/providers/auth-provider'
-import { AgentProvider } from '@/providers/agent-provider'
 import { getBaseUrl } from '@/lib/env'
-import { SidebarProvider } from '@/components/ui/sidebar'
 // Theme providers removed
+
+// Dynamically import client-only providers to prevent hydration mismatches
+const ClientOnlyProviders = dynamic(() => import('./client-only-providers'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+    </div>
+  )
+})
 
 type AppProvidersProps = {
   children?: React.ReactNode
@@ -21,20 +28,6 @@ type AppProvidersProps = {
 // Main application providers component
 export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
   function AppProviders({ children, session }: AppProvidersProps, ref: React.ForwardedRef<HTMLDivElement>) {
-    // Add state to track client-side hydration
-    const [isHydrated, setIsHydrated] = useState(false)
-    
-    // Handle client-side hydration
-    useEffect(() => {
-      if (typeof window !== 'undefined') {
-        // Mark as hydrated
-        setIsHydrated(true)
-        
-        console.log("App hydrated - session data:", 
-                    session ? `User: ${session.user?.email || 'No email'}` : "No session");
-      }
-    }, [session])
-
     const content = (
       <div ref={ref}>
         {children}
@@ -57,19 +50,15 @@ export const AppProviders = forwardRef<HTMLDivElement, AppProvidersProps>(
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <TanstackQueryProvider>
             <AuthProvider>
-         
-              {isHydrated ? (
-                <SidebarProvider>
-                  <UnifiedStateProvider>
-                    <AgentProvider>
-                      {content}
-                    </AgentProvider>
-                  </UnifiedStateProvider>
-                </SidebarProvider>
-              ) : (
-                // Render without the providers until hydration is complete
-                content
-              )}
+              <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              }>
+                <ClientOnlyProviders>
+                  {content}
+                </ClientOnlyProviders>
+              </Suspense>
             </AuthProvider>
           </TanstackQueryProvider>
         </ThemeProvider>

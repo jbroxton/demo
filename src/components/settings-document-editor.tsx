@@ -270,7 +270,7 @@ CUSTOM_PROMPT=You are an expert...</div>
               Speqq.md
             </h2>
             <div className="text-sm text-[#a0a0a0] mb-4 italic">
-              Define your company and product context to help Speqq provide personalized guidance. This gets combined with Speqq's base instructions and sent to the AI.
+              Define your company and product context to help Speqq provide personalized guidance. This gets combined with Speqq&apos;s base instructions and sent to the AI.
             </div>
             
             <div className="speqq-document-container">

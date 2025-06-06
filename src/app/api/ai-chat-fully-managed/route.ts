@@ -140,10 +140,66 @@ export const POST = asyncHandler(async (request: NextRequest) => {
     
     // === ADD MESSAGE TO THREAD ===
     // Add user's message to the OpenAI thread
-    await openai.beta.threads.messages.create(threadId, {
-      role: "user",
-      content: message
-    });
+    try {
+      await openai.beta.threads.messages.create(threadId, {
+        role: "user",
+        content: message
+      });
+    } catch (error) {
+      // Handle the specific case where a run is already active
+      if (error instanceof Error && error.message.includes('while a run') && error.message.includes('is active')) {
+        console.log('[AI Fully Managed] Thread has active run, waiting for completion...');
+        
+        // Get all active runs for this thread
+        const runs = await openai.beta.threads.runs.list(threadId, {
+          limit: 10,
+          order: 'desc'
+        });
+        
+        // Find any active runs
+        const activeRun = runs.data.find(run => 
+          run.status === 'in_progress' || 
+          run.status === 'queued' || 
+          run.status === 'requires_action'
+        );
+        
+        if (activeRun) {
+          console.log(`[AI Fully Managed] Found active run ${activeRun.id}, waiting for completion...`);
+          
+          // Wait for the active run to complete (with timeout)
+          let attempts = 0;
+          const maxWaitAttempts = 30; // 30 seconds max wait
+          
+          while (attempts < maxWaitAttempts) {
+            const runStatus = await openai.beta.threads.runs.retrieve(threadId, activeRun.id);
+            
+            if (runStatus.status === 'completed' || runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+              console.log(`[AI Fully Managed] Active run completed with status: ${runStatus.status}`);
+              break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+          }
+          
+          if (attempts >= maxWaitAttempts) {
+            return apiResponse.error('Previous conversation is still processing. Please try again in a moment.', 429);
+          }
+          
+          // Now try to add the message again
+          await openai.beta.threads.messages.create(threadId, {
+            role: "user",
+            content: message
+          });
+        } else {
+          // No active run found, but still got the error - rethrow
+          throw error;
+        }
+      } else {
+        // Different error, rethrow
+        throw error;
+      }
+    }
     
     console.log('[AI Fully Managed] Added message to thread, creating run');
     
@@ -219,11 +275,65 @@ Use the uploaded files to understand the user's product context.`
                                           'updateProduct', 'updateFeature', 'updateRequirement', 'updateRelease', 'updateRoadmap',
                                           'deleteProduct', 'deleteFeature', 'deleteRequirement', 'deleteRelease', 'deleteRoadmap'];
             
-            // Check if user has already confirmed (look for "confirmed" or "yes" in the parameters)
-            const isConfirmed = parameters.confirmed === true || 
-                               parameters.userConfirmed === true ||
-                               (typeof parameters.confirmation === 'string' && 
-                                ['yes', 'confirm', 'confirmed', 'proceed'].includes(parameters.confirmation.toLowerCase()));
+            // Check if user has already confirmed
+            // Look in parameters first, then check recent conversation for confirmation
+            let isConfirmed: boolean | 'denied' = parameters.confirmed === true || 
+                             parameters.userConfirmed === true ||
+                             (typeof parameters.confirmation === 'string' && 
+                              ['yes', 'confirm', 'confirmed', 'proceed'].includes(parameters.confirmation.toLowerCase()));
+            
+            // If not confirmed in parameters, check recent conversation history
+            if (!isConfirmed && destructiveOperations.includes(functionName)) {
+              try {
+                // Get recent messages to check for user confirmation
+                const recentMessages = await openai.beta.threads.messages.list(threadId, {
+                  order: 'desc',
+                  limit: 10
+                });
+                
+                // Look for user confirmation in recent messages
+                const userConfirmationPattern = /\b(yes|confirm|confirmed|proceed|go ahead|ok|okay)\b/i;
+                const userDenialPattern = /\b(no|cancel|cancelled|stop|don't|abort)\b/i;
+                
+                for (const message of recentMessages.data) {
+                  if (message.role === 'user') {
+                    const messageText = message.content
+                      .filter(content => content.type === 'text')
+                      .map(content => content.text.value)
+                      .join(' ');
+                    
+                    if (userConfirmationPattern.test(messageText)) {
+                      console.log(`[AI Fully Managed] Found user confirmation in recent message: "${messageText}"`);
+                      isConfirmed = true;
+                      break;
+                    } else if (userDenialPattern.test(messageText)) {
+                      console.log(`[AI Fully Managed] Found user denial in recent message: "${messageText}"`);
+                      // User denied, return cancellation response
+                      toolOutputs.push({
+                        tool_call_id: toolCall.id,
+                        output: JSON.stringify({
+                          success: false,
+                          error: 'Operation cancelled by user',
+                          message: 'User declined to proceed with this action.'
+                        })
+                      });
+                      // Set a flag to skip the rest of the processing for this tool call
+                      isConfirmed = 'denied';
+                      break;
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error('[AI Fully Managed] Error checking conversation history:', error);
+                // Continue with normal flow if history check fails
+              }
+            }
+            
+            // Skip further processing if user denied
+            if (isConfirmed === 'denied') {
+              // Already handled above, continue to next tool call
+              continue;
+            }
             
             if (destructiveOperations.includes(functionName) && !isConfirmed) {
               // Return a response asking for confirmation
@@ -424,80 +534,97 @@ async function executeAgentFunction(
     
     // Route to appropriate service method
     switch (functionName) {
-      // Product operations
+      // Product operations (using page-based methods)
       case 'createProduct':
-        result = await agentOperationsService.createProduct(validationResult.data, tenantId);
+        result = await agentOperationsService.createProductPage(validationResult.data, tenantId);
         break;
       case 'updateProduct':
-        result = await agentOperationsService.updateProduct(
+        result = await agentOperationsService.updateProductPage(
           validationResult.data.id,
           validationResult.data,
           tenantId
         );
         break;
       case 'deleteProduct':
-        result = await agentOperationsService.deleteProduct(validationResult.data.id, tenantId);
+        result = await agentOperationsService.deleteProductPage(validationResult.data.id, tenantId);
         break;
       case 'listProduct':
-        result = await agentOperationsService.listProducts(tenantId);
+        result = await agentOperationsService.listProductPages(tenantId);
         break;
       case 'listProducts':
-        result = await agentOperationsService.listProducts(tenantId);
+        result = await agentOperationsService.listProductPages(tenantId);
         break;
         
-      // Feature operations
+      // Feature operations (using page-based methods)
       case 'createFeature':
-        result = await agentOperationsService.createFeature(validationResult.data, tenantId);
+        result = await agentOperationsService.createFeaturePage(validationResult.data, tenantId);
         break;
       case 'updateFeature':
-        result = await agentOperationsService.updateFeature(
+        result = await agentOperationsService.updateFeaturePage(
           validationResult.data.id,
           validationResult.data,
           tenantId
         );
         break;
       case 'deleteFeature':
-        result = await agentOperationsService.deleteFeature(validationResult.data.id, tenantId);
+        result = await agentOperationsService.deleteFeaturePage(validationResult.data.id, tenantId);
         break;
       case 'listFeatures':
-        result = await agentOperationsService.listFeatures(tenantId, validationResult.data.productId);
-      
+        result = await agentOperationsService.listFeaturePages(tenantId, validationResult.data.productId);
         break;
         
-      // Release operations
+      // Requirement operations (using page-based methods)
+      case 'createRequirement':
+        result = await agentOperationsService.createRequirementsPage(validationResult.data, tenantId);
+        break;
+      case 'updateRequirement':
+        result = await agentOperationsService.updateRequirementsPage(
+          validationResult.data.id,
+          validationResult.data,
+          tenantId
+        );
+        break;
+      case 'deleteRequirement':
+        result = await agentOperationsService.deleteRequirementsPage(validationResult.data.id, tenantId);
+        break;
+      case 'listRequirements':
+        result = await agentOperationsService.listRequirementsPages(tenantId, validationResult.data.featureId);
+        break;
+        
+      // Release operations (using page-based methods)
       case 'createRelease':
-        result = await agentOperationsService.createRelease(validationResult.data, tenantId);
+        result = await agentOperationsService.createReleasePage(validationResult.data, tenantId);
         break;
       case 'updateRelease':
-        result = await agentOperationsService.updateRelease(
+        result = await agentOperationsService.updateReleasePage(
           validationResult.data.id,
           validationResult.data,
           tenantId
         );
         break;
       case 'deleteRelease':
-        result = await agentOperationsService.deleteRelease(validationResult.data.id, tenantId);
+        result = await agentOperationsService.deleteReleasePage(validationResult.data.id, tenantId);
         break;
       case 'listReleases':
-        result = await agentOperationsService.listReleases(tenantId, validationResult.data.featureId);
+        result = await agentOperationsService.listReleasePages(tenantId, validationResult.data.featureId);
         break;
         
-      // Roadmap operations
+      // Roadmap operations (using page-based methods)
       case 'createRoadmap':
-        result = await agentOperationsService.createRoadmap(validationResult.data, tenantId);
+        result = await agentOperationsService.createRoadmapPage(validationResult.data, tenantId);
         break;
       case 'updateRoadmap':
-        result = await agentOperationsService.updateRoadmap(
+        result = await agentOperationsService.updateRoadmapPage(
           validationResult.data.id,
           validationResult.data,
           tenantId
         );
         break;
       case 'deleteRoadmap':
-        result = await agentOperationsService.deleteRoadmap(validationResult.data.id, tenantId);
+        result = await agentOperationsService.deleteRoadmapPage(validationResult.data.id, tenantId);
         break;
       case 'listRoadmaps':
-        result = await agentOperationsService.listRoadmaps(tenantId, validationResult.data.productId);
+        result = await agentOperationsService.listRoadmapPages(tenantId, validationResult.data.productId);
         break;
         
       default:

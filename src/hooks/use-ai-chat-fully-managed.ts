@@ -91,6 +91,15 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
           message: errorMessage
         });
         
+        // Provide user-friendly error messages for common issues
+        if (response.status === 429) {
+          throw new Error('The AI is still processing your previous message. Please wait a moment and try again.');
+        } else if (response.status === 400 && errorMessage.includes('while a run') && errorMessage.includes('is active')) {
+          throw new Error('Please wait for the current conversation to complete before sending another message.');
+        } else if (response.status >= 500) {
+          throw new Error('The AI service is temporarily unavailable. Please try again in a moment.');
+        }
+        
         throw new Error(errorMessage);
       }
 
@@ -131,6 +140,7 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
 
   /**
    * Send a message to the AI assistant
+   * Prevents concurrent requests to avoid OpenAI thread conflicts
    */
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) {
@@ -139,6 +149,11 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
 
     if (!tenantId) {
       throw new Error('No tenant ID available');
+    }
+
+    // Prevent concurrent requests - check if a request is already in progress
+    if (chatMutation.isPending) {
+      throw new Error('Please wait for the current message to complete before sending another.');
     }
 
     // Add user message to the conversation
@@ -151,8 +166,18 @@ export function useAiChatFullyManaged(options: UseChatOptions = {}) {
 
     setMessages(prev => [...prev, userMessage]);
 
-    // Send to OpenAI
-    return chatMutation.mutateAsync({ message: content });
+    try {
+      // Send to OpenAI
+      return await chatMutation.mutateAsync({ message: content });
+    } catch (error) {
+      // If the request fails, we should handle the error appropriately
+      console.error('Failed to send message:', error);
+      
+      // Remove the user message if the request failed
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      
+      throw error;
+    }
   }, [tenantId, chatMutation]);
 
   /**

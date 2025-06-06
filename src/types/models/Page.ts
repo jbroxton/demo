@@ -3,7 +3,7 @@
 
 import { Block } from './Block';
 
-export type PageType = 'product' | 'project' | 'feature' | 'release' | 'roadmap' | 'feedback';
+export type PageType = 'product' | 'project' | 'feature' | 'requirement' | 'release' | 'roadmap' | 'feedback';
 
 // Notion-style property value types
 export interface PropertyValue {
@@ -122,6 +122,10 @@ export interface FeaturePage extends Page {
   type: 'feature';
 }
 
+export interface RequirementPage extends Page {
+  type: 'requirement';
+}
+
 export interface RoadmapPage extends Page {
   type: 'roadmap';
 }
@@ -135,7 +139,7 @@ export interface FeedbackPage extends Page {
 }
 
 // Union type for type-safe pages
-export type TypedPage = ProjectPage | FeaturePage | RoadmapPage | ReleasePage | FeedbackPage;
+export type TypedPage = ProjectPage | FeaturePage | RequirementPage | RoadmapPage | ReleasePage | FeedbackPage;
 
 // Property schema definitions (for validation)
 export interface PropertySchema {
@@ -158,6 +162,12 @@ export type PropertySchemaConfig =
 // Property schemas for each page type
 export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
   product: [
+    {
+      id: 'description',
+      name: 'Description',
+      type: 'text',
+      config: { type: 'text' }
+    },
     {
       id: 'status',
       name: 'Status',
@@ -194,6 +204,12 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
     }
   ],
   project: [
+    {
+      id: 'description',
+      name: 'Description',
+      type: 'text',
+      config: { type: 'text' }
+    },
     {
       id: 'status',
       name: 'Status',
@@ -236,6 +252,18 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
     }
   ],
   feature: [
+    {
+      id: 'description',
+      name: 'Description',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'parentPageId',
+      name: 'Parent Page ID',
+      type: 'text',
+      config: { type: 'text' }
+    },
     {
       id: 'priority',
       name: 'Priority',
@@ -290,6 +318,12 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
   ],
   roadmap: [
     {
+      id: 'description',
+      name: 'Description',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
       id: 'quarter',
       name: 'Quarter',
       type: 'select',
@@ -317,6 +351,37 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
     }
   ],
   release: [
+    {
+      id: 'description',
+      name: 'Description',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'parentPageId',
+      name: 'Parent Page ID',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'priority',
+      name: 'Priority',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'High', color: 'red' },
+          { name: 'Medium', color: 'yellow' },
+          { name: 'Low', color: 'green' }
+        ]
+      }
+    },
+    {
+      id: 'releaseDate',
+      name: 'Release Date',
+      type: 'text',
+      config: { type: 'text' }
+    },
     {
       id: 'release_date',
       name: 'Release Date',
@@ -414,6 +479,59 @@ export const PAGE_TYPE_SCHEMAS: Record<PageType, PropertySchema[]> = {
       name: 'Assigned Feature',
       type: 'relation',
       config: { type: 'relation', target_page_type: 'feature' }
+    }
+  ],
+  requirement: [
+    {
+      id: 'description',
+      name: 'Description',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'parentPageId',
+      name: 'Parent Page ID',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'owner',
+      name: 'Owner',
+      type: 'text',
+      config: { type: 'text' }
+    },
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'Draft', color: 'gray' },
+          { name: 'Active', color: 'blue' },
+          { name: 'Complete', color: 'green' },
+          { name: 'Blocked', color: 'red' }
+        ]
+      }
+    },
+    {
+      id: 'priority',
+      name: 'Priority',
+      type: 'select',
+      config: {
+        type: 'select',
+        options: [
+          { name: 'High', color: 'red' },
+          { name: 'Medium', color: 'yellow' },
+          { name: 'Low', color: 'green' }
+        ]
+      }
+    },
+    {
+      id: 'assignedTo',
+      name: 'Assigned To',
+      type: 'assignment',
+      config: { type: 'assignment' }
     }
   ]
 };

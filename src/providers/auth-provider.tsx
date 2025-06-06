@@ -68,12 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [error, setError] = useState<{ type: AuthError; message: string } | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
-  
-  // Set hydration state - centralize this logic here
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
   
   // Debug session changes with more structured logging
   useEffect(() => {
@@ -292,17 +286,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tenantCount: tenants.length,
       isAuthenticated: status === 'authenticated' && !!user,
       isInitialized,
-      isHydrated,
       error: error ? `${error.type}: ${error.message}` : 'none'
     });
-  }, [status, user, tenants, isInitialized, isHydrated, error]);
+  }, [status, user, tenants, isInitialized, error]);
   
   // Construct the context value
   const contextValue: AuthContextType = {
     user,
     isAuthenticated: status === 'authenticated' && !!user,
-    isLoading: status === 'loading' || !isHydrated,
-    isInitialized: isInitialized && isHydrated,
+    isLoading: status === 'loading',
+    isInitialized,
     error,
     
     currentTenant,

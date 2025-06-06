@@ -25,7 +25,7 @@ export interface TestAuthUser {
 export const TEST_USERS = {
   PM_USER: {
     id: REAL_USER_ID,
-    email: 'pm1@demo.com',
+    email: 'pm1@test.com',
     name: 'Sarah Chen',
     tenantId: REAL_TENANT_ID,
     tenantName: 'ShopFlow Commerce'

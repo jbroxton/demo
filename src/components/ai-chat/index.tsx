@@ -1,12 +1,8 @@
 'use client'
 
-import { useChat } from 'ai/react';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Database, ChevronLeft, CheckCircle2, Clock, AlertCircle, Bot, Search, Settings, History } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-// Removed Card import - using custom dark styling instead
-import { Input } from '@/components/ui/input';
+import { Send, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -15,16 +11,10 @@ import { useAgent } from '@/providers/agent-provider';
 import { usePendingConfirmations } from '@/hooks/use-agent-confirmations';
 import { AgentConfirmationDialog } from '@/components/agent-confirmation-dialog';
 import type { AgentMode } from '@/types/models/ai-chat';
-// TODO: Move these to API routes to avoid client-side supabase imports
-// import { isAutoEmbeddingEnabled, getEmbeddingQueueStatus, triggerManualEmbeddingProcessing } from '@/services/ai-service';
 
 export function AIChatComponent() {
   const { user, currentTenant } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isIndexing, setIsIndexing] = useState(false);
-  const [autoEmbeddingEnabled, setAutoEmbeddingEnabled] = useState<boolean | null>(null);
-  const [queueStatus, setQueueStatus] = useState<any>(null);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   
   // Agent state management
   const agent = useAgent();
@@ -32,29 +22,10 @@ export function AIChatComponent() {
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [activeConfirmation, setActiveConfirmation] = useState<any>(null);
   
-  // Toggle between modes: RAG, Ask (OpenAI), Agent (OpenAI with function calling)
-  const [chatMode, setChatMode] = useState<'rag' | 'ask' | 'agent'>('rag');
+  // Toggle between modes: Ask (OpenAI), Agent (OpenAI with function calling)
+  const [chatMode, setChatMode] = useState<'ask' | 'agent'>('ask');
   const [inputValue, setInputValue] = useState('');
   
-  // RAG-based chat (existing)
-  const ragChat = useChat({
-    api: '/api/ai-chat',
-    headers: {
-      'x-tenant-id': currentTenant || 'default'
-    },
-    body: {
-      tenantId: currentTenant || 'default',
-      userId: user?.id,
-    },
-    credentials: 'include', // Include cookies for authentication
-    initialMessages: [
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: "Hi! I'm your Product Management Assistant. How can I help you today?"
-      }
-    ],
-  });
 
   // OpenAI fully managed chat (ask mode)
   const askChat = useAiChatFullyManaged({
@@ -81,22 +52,20 @@ export function AIChatComponent() {
   });
 
   // Unified interface based on selected mode
-  const activeChat = chatMode === 'rag' ? {
-    messages: ragChat.messages,
-    input: ragChat.input,
-    handleInputChange: ragChat.handleInputChange,
-    handleSubmit: ragChat.handleSubmit,
-    isLoading: ragChat.isLoading,
-    error: ragChat.error
-  } : chatMode === 'ask' ? {
+  const activeChat = chatMode === 'ask' ? {
     messages: askChat.messages,
     input: inputValue,
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value),
     handleSubmit: async (e: React.FormEvent) => {
       e.preventDefault();
-      if (inputValue.trim()) {
-        await askChat.sendMessage(inputValue);
-        setInputValue('');
+      if (inputValue.trim() && !askChat.isLoading) {
+        try {
+          await askChat.sendMessage(inputValue);
+          setInputValue('');
+        } catch (error) {
+          console.error('Failed to send message:', error);
+          // Don't clear input on error so user can retry
+        }
       }
     },
     isLoading: askChat.isLoading,
@@ -107,9 +76,14 @@ export function AIChatComponent() {
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value),
     handleSubmit: async (e: React.FormEvent) => {
       e.preventDefault();
-      if (inputValue.trim()) {
-        await agentChat.sendMessage(inputValue);
-        setInputValue('');
+      if (inputValue.trim() && !agentChat.isLoading) {
+        try {
+          await agentChat.sendMessage(inputValue);
+          setInputValue('');
+        } catch (error) {
+          console.error('Failed to send message:', error);
+          // Don't clear input on error so user can retry
+        }
       }
     },
     isLoading: agentChat.isLoading,
@@ -168,146 +142,8 @@ export function AIChatComponent() {
     setActiveConfirmation(null);
   };
 
-  // Check auto-embedding status on mount
-  useEffect(() => {
-    const checkAutoEmbeddingStatus = async () => {
-      try {
-        const isEnabled = true; // TODO: Call API instead of direct service
-        setAutoEmbeddingEnabled(isEnabled);
-        
-        if (isEnabled) {
-          const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
-          setQueueStatus(status);
-          
-          // Set sync status based on queue
-          if (status.available) {
-            if (status.queueLength > 0) {
-              setSyncStatus('syncing');
-            } else {
-              setSyncStatus('synced');
-            }
-          } else {
-            setSyncStatus('error');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking auto-embedding status:', error);
-        setAutoEmbeddingEnabled(false);
-        setSyncStatus('error');
-      }
-    };
 
-    checkAutoEmbeddingStatus();
-  }, []);
 
-  // Poll queue status every 30 seconds when auto-embedding is enabled
-  useEffect(() => {
-    if (!autoEmbeddingEnabled) return;
-
-    const pollQueueStatus = async () => {
-      try {
-        const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
-        setQueueStatus(status);
-        
-        if (status.available) {
-          if (status.queueLength > 0) {
-            setSyncStatus('syncing');
-          } else {
-            setSyncStatus('synced');
-          }
-        } else {
-          setSyncStatus('error');
-        }
-      } catch (error) {
-        console.error('Error polling queue status:', error);
-        setSyncStatus('error');
-      }
-    };
-
-    // Poll every 30 seconds
-    const interval = setInterval(pollQueueStatus, 30000);
-    
-    return () => clearInterval(interval);
-  }, [autoEmbeddingEnabled]);
-
-  // TODO: DELETE - Manual indexing function for debugging (replace with auto-embedding)
-  const handleIndexing = async () => {
-    setIsIndexing(true);
-    setSyncStatus('syncing');
-    
-    try {
-      // Check if auto-embedding is enabled
-      if (autoEmbeddingEnabled) {
-        toast.info('Triggering manual sync...');
-        
-        const result = { success: true, processed: 0 }; // TODO: Call API instead of direct service
-        
-        if (result.success) {
-          toast.success(`Successfully processed ${result.processed} items`);
-          setSyncStatus('synced');
-          
-          // Update queue status
-          const status = { available: true, queueLength: 0 }; // TODO: Call API instead of direct service
-          setQueueStatus(status);
-        } else {
-          toast.error(`Manual sync failed: ${(result as any).error || 'Unknown error'}`);
-          setSyncStatus('error');
-        }
-      } else {
-        // Fallback to legacy manual indexing
-        toast.info('Starting legacy indexing process...');
-        console.warn('Using legacy manual indexing - auto-embedding not available');
-        
-        // Legacy indexing code (TODO: DELETE when auto-embedding is stable)
-        const response = await fetch('/api/ai-chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-tenant-id': currentTenant || 'default'
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            action: 'index',
-            tenantId: currentTenant || 'default'
-          })
-        });
-        
-        const textResponse = await response.text();
-        let data;
-        
-        try {
-          data = JSON.parse(textResponse);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          toast.error('Could not parse server response');
-          setSyncStatus('error');
-          return;
-        }
-        
-        if (response.ok && data.success) {
-          toast.success(`Successfully indexed ${data.indexed || 0} items`);
-          setSyncStatus('synced');
-          
-          if (data.errors?.length > 0) {
-            console.warn('Some items failed to index:', data.errors);
-            toast.warning(`Note: ${data.errors.length} items had errors`);
-          }
-        } else {
-          const errorMessage = data.error || 'Unknown error occurred';
-          console.error('Indexing failed:', errorMessage);
-          toast.error(`Indexing failed: ${errorMessage}`);
-          setSyncStatus('error');
-        }
-      }
-    } catch (error) {
-      console.error('Indexing error:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      toast.error(`Indexing error: ${errorMessage}`);
-      setSyncStatus('error');
-    } finally {
-      setIsIndexing(false);
-    }
-  };
 
   return (
     <div className="h-full w-full flex flex-col bg-[#0A0A0A]">
@@ -401,9 +237,7 @@ export function AIChatComponent() {
             value={activeChat.input}
             onChange={(e) => activeChat.handleInputChange(e as any)}
             placeholder={
-              chatMode === 'rag' 
-                ? "Ask about your products..." 
-                : chatMode === 'ask'
+              chatMode === 'ask'
                 ? "Ask me anything..."
                 : "Create, update, or manage..."
             }
@@ -428,16 +262,6 @@ export function AIChatComponent() {
           <div className="flex items-center gap-3">
             {/* Mode Toggle */}
             <div className="flex bg-black/40 rounded-full p-0.5">
-              <button
-                onClick={() => setChatMode('rag')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-200 ${
-                  chatMode === 'rag'
-                    ? 'bg-black/60 text-white'
-                    : 'text-white/60 hover:text-white/80 hover:bg-black/40'
-                }`}
-              >
-                RAG
-              </button>
               <button
                 onClick={() => setChatMode('ask')}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-200 ${

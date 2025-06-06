@@ -27,7 +27,7 @@ test.describe('Child Page Creation Issue Reproduction', () => {
 
     // Login first
     await page.goto('/auth/signin');
-    await page.fill('[data-testid="email-input"]', 'pm1@demo.com');
+    await page.fill('[data-testid="email-input"]', 'pm1@test.com');
     await page.fill('[data-testid="password-input"]', 'testpassword123');
     await page.click('[data-testid="login-button"]');
     

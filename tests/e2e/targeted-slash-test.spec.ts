@@ -165,10 +165,12 @@ test.describe('Targeted Slash Commands Test', () => {
         // Debug: look for any new elements
         const allDivs = page.locator('div');
         const divCount = await allDivs.count();
-        console.log(`Total divs on page: ${divCount}`);\n        
+        console.log(`Total divs on page: ${divCount}`);
+        
         // Check what's in the editor
         const editorContent = await editor.textContent();
-        console.log(`Editor content after slash: "${editorContent}"`);\n      }
+        console.log(`Editor content after slash: "${editorContent}"`);
+      }
       
       // Final test - basic editor functionality
       await page.keyboard.press('End');

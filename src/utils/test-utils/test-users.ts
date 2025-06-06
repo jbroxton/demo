@@ -58,7 +58,7 @@ export const TEST_USERS: Record<string, TestUser> = {
   // Primary PM user with full permissions
   PM_SARAH: {
     id: '20000000-0000-0000-0000-000000000001',
-    email: 'pm1@demo.com',
+    email: 'pm1@test.com',
     password: 'TestPassword123!',
     name: 'Sarah Chen',
     tenantId: TEST_TENANTS.SHOPFLOW.id,

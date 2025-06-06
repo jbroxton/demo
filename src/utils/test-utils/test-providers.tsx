@@ -39,7 +39,7 @@ export function TestProviders({
   const testSession = session !== null ? (session || createMockSession({
     userId: REAL_USER_ID,
     tenantId: REAL_TENANT_ID,
-    email: 'pm1@demo.com',
+    email: 'pm1@test.com',
     name: 'Sarah Chen'
   })) : null;
 

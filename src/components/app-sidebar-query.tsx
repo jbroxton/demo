@@ -10,13 +10,11 @@ import {
   ChevronDown,
   Calendar,
   Package,
-  Layers,
   Target,
   CheckSquare,
   Rocket,
   Map,
   LogOut,
-  Puzzle,
   Plus,
   Settings,
   Trash2,
@@ -24,7 +22,7 @@ import {
   Search
 } from "lucide-react"
 import { getPageTypeIcon } from "@/utils/page-icons"
-import { getAllowedChildTypes, canHaveChildren } from "@/utils/page-parenting-rules"
+import { canHaveChildren } from "@/utils/page-parenting-rules"
 import { useAuth } from "@/hooks/use-auth"
 import { EntityCreator } from "@/components/entity-creator"
 import { PageContextMenu } from "@/components/page-context-menu"
@@ -400,19 +398,7 @@ export function AppSidebarQuery({ collapsed = false, ...props }: React.HTMLAttri
         )}
       </div>
       
-      {/* Products header */}
-      <div
-        className="flex items-center px-3 py-2"
-        data-section="products-header">
-        {!collapsed && <span className="text-xs font-medium text-[#a0a0a0] flex-grow uppercase tracking-wide">Products</span>}
-        <EntityCreator
-          entityType="product"
-          buttonVariant="ghost"
-          buttonSize="icon"
-          buttonClassName={`${collapsed ? 'mx-auto' : ''} w-4 h-4 p-0 rounded hover:bg-white/10 flex items-center justify-center transition-colors`}
-          iconOnly={true}
-        />
-      </div>
+     
       
      
 

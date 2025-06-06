@@ -49,24 +49,33 @@ export const GET = asyncHandler(async (request: NextRequest) => {
 
     // === QUERY PARSING ===
     const { searchParams } = new URL(request.url);
+    const limitParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
+    
     const queryParams = {
       actionId: searchParams.get('actionId') || undefined,
       status: searchParams.get('status') || undefined,
-      limit: parseInt(searchParams.get('limit') || '50'),
-      offset: parseInt(searchParams.get('offset') || '0')
+      limit: limitParam ? parseInt(limitParam, 10) : 50,
+      offset: offsetParam ? parseInt(offsetParam, 10) : 0
     };
+    
+    // Ensure parsed numbers are valid
+    if (isNaN(queryParams.limit)) queryParams.limit = 50;
+    if (isNaN(queryParams.offset)) queryParams.offset = 0;
 
     // Validate query parameters
     const validation = getConfirmationsSchema.safeParse(queryParams);
     if (!validation.success) {
-      return apiResponse.error('Invalid query parameters', 400);
+      console.error('[Agent Confirmations] Validation error:', validation.error);
+      console.error('[Agent Confirmations] Query params:', queryParams);
+      return apiResponse.error(`Invalid query parameters: ${validation.error.message}`, 400);
     }
 
     const { actionId, status, limit, offset } = validation.data;
     const userId = session.user.id;
     
     // Get user's tenant ID from session
-    const tenantId = (session as any).currentTenant;
+    const tenantId = session.user.tenantId;
     if (!tenantId) {
       return apiResponse.error('Tenant ID not found in session', 400);
     }

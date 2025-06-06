@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 
 // Import React Query hooks
@@ -38,26 +38,9 @@ export const useUnifiedPages = () => {
 
 // Provider component
 export const UnifiedStateProvider = ({ children }: { children: ReactNode }) => {
-  // Track if we're in the browser
-  const [isBrowser, setIsBrowser] = useState(false);
-  
-  // Set isBrowser on mount
-  useEffect(() => {
-    setIsBrowser(typeof window !== 'undefined');
-  }, []);
-  
-  // Only render the appropriate provider in the browser
-  if (!isBrowser) {
-    // Return a simplified version during SSR
-    return (
-      <UnifiedStateContext.Provider value={defaultContextValue}>
-        {children}
-      </UnifiedStateContext.Provider>
-    );
-  }
-  
   // Note: We've fully migrated to DB-backed storage so we always use it
   // We don't need to wrap with TanstackQueryProvider since it's already in AppProviders
+  // Since this is now wrapped in dynamic import with ssr: false, we can safely use DB-backed provider
   return (
     <DbBackedStateProvider>
       {children}

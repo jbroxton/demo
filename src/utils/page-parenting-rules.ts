@@ -4,7 +4,8 @@ import type { PageType } from '@/types/models/Page';
 export const PARENTING_RULES: Record<PageType, PageType[]> = {
   product: ['product', 'project', 'feature'],
   project: ['project', 'feature'],
-  feature: ['feature'],
+  feature: ['feature', 'requirement'],
+  requirement: [], // Requirements can't have children in hierarchy
   release: [], // Releases can't have children in hierarchy
   roadmap: [], // Roadmaps can't have children in hierarchy
   feedback: [], // Feedback can't have children in hierarchy
@@ -28,7 +29,7 @@ export function canHaveChildren(pageType: PageType): boolean {
 
 // Get all page types that can be top-level (no parent required)
 export function getTopLevelPageTypes(): PageType[] {
-  return ['product', 'project', 'feature', 'release', 'roadmap', 'feedback'];
+  return ['product', 'project', 'feature', 'requirement', 'release', 'roadmap', 'feedback'];
 }
 
 // Validation function for parent-child relationship
